@@ -52,12 +52,13 @@ func (c *Client) RegisterFunction(desc Function, h Handler) error {
 
 func (c *Client) Connect(ctx context.Context) error {
     // connect to Agent
-    cc, err := grpc.DialContext(ctx, c.cfg.Addr,
+    base := []grpc.DialOption{
         grpc.WithTransportCredentials(insecure.NewCredentials()),
         grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 30 * time.Second}),
         grpc.WithDefaultCallOptions(grpc.CallContentSubtype("json")),
-        interceptors.Chain(nil)...,
-    )
+    }
+    opts := append(base, interceptors.Chain(nil)...)
+    cc, err := grpc.DialContext(ctx, c.cfg.Addr, opts...)
     if err != nil { return err }
     c.conn = cc
     // start local server
@@ -114,4 +115,3 @@ func (s *localServer) StartJob(ctx context.Context, req *functionv1.InvokeReques
     return &functionv1.StartJobResponse{JobId: "job-"+req.GetFunctionId()}, nil
 }
 func (s *localServer) StreamJob(req *functionv1.JobStreamRequest, stream functionv1.FunctionService_StreamJobServer) error { return nil }
-
