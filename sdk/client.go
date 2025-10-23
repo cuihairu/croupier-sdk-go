@@ -38,14 +38,17 @@ func NewClient(cfg ClientConfig) *Client { return &Client{cfg: cfg} }
 func (c *Client) RegisterFunction(desc Function, h Handler) error {
     if c.l == nil {
         if c.cfg.LocalListen == "" { c.cfg.LocalListen = "127.0.0.1:0" }
+        if c.cfg.ServiceID == "" { c.cfg.ServiceID = "svc-1" }
         c.l = &localServer{
             listen: c.cfg.LocalListen,
             functions: map[string]string{},
             handlers: map[string]Handler{},
             schemas: map[string]map[string]any{},
-            serviceID: func(){ if c.cfg.ServiceID=="" { c.cfg.ServiceID = "svc-1" } }();
+            serviceID: c.cfg.ServiceID,
+            version: c.cfg.ServiceVersion,
         }
-        // set defaults after struct literal
+        // defaults
+        if c.l.version == "" { c.l.version = "0.1.0" }
         c.l.serviceID = c.cfg.ServiceID
         c.l.version = c.cfg.ServiceVersion
         if c.l.version == "" { c.l.version = "0.1.0" }
