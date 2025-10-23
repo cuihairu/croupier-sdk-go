@@ -21,6 +21,8 @@ import (
 type ClientConfig struct {
     Addr        string // agent address
     LocalListen string // local listener, e.g. 127.0.0.1:0
+    ServiceID   string // service identifier (for targeted routing)
+    ServiceVersion string // service version (optional)
 }
 
 // Client hosts handlers locally and registers to Agent.
@@ -41,8 +43,12 @@ func (c *Client) RegisterFunction(desc Function, h Handler) error {
             functions: map[string]string{},
             handlers: map[string]Handler{},
             schemas: map[string]map[string]any{},
-            serviceID: "svc-1", version: "0.1.0",
+            serviceID: func(){ if c.cfg.ServiceID=="" { c.cfg.ServiceID = "svc-1" } }();
         }
+        // set defaults after struct literal
+        c.l.serviceID = c.cfg.ServiceID
+        c.l.version = c.cfg.ServiceVersion
+        if c.l.version == "" { c.l.version = "0.1.0" }
     }
     c.l.functions[desc.ID] = desc.Version
     c.l.handlers[desc.ID] = h
