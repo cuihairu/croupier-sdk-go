@@ -5,6 +5,7 @@ import (
     "crypto/rand"
     "encoding/hex"
     "fmt"
+    "encoding/json"
     "net"
     "time"
 
@@ -126,6 +127,14 @@ func (c *Client) Serve(ctx context.Context) error {
 func (s *localServer) Invoke(ctx context.Context, req *functionv1.InvokeRequest) (*functionv1.InvokeResponse, error) {
     h, ok := s.handlers[req.GetFunctionId()]
     if !ok { return nil, fmt.Errorf("unknown function: %s", req.GetFunctionId()) }
+    // optional JSON schema validation if schema provided
+    if sch := s.schemas[req.GetFunctionId()]; sch != nil {
+        var val any
+        if len(req.GetPayload()) > 0 {
+            if err := json.Unmarshal(req.GetPayload(), &val); err != nil { return nil, fmt.Errorf("payload not valid JSON: %w", err) }
+        }
+        if err := ValidateJSON(sch, val); err != nil { return nil, fmt.Errorf("payload invalid: %w", err) }
+    }
     out, err := h(ctx, req.GetPayload())
     if err != nil { return nil, err }
     return &functionv1.InvokeResponse{Payload: out}, nil
