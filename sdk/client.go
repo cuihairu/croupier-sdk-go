@@ -15,6 +15,8 @@ import (
     functionv1 "github.com/cuihairu/croupier-sdk-go/stubs/function/v1"
     localv1 "github.com/cuihairu/croupier-sdk-go/stubs/agent/local/v1"
     "github.com/cuihairu/croupier-sdk-go/transport/interceptors"
+    // register json codec for lightweight stubs
+    _ "github.com/cuihairu/croupier-sdk-go/transport/jsoncodec"
 )
 
 // ClientConfig defines SDK client options.
@@ -110,6 +112,14 @@ func (s *localServer) start() error {
     functionv1.RegisterFunctionServiceServer(srv, s)
     go func(){ _ = srv.Serve(ln) }()
     return nil
+}
+
+// Serve is a helper that connects to Agent and blocks until ctx is done.
+// It returns any connect error immediately; local server keeps running in background.
+func (c *Client) Serve(ctx context.Context) error {
+    if err := c.Connect(ctx); err != nil { return err }
+    <-ctx.Done()
+    return c.Close()
 }
 
 // implement function service
