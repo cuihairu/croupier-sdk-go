@@ -37,6 +37,23 @@ func main(){
 }
 ```
 
+Core/Agent Invoker
+```go
+inv, _ := sdk.NewInvoker(context.Background(), sdk.InvokerConfig{
+  Address:  "127.0.0.1:19090", // FunctionService endpoint (Agent or Core)
+  Insecure: true,               // use mTLS in production
+  Timeout:  3 * time.Second,
+  GameID:   "default", Env: "dev",
+})
+defer inv.Close()
+inv.SetSchema("player.ban", map[string]any{"type":"object","required":[]any{"player_id"}})
+out, err := inv.Invoke(ctx, "player.ban", []byte(`{"player_id":"u-1"}`))
+// job flow:
+jobID, _ := inv.StartJob(ctx, "long.task", []byte(`{"x":1}`))
+ch, _ := inv.StreamJob(ctx, jobID); for ev := range ch { /* handle */ }
+_ = inv.CancelJob(ctx, jobID)
+```
+
 Install
 ```bash
 go get github.com/cuihairu/croupier-sdk-go@latest

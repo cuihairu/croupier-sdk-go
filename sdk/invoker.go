@@ -8,6 +8,8 @@ import (
     "io/ioutil"
     "encoding/json"
     "time"
+    "os"
+    "strings"
 
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials"
@@ -33,6 +35,9 @@ type InvokerConfig struct {
     // Default metadata
     GameID string
     Env    string
+    // Default outgoing headers (metadata) and a dynamic provider
+    Headers   map[string]string
+    HeaderFunc func(ctx context.Context) map[string]string
 }
 
 // Invoker wraps a FunctionService client connection.
@@ -108,7 +113,7 @@ func (i *Invoker) Invoke(ctx context.Context, functionID string, payload []byte,
         if err := ValidateJSON(sch, val); err != nil { return nil, err }
     }
     // set auth header if provided (best-effort via context)
-    if i.cfg.AuthToken != "" { ctx = withAuth(ctx, i.cfg.AuthToken) }
+    ctx = i.attachHeaders(ctx, nil)
     resp, err := i.cli.Invoke(ctx, req)
     if err != nil { return nil, err }
     return resp.GetPayload(), nil
@@ -127,7 +132,7 @@ func (i *Invoker) StartJob(ctx context.Context, functionID string, payload []byt
         }
         if err := ValidateJSON(sch, val); err != nil { return "", err }
     }
-    if i.cfg.AuthToken != "" { ctx = withAuth(ctx, i.cfg.AuthToken) }
+    ctx = i.attachHeaders(ctx, nil)
     resp, err := i.cli.StartJob(ctx, req)
     if err != nil { return "", err }
     return resp.GetJobId(), nil
@@ -136,7 +141,7 @@ func (i *Invoker) StartJob(ctx context.Context, functionID string, payload []byt
 // StreamJob subscribes events for a job id. Caller should read from the returned channel until closed.
 func (i *Invoker) StreamJob(ctx context.Context, jobID string) (<-chan *functionv1.JobEvent, error) {
     if jobID == "" { return nil, errors.New("missing job id") }
-    if i.cfg.AuthToken != "" { ctx = withAuth(ctx, i.cfg.AuthToken) }
+    ctx = i.attachHeaders(ctx, nil)
     stream, err := i.cli.StreamJob(ctx, &functionv1.JobStreamRequest{JobId: jobID})
     if err != nil { return nil, err }
     ch := make(chan *functionv1.JobEvent, 16)
@@ -147,7 +152,7 @@ func (i *Invoker) StreamJob(ctx context.Context, jobID string) (<-chan *function
 // CancelJob cancels a job by id.
 func (i *Invoker) CancelJob(ctx context.Context, jobID string) error {
     if jobID == "" { return errors.New("missing job id") }
-    if i.cfg.AuthToken != "" { ctx = withAuth(ctx, i.cfg.AuthToken) }
+    ctx = i.attachHeaders(ctx, nil)
     _, err := i.cli.CancelJob(ctx, &functionv1.CancelJobRequest{JobId: jobID})
     return err
 }
@@ -171,4 +176,35 @@ func loadClientTLS(certFile, keyFile, caFile string, serverName string) (credent
 func withAuth(ctx context.Context, token string) context.Context {
     md := metadata.Pairs("authorization", "Bearer "+token)
     return metadata.NewOutgoingContext(ctx, md)
+}
+
+// attachHeaders composes default headers, dynamic headers, auth token and extra headers into outgoing metadata.
+func (i *Invoker) attachHeaders(ctx context.Context, extra map[string]string) context.Context {
+    headers := map[string]string{}
+    // defaults
+    for k, v := range i.cfg.Headers { headers[strings.ToLower(k)] = v }
+    if i.cfg.AuthToken != "" { headers["authorization"] = "Bearer "+i.cfg.AuthToken }
+    if i.cfg.HeaderFunc != nil {
+        if m := i.cfg.HeaderFunc(ctx); m != nil { for k, v := range m { headers[strings.ToLower(k)] = v } }
+    }
+    for k, v := range extra { headers[strings.ToLower(k)] = v }
+    if len(headers) == 0 { return ctx }
+    pairs := []string{}
+    for k, v := range headers { pairs = append(pairs, k, v) }
+    md := metadata.Pairs(pairs...)
+    return metadata.NewOutgoingContext(ctx, md)
+}
+
+// SetSchemasFromDir loads descriptor JSON files under dir and registers schema to invoker for client-side validation.
+func (i *Invoker) SetSchemasFromDir(dir string) error {
+    entries, err := os.ReadDir(dir)
+    if err != nil { return err }
+    for _, e := range entries {
+        if e.IsDir() { continue }
+        if !strings.HasSuffix(e.Name(), ".json") { continue }
+        d, err := LoadDescriptor(dir+"/"+e.Name())
+        if err != nil { return err }
+        if d != nil && d.Params != nil { i.SetSchema(d.ID, d.Params) }
+    }
+    return nil
 }
