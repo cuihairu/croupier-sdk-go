@@ -1,5 +1,0 @@
-./client.go
-./descriptor.go
-./invoker.go
-./validate.go
-./validate_test.go
