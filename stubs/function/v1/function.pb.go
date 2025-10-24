@@ -27,6 +27,7 @@ type JobStreamRequest struct { JobId string `json:"job_id,omitempty"` }
 type JobEvent struct { Type string `json:"type,omitempty"`; Message string `json:"message,omitempty"`; Progress int32 `json:"progress,omitempty"`; Payload []byte `json:"payload,omitempty"` }
 
 type CancelJobRequest struct { JobId string `json:"job_id,omitempty"` }
+func (x *CancelJobRequest) GetJobId() string { if x==nil {return ""}; return x.JobId }
 
 // Service
 type FunctionServiceServer interface {

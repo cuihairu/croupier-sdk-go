@@ -84,7 +84,18 @@ type LocalControlServiceClient interface {
 }
 type localControlServiceClient struct { cc grpc.ClientConnInterface }
 func NewLocalControlServiceClient(cc grpc.ClientConnInterface) LocalControlServiceClient { return &localControlServiceClient{cc} }
-func (c *localControlServiceClient) RegisterLocal(ctx context.Context, in *RegisterLocalRequest, opts ...grpc.CallOption) (*RegisterLocalResponse, error) { out := new(RegisterLocalResponse); if err := c.cc.Invoke(ctx, "/croupier.agent.local.v1.LocalControlService/RegisterLocal", in, out, opts...); if err != nil { return nil, err }; return out, nil }
-func (c *localControlServiceClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) { out := new(HeartbeatResponse); if err := c.cc.Invoke(ctx, "/croupier.agent.local.v1.LocalControlService/Heartbeat", in, out, opts...); if err != nil { return nil, err }; return out, nil }
-func (c *localControlServiceClient) ListLocal(ctx context.Context, in *ListLocalRequest, opts ...grpc.CallOption) (*ListLocalResponse, error) { out := new(ListLocalResponse); if err := c.cc.Invoke(ctx, "/croupier.agent.local.v1.LocalControlService/ListLocal", in, out, opts...); if err != nil { return nil, err }; return out, nil }
-
+func (c *localControlServiceClient) RegisterLocal(ctx context.Context, in *RegisterLocalRequest, opts ...grpc.CallOption) (*RegisterLocalResponse, error) {
+    out := new(RegisterLocalResponse)
+    if err := c.cc.Invoke(ctx, "/croupier.agent.local.v1.LocalControlService/RegisterLocal", in, out, opts...); err != nil { return nil, err }
+    return out, nil
+}
+func (c *localControlServiceClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
+    out := new(HeartbeatResponse)
+    if err := c.cc.Invoke(ctx, "/croupier.agent.local.v1.LocalControlService/Heartbeat", in, out, opts...); err != nil { return nil, err }
+    return out, nil
+}
+func (c *localControlServiceClient) ListLocal(ctx context.Context, in *ListLocalRequest, opts ...grpc.CallOption) (*ListLocalResponse, error) {
+    out := new(ListLocalResponse)
+    if err := c.cc.Invoke(ctx, "/croupier.agent.local.v1.LocalControlService/ListLocal", in, out, opts...); err != nil { return nil, err }
+    return out, nil
+}

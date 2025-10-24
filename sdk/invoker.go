@@ -6,6 +6,7 @@ import (
     "crypto/x509"
     "errors"
     "io/ioutil"
+    "encoding/json"
     "time"
 
     "google.golang.org/grpc"
@@ -39,6 +40,7 @@ type Invoker struct {
     conn *grpc.ClientConn
     cli  functionv1.FunctionServiceClient
     cfg  InvokerConfig
+    schemas map[string]map[string]any
 }
 
 // NewInvoker dials the given address and returns an invoker.
@@ -62,7 +64,7 @@ func NewInvoker(ctx context.Context, cfg InvokerConfig) (*Invoker, error) {
     defer cancel()
     cc, err := grpc.DialContext(ctx, cfg.Address, dialOpts...)
     if err != nil { return nil, err }
-    return &Invoker{conn: cc, cli: functionv1.NewFunctionServiceClient(cc), cfg: cfg}, nil
+    return &Invoker{conn: cc, cli: functionv1.NewFunctionServiceClient(cc), cfg: cfg, schemas: map[string]map[string]any{}}, nil
 }
 
 // Close closes the underlying connection.
@@ -97,6 +99,14 @@ func (i *Invoker) Invoke(ctx context.Context, functionID string, payload []byte,
     if i.cfg.Env != "" { meta(req)["env"]=i.cfg.Env }
     // apply options
     for _, o := range opts { o(req) }
+    // optional client-side validation
+    if sch := i.schemas[functionID]; sch != nil {
+        var val any
+        if len(payload) > 0 {
+            if err := json.Unmarshal(payload, &val); err != nil { return nil, err }
+        }
+        if err := ValidateJSON(sch, val); err != nil { return nil, err }
+    }
     // set auth header if provided (best-effort via context)
     if i.cfg.AuthToken != "" { ctx = withAuth(ctx, i.cfg.AuthToken) }
     resp, err := i.cli.Invoke(ctx, req)
@@ -110,6 +120,13 @@ func (i *Invoker) StartJob(ctx context.Context, functionID string, payload []byt
     if i.cfg.GameID != "" { meta(req)["game_id"]=i.cfg.GameID }
     if i.cfg.Env != "" { meta(req)["env"]=i.cfg.Env }
     for _, o := range opts { o(req) }
+    if sch := i.schemas[functionID]; sch != nil {
+        var val any
+        if len(payload) > 0 {
+            if err := json.Unmarshal(payload, &val); err != nil { return "", err }
+        }
+        if err := ValidateJSON(sch, val); err != nil { return "", err }
+    }
     if i.cfg.AuthToken != "" { ctx = withAuth(ctx, i.cfg.AuthToken) }
     resp, err := i.cli.StartJob(ctx, req)
     if err != nil { return "", err }
@@ -130,10 +147,13 @@ func (i *Invoker) StreamJob(ctx context.Context, jobID string) (<-chan *function
 // CancelJob cancels a job by id.
 func (i *Invoker) CancelJob(ctx context.Context, jobID string) error {
     if jobID == "" { return errors.New("missing job id") }
-    if i.cfg.AuthToken != "" { if md, ok := fromAuth(i.cfg.AuthToken); ok { ctx = md } }
+    if i.cfg.AuthToken != "" { ctx = withAuth(ctx, i.cfg.AuthToken) }
     _, err := i.cli.CancelJob(ctx, &functionv1.CancelJobRequest{JobId: jobID})
     return err
 }
+
+// SetSchema sets a JSON schema for a function id; used for client-side validation.
+func (i *Invoker) SetSchema(functionID string, schema map[string]any) { if i.schemas == nil { i.schemas = map[string]map[string]any{} }; i.schemas[functionID] = schema }
 
 // helper: build TransportCredentials for TLS
 func loadClientTLS(certFile, keyFile, caFile string, serverName string) (credentials.TransportCredentials, error) {

@@ -143,3 +143,6 @@ func (s *localServer) StartJob(ctx context.Context, req *functionv1.InvokeReques
     return &functionv1.StartJobResponse{JobId: "job-"+req.GetFunctionId()}, nil
 }
 func (s *localServer) StreamJob(req *functionv1.JobStreamRequest, stream functionv1.FunctionService_StreamJobServer) error { return nil }
+func (s *localServer) CancelJob(ctx context.Context, req *functionv1.CancelJobRequest) (*functionv1.StartJobResponse, error) {
+    return &functionv1.StartJobResponse{JobId: req.GetJobId()}, nil
+}
