@@ -19,7 +19,7 @@ import (
     functionv1 "github.com/cuihairu/croupier-sdk-go/stubs/function/v1"
 )
 
-// InvokerConfig configures a client for calling Core/Agent FunctionService.
+// InvokerConfig configures a client for calling Server/Agent FunctionService.
 type InvokerConfig struct {
     Address   string
     Insecure  bool

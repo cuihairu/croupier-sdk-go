@@ -37,10 +37,10 @@ func main(){
 }
 ```
 
-Core/Agent Invoker
+Server/Agent Invoker
 ```go
 inv, _ := sdk.NewInvoker(context.Background(), sdk.InvokerConfig{
-  Address:  "127.0.0.1:19090", // FunctionService endpoint (Agent or Core)
+  Address:  "127.0.0.1:19090", // FunctionService endpoint (Agent or Server)
   Insecure: true,               // use mTLS in production
   Timeout:  3 * time.Second,
   GameID:   "default", Env: "dev",
@@ -61,5 +61,5 @@ go get github.com/cuihairu/croupier-sdk-go@latest
 
 Notes
 - API may evolve; JSON stubs are hand-written for lightweight dev use.
-- For end-to-end demo, run Croupier Core/Agent and the example above; after Agent registers, Core can route to your local handler.
+- For end-to-end demo, run Croupier Server/Agent and the example above; after Agent registers, Server can route to your local handler.
  - Validation errors return as "payload invalid: ..." from handler entry.
