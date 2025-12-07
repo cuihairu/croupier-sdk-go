@@ -15,12 +15,16 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-      - name: Setup buf
-        uses: bufbuild/buf-setup-action@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Generate proto
-        run: buf generate
+      - name: Add Go bin to PATH
+        run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+      - name: Generate proto (CI mode)
+        env:
+          CROUPIER_CI_BUILD: "1"
+        run: go run ./scripts/generate_proto.go
       - name: Go mod download
         run: go mod download
       - name: Run tests
