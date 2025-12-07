@@ -1,5 +1,7 @@
 # Croupier Go SDK
 
+[![Nightly Build](https://github.com/cuihairu/croupier-sdk-go/actions/workflows/nightly.yml/badge.svg)](https://github.com/cuihairu/croupier-sdk-go/actions/workflows/nightly.yml)
+
 Go SDK for Croupier game function registration and execution system.
 
 ## Overview
