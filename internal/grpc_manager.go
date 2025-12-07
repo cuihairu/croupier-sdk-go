@@ -1,3 +1,6 @@
+//go:build croupier_mock_grpc
+// +build croupier_mock_grpc
+
 package croupier
 
 import (
