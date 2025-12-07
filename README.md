@@ -4,6 +4,8 @@
 
 Go SDK for Croupier game function registration and execution system.
 
+> 与 [Croupier 主仓库](https://github.com/cuihairu/croupier) 的 proto / 控制面实现保持一致，可直接嵌入游戏服务器。
+
 ## Overview
 
 The Croupier Go SDK enables game servers to register functions with the Croupier system and handle incoming function calls through gRPC communication. This SDK is aligned with the official Croupier proto definitions.
