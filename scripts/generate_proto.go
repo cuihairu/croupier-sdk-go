@@ -27,10 +27,6 @@ func getProtoFiles(branch string) []ProtoFile {
 			URL:  fmt.Sprintf("%s/croupier/common/v1/ui.proto", baseURL),
 		},
 		{
-			Path: "croupier/common/v1/permission.proto",
-			URL:  fmt.Sprintf("%s/croupier/common/v1/permission.proto", baseURL),
-		},
-		{
 			Path: "croupier/agent/local/v1/local.proto",
 			URL:  fmt.Sprintf("%s/croupier/agent/local/v1/local.proto", baseURL),
 		},
