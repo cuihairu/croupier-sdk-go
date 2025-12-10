@@ -1,33 +1,106 @@
-# Croupier Go SDK
+<p align="center">
+  <h1 align="center">Croupier Go SDK</h1>
+  <p align="center">
+    <strong>高性能 Go SDK，用于 Croupier 游戏函数注册与执行系统</strong>
+  </p>
+</p>
 
-[![Nightly Build](https://github.com/cuihairu/croupier-sdk-go/actions/workflows/nightly.yml/badge.svg)](https://github.com/cuihairu/croupier-sdk-go/actions/workflows/nightly.yml)
+<p align="center">
+  <a href="https://github.com/cuihairu/croupier-sdk-go/actions/workflows/nightly.yml">
+    <img src="https://github.com/cuihairu/croupier-sdk-go/actions/workflows/nightly.yml/badge.svg" alt="Nightly Build">
+  </a>
+  <a href="https://www.apache.org/licenses/LICENSE-2.0">
+    <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License">
+  </a>
+  <a href="https://go.dev/">
+    <img src="https://img.shields.io/badge/Go-1.20+-00ADD8.svg" alt="Go Version">
+  </a>
+</p>
 
-Go SDK for Croupier game function registration and execution system.
+<p align="center">
+  <a href="#支持平台">
+    <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="Platform">
+  </a>
+  <a href="https://github.com/cuihairu/croupier">
+    <img src="https://img.shields.io/badge/Main%20Project-Croupier-green.svg" alt="Main Project">
+  </a>
+</p>
 
-> 与 [Croupier 主仓库](https://github.com/cuihairu/croupier) 的 proto / 控制面实现保持一致，可直接嵌入游戏服务器。
+---
 
-## Overview
+## 📋 目录
 
-The Croupier Go SDK enables game servers to register functions with the Croupier system and handle incoming function calls through gRPC communication. This SDK is aligned with the official Croupier proto definitions.
+- [简介](#简介)
+- [主项目](#主项目)
+- [其他语言 SDK](#其他语言-sdk)
+- [支持平台](#支持平台)
+- [核心特性](#核心特性)
+- [快速开始](#快速开始)
+- [使用示例](#使用示例)
+- [架构设计](#架构设计)
+- [API 参考](#api-参考)
+- [开发指南](#开发指南)
+- [贡献指南](#贡献指南)
+- [许可证](#许可证)
 
-## Features
+---
 
-- **Proto-aligned data structures**: All types match the official Croupier proto definitions
-- **Dual build system**: Mock implementation for local development, real gRPC for CI/production
-- **Multi-tenant support**: Built-in support for game_id/env isolation
-- **Function registration**: Register game functions with descriptors and handlers
-- **gRPC communication**: Efficient bi-directional communication with agents
-- **Error handling**: Comprehensive error handling and connection management
+## 简介
 
-## Quick Start
+Croupier Go SDK 是 [Croupier](https://github.com/cuihairu/croupier) 游戏后端平台的官方 Go 客户端实现。它提供了与官方 Croupier proto 定义对齐的数据结构、双构建系统（本地开发 Mock 和 CI/生产环境真实 gRPC）以及多租户支持。
 
-### Installation
+## 主项目
+
+| 项目 | 描述 | 链接 |
+|------|------|------|
+| **Croupier** | 游戏后端平台主项目 | [cuihairu/croupier](https://github.com/cuihairu/croupier) |
+| **Croupier Proto** | 协议定义（Protobuf/gRPC） | [cuihairu/croupier-proto](https://github.com/cuihairu/croupier-proto) |
+
+## 其他语言 SDK
+
+| 语言 | 仓库 | 状态 |
+|------|------|------|
+| **C++** | [cuihairu/croupier-sdk-cpp](https://github.com/cuihairu/croupier-sdk-cpp) | [![C++ Build](https://github.com/cuihairu/croupier-sdk-cpp/actions/workflows/nightly.yml/badge.svg)](https://github.com/cuihairu/croupier-sdk-cpp/actions/workflows/nightly.yml) |
+| **Java** | [cuihairu/croupier-sdk-java](https://github.com/cuihairu/croupier-sdk-java) | [![Java Build](https://github.com/cuihairu/croupier-sdk-java/actions/workflows/nightly.yml/badge.svg)](https://github.com/cuihairu/croupier-sdk-java/actions/workflows/nightly.yml) |
+| **JavaScript/TypeScript** | [cuihairu/croupier-sdk-js](https://github.com/cuihairu/croupier-sdk-js) | [![JS Build](https://github.com/cuihairu/croupier-sdk-js/actions/workflows/nightly.yml/badge.svg)](https://github.com/cuihairu/croupier-sdk-js/actions/workflows/nightly.yml) |
+| **Python** | [cuihairu/croupier-sdk-python](https://github.com/cuihairu/croupier-sdk-python) | [![Python Build](https://github.com/cuihairu/croupier-sdk-python/actions/workflows/nightly.yml/badge.svg)](https://github.com/cuihairu/croupier-sdk-python/actions/workflows/nightly.yml) |
+
+## 支持平台
+
+| 平台 | 架构 | 状态 |
+|------|------|------|
+| **Windows** | x64, x86 | ✅ 支持 |
+| **Linux** | x64, ARM64 | ✅ 支持 |
+| **macOS** | x64, ARM64 (Apple Silicon) | ✅ 支持 |
+
+## 核心特性
+
+- 📡 **Proto 对齐** - 所有类型与官方 Croupier proto 定义保持一致
+- 🔧 **双构建系统** - 本地开发使用 Mock 实现，CI/生产使用真实 gRPC
+- 🏢 **多租户支持** - 内置 game_id/env 隔离机制
+- 📝 **函数注册** - 使用描述符和处理器注册游戏函数
+- 🚀 **gRPC 通信** - 与 Agent 的高效双向通信
+- 🛡️ **错误处理** - 完善的错误处理和连接管理
+
+## 快速开始
+
+### 系统要求
+
+- **Go 1.20+**
+- **Protocol Buffers 编译器** (protoc)
+- **Go protoc 插件**:
+  ```bash
+  go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+  go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+  ```
+
+### 安装
 
 ```bash
 go get github.com/cuihairu/croupier/sdks/go
 ```
 
-### Basic Usage
+### 基础使用
 
 ```go
 package main
@@ -40,20 +113,20 @@ import (
 )
 
 func main() {
-    // Create client configuration
+    // 创建客户端配置
     config := &croupier.ClientConfig{
         AgentAddr:      "localhost:19090",
         GameID:         "my-game",
         Env:            "development",
         ServiceID:      "my-service",
         ServiceVersion: "1.0.0",
-        Insecure:       true, // For development
+        Insecure:       true, // 开发环境
     }
 
-    // Create client
+    // 创建客户端
     client := croupier.NewClient(config)
 
-    // Register a function
+    // 注册函数
     desc := croupier.FunctionDescriptor{
         ID:        "player.ban",
         Version:   "1.0.0",
@@ -65,7 +138,7 @@ func main() {
     }
 
     handler := func(ctx context.Context, payload string) (string, error) {
-        // Handle the function call
+        // 处理函数调用
         return `{"status":"success"}`, nil
     }
 
@@ -73,7 +146,7 @@ func main() {
         log.Fatal(err)
     }
 
-    // Start serving
+    // 启动服务
     ctx := context.Background()
     if err := client.Serve(ctx); err != nil {
         log.Fatal(err)
@@ -81,149 +154,146 @@ func main() {
 }
 ```
 
-## Data Types
+## 使用示例
 
-### FunctionDescriptor
+### 函数描述符
 
-Aligned with `control.proto`:
+与 `control.proto` 对齐：
 
 ```go
 type FunctionDescriptor struct {
-    ID        string // function id, e.g. "player.ban"
-    Version   string // semver, e.g. "1.2.0"
-    Category  string // grouping category
+    ID        string // 函数 ID，如 "player.ban"
+    Version   string // 语义化版本，如 "1.2.0"
+    Category  string // 分组类别
     Risk      string // "low"|"medium"|"high"
-    Entity    string // entity type, e.g. "player"
+    Entity    string // 实体类型，如 "player"
     Operation string // "create"|"read"|"update"|"delete"
-    Enabled   bool   // whether enabled
+    Enabled   bool   // 是否启用
 }
 ```
 
-### LocalFunctionDescriptor
+### 本地函数描述符
 
-Aligned with `agent/local/v1/local.proto`:
+与 `agent/local/v1/local.proto` 对齐：
 
 ```go
 type LocalFunctionDescriptor struct {
-    ID      string // function id
-    Version string // function version
+    ID      string // 函数 ID
+    Version string // 函数版本
 }
 ```
 
-## Configuration
+## 架构设计
 
-### ClientConfig
+### 数据流
 
-```go
-type ClientConfig struct {
-    // Connection
-    AgentAddr      string // Agent gRPC address
-    LocalListen    string // Local server address
-    TimeoutSeconds int    // Connection timeout
-    Insecure       bool   // Use insecure gRPC
-
-    // Multi-tenant isolation
-    GameID         string // Game identifier
-    Env            string // Environment (dev/staging/prod)
-    ServiceID      string // Service identifier
-    ServiceVersion string // Service version
-    AgentID        string // Agent identifier
-
-    // TLS (when not insecure)
-    CAFile   string // CA certificate
-    CertFile string // Client certificate
-    KeyFile  string // Private key
-}
+```
+Game Server → Go SDK → Agent → Croupier Server
 ```
 
-## Build Modes
+SDK 实现两层注册系统：
+1. **SDK → Agent**: 使用 `LocalControlService`（来自 `local.proto`）
+2. **Agent → Server**: 使用 `ControlService`（来自 `control.proto`）
 
-### Local Development (Mock gRPC)
+### 构建模式
 
-For local development, the SDK uses mock implementations:
-
+**本地开发（Mock gRPC）：**
 ```bash
 go build ./...
 go run examples/basic/main.go
 ```
 
-### CI/Production (Real gRPC)
-
-For CI builds with real proto-generated code:
-
+**CI/生产（真实 gRPC）：**
 ```bash
 export CROUPIER_CI_BUILD=ON
 go run scripts/generate_proto.go
 go build -tags croupier_real_grpc ./...
 ```
 
-The CI system automatically:
-1. Downloads proto files from main repository
-2. Generates gRPC Go code using protoc
-3. Builds with real gRPC implementation
-4. Runs tests and examples
+CI 系统自动：
+1. 从主仓库下载 proto 文件
+2. 使用 protoc 生成 gRPC Go 代码
+3. 使用真实 gRPC 实现构建
+4. 运行测试和示例
 
-## Architecture
+## API 参考
+
+### ClientConfig
+
+```go
+type ClientConfig struct {
+    // 连接配置
+    AgentAddr      string // Agent gRPC 地址
+    LocalListen    string // 本地服务器地址
+    TimeoutSeconds int    // 连接超时
+    Insecure       bool   // 使用不安全的 gRPC
+
+    // 多租户隔离
+    GameID         string // 游戏标识符
+    Env            string // 环境（dev/staging/prod）
+    ServiceID      string // 服务标识符
+    ServiceVersion string // 服务版本
+    AgentID        string // Agent 标识符
+
+    // TLS（非 insecure 模式）
+    CAFile   string // CA 证书
+    CertFile string // 客户端证书
+    KeyFile  string // 私钥
+}
+```
+
+### 错误处理
+
+SDK 提供完善的错误处理：
+
+- 连接失败自动重试
+- 函数注册验证
+- gRPC 通信错误
+- 上下文取消时优雅关闭
+
+## 开发指南
+
+### 项目结构
 
 ```
-Game Server → Go SDK → Agent → Croupier Server
+croupier-sdk-go/
+├── pkg/croupier/      # SDK 核心包
+├── examples/          # 示例程序
+├── scripts/           # 构建脚本
+└── go.mod             # Go 模块定义
 ```
 
-The SDK implements a two-layer registration system:
-1. **SDK → Agent**: Uses `LocalControlService` (from `local.proto`)
-2. **Agent → Server**: Uses `ControlService` (from `control.proto`)
-
-## Examples
-
-See the `examples/` directory for complete usage examples:
-
-- `examples/basic/`: Basic function registration and serving
-- More examples coming soon...
-
-## Development
-
-### Prerequisites
-
-- Go 1.20 or later
-- Protocol Buffers compiler (protoc)
-- Go protoc plugins:
-  ```bash
-  go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-  go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-  ```
-
-### Building
+### 构建命令
 
 ```bash
-# Local development (mock)
+# 本地开发（mock）
 make build
 
-# CI build (real gRPC)
+# CI 构建（真实 gRPC）
 make ci-build
 
-# Run tests
+# 运行测试
 make test
 
-# Generate proto code manually
+# 手动生成 proto 代码
 go run scripts/generate_proto.go
 ```
 
-## Error Handling
+## 贡献指南
 
-The SDK provides comprehensive error handling:
+1. 确保所有类型与 proto 定义对齐
+2. 为新功能添加测试
+3. 更新 API 变更的文档
+4. 测试本地和 CI 两种构建模式
 
-- Connection failures with automatic retry
-- Function registration validation
-- gRPC communication errors
-- Graceful shutdown on context cancellation
+## 许可证
 
-## Contributing
+本项目采用 [Apache License 2.0](LICENSE) 开源协议。
 
-1. Ensure all types align with proto definitions
-2. Add tests for new functionality
-3. Update documentation for API changes
-4. Test both local and CI build modes
+---
 
-## License
-
-See LICENSE file for details.
+<p align="center">
+  <a href="https://github.com/cuihairu/croupier">🏠 主项目</a> •
+  <a href="https://github.com/cuihairu/croupier-sdk-go/issues">🐛 问题反馈</a> •
+  <a href="https://github.com/cuihairu/croupier/discussions">💬 讨论区</a>
+</p>
