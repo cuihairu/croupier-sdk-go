@@ -6,7 +6,8 @@ require (
 	github.com/cuihairu/croupier v0.0.0-20251118233738-a49857081e46
 	github.com/fsnotify/fsnotify v1.9.0
 	google.golang.org/grpc v1.76.0
-	google.golang.org/protobuf v1.36.10
+	// 固定 protobuf 版本，与 protobuf 5.29.x (proto 29.x) 兼容
+	google.golang.org/protobuf v1.36.5
 )
 
 require (
