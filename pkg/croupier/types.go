@@ -54,6 +54,10 @@ type ClientConfig struct {
 	CAFile   string `json:"ca_file"`   // CA certificate file path
 	CertFile string `json:"cert_file"` // client certificate file path
 	KeyFile  string `json:"key_file"`  // client private key file path
+
+	// Logging settings
+	DisableLogging bool `json:"disable_logging"` // Disable all logging output
+	DebugLogging   bool `json:"debug_logging"`   // Enable debug logging
 }
 
 // DefaultClientConfig returns a default client configuration

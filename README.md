@@ -27,6 +27,26 @@ The Croupier Go SDK enables game servers to register functions with the Croupier
 go get github.com/cuihairu/croupier/sdks/go
 ```
 
+### Build Options
+
+The SDK supports two build modes:
+
+**1. Mock Mode (Default - No Dependencies)**
+```bash
+go build ./...
+```
+
+**2. Real gRPC Mode (Requires Proto Generation)**
+```bash
+# Generate gRPC code first
+./generate_proto.sh
+
+# Or use Makefile
+make build-with-grpc
+```
+
+For detailed proto generation instructions, see [PROTO_GENERATION.md](PROTO_GENERATION.md).
+
 ### Basic Usage
 
 ```go

@@ -91,7 +91,7 @@ func (i *invoker) Connect(ctx context.Context) error {
 	i.client = functionv1.NewFunctionServiceClient(conn)
 	i.connected = true
 
-	fmt.Printf("Connected to: %s\n", i.config.Address)
+	logInfof("Connected to: %s\n", i.config.Address)
 	return nil
 }
 

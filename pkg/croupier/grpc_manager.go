@@ -2,9 +2,12 @@ package croupier
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -250,21 +253,99 @@ func (g *grpcManager) IsConnected() bool {
 
 // createTLSCredentials creates TLS credentials for client connection
 func (g *grpcManager) createTLSCredentials() (credentials.TransportCredentials, error) {
-	if g.config.CAFile == "" && g.config.CertFile == "" && g.config.KeyFile == "" {
-		// Use system root CAs
-		return credentials.NewTLS(nil), nil
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
 	}
 
-	// Load custom certificates
-	// This is a simplified implementation - real implementation would
-	// handle CA files, client certificates, etc.
-	return credentials.NewTLS(nil), nil
+	// Load CA certificate
+	if g.config.CAFile != "" {
+		pemBytes, err := os.ReadFile(g.config.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("read CA file: %w", err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(pemBytes) {
+			return nil, fmt.Errorf("failed to append CA certificate")
+		}
+		tlsConfig.RootCAs = pool
+	} else {
+		// Use system root CAs
+		systemCAs, err := x509.SystemCertPool()
+		if err != nil {
+			// Fallback to empty pool if system CAs unavailable
+			systemCAs = x509.NewCertPool()
+		}
+		tlsConfig.RootCAs = systemCAs
+	}
+
+	// Load client certificate for mTLS
+	if g.config.CertFile != "" && g.config.KeyFile != "" {
+		cert, err := tls.LoadX509KeyPair(g.config.CertFile, g.config.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("load client certificate: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	}
+
+	// Configure server name verification
+	if g.config.ServerName != "" {
+		tlsConfig.ServerName = g.config.ServerName
+	} else if !g.config.InsecureSkipVerify {
+		// Extract server name from address
+		host, _, err := net.SplitHostPort(g.config.AgentAddr)
+		if err == nil && host != "" {
+			tlsConfig.ServerName = host
+		}
+	}
+
+	// Skip verification if explicitly requested
+	if g.config.InsecureSkipVerify {
+		tlsConfig.InsecureSkipVerify = true
+	}
+
+	return credentials.NewTLS(tlsConfig), nil
 }
 
 // createServerTLSCredentials creates TLS credentials for server
 func (g *grpcManager) createServerTLSCredentials() (credentials.TransportCredentials, error) {
-	// This would load server certificates in a real implementation
-	return credentials.NewTLS(nil), nil
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
+	// Load server certificate and key
+	if g.config.CertFile != "" && g.config.KeyFile != "" {
+		cert, err := tls.LoadX509KeyPair(g.config.CertFile, g.config.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("load server certificate: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	} else {
+		return nil, fmt.Errorf("server certificate and key files are required for TLS")
+	}
+
+	// Load CA certificate for client certificate verification
+	if g.config.CAFile != "" {
+		pemBytes, err := os.ReadFile(g.config.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("read CA file: %w", err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(pemBytes) {
+			return nil, fmt.Errorf("failed to append CA certificate")
+		}
+		tlsConfig.ClientCAs = pool
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+	} else {
+		// If no CA provided, don't require client certs but still use TLS
+		tlsConfig.ClientAuth = tls.NoClientCert
+	}
+
+	// Configure whether to verify client certificates
+	if g.config.InsecureSkipVerify {
+		tlsConfig.ClientAuth = tls.NoClientCert
+	}
+
+	return credentials.NewTLS(tlsConfig), nil
 }
 
 func (g *grpcManager) startHeartbeatLocked() {

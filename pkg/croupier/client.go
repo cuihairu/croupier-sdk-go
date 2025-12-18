@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"sync"
 	"time"
@@ -81,6 +82,9 @@ type client struct {
 	connected bool
 	running   bool
 	stopCh    chan struct{}
+
+	// Logging
+	logger Logger
 }
 
 // NewClient creates a new Croupier client
@@ -89,11 +93,20 @@ func NewClient(config *ClientConfig) Client {
 		config = DefaultClientConfig()
 	}
 
+	// Set up logger based on config
+	var logger Logger
+	if config.DisableLogging {
+		logger = &NoOpLogger{}
+	} else {
+		logger = NewDefaultLogger(config.DebugLogging, os.Stdout)
+	}
+
 	return &client{
 		config:      config,
 		handlers:    make(map[string]FunctionHandler),
 		descriptors: make(map[string]FunctionDescriptor),
 		stopCh:      make(chan struct{}),
+		logger:      logger,
 	}
 }
 
@@ -116,7 +129,7 @@ func (c *client) RegisterFunction(desc FunctionDescriptor, handler FunctionHandl
 
 	c.handlers[desc.ID] = handler
 	c.descriptors[desc.ID] = desc
-	fmt.Printf("Registered function: %s (version: %s)\n", desc.ID, desc.Version)
+	c.logger.Infof("Registered function: %s (version: %s)", desc.ID, desc.Version)
 	return nil
 }
 
@@ -129,7 +142,7 @@ func (c *client) Connect(ctx context.Context) error {
 		return nil
 	}
 
-	fmt.Printf("🔌 Connecting to Croupier Agent: %s\n", c.config.AgentAddr)
+	c.logger.Infof("Connecting to Croupier Agent: %s", c.config.AgentAddr)
 
 	// Initialize gRPC manager
 	grpcConfig := GRPCConfig{
@@ -171,12 +184,12 @@ func (c *client) Connect(ctx context.Context) error {
 	c.localAddr = c.grpcManager.GetLocalAddress()
 	c.connected = true
 
-	fmt.Printf("✅ Successfully connected and registered with Agent\n")
-	fmt.Printf("📍 Local service address: %s\n", c.localAddr)
-	fmt.Printf("🔑 Session ID: %s\n", c.sessionID)
+	c.logger.Infof("Successfully connected and registered with Agent"))
+	c.logger.Infof("Local service address: %s"), c.localAddr)
+	c.logger.Infof("Session ID: %s"), c.sessionID)
 
 	if err := c.registerCapabilities(ctx); err != nil {
-		fmt.Printf("⚠️ Failed to register capabilities: %v\n", err)
+		c.logger.Warnf("Failed to register capabilities: %v"), err)
 	}
 
 	return nil
@@ -191,11 +204,11 @@ func (c *client) Serve(ctx context.Context) error {
 	}
 
 	c.running = true
-	fmt.Printf("🚀 Croupier client service started\n")
-	fmt.Printf("📍 Local service address: %s\n", c.localAddr)
-	fmt.Printf("🎯 Registered functions: %d\n", len(c.handlers))
-	fmt.Printf("💡 Use Stop() to stop the service\n")
-	fmt.Printf("===============================================\n")
+	c.logger.Infof("Croupier client service started"))
+	c.logger.Infof("Local service address: %s"), c.localAddr)
+	c.logger.Infof("Registered functions: %d"), len(c.handlers))
+	c.logger.Infof("Use Stop() to stop the service"))
+	c.logger.Infof("==============================================="))
 
 	// Start local gRPC server
 	if err := c.grpcManager.StartServer(ctx); err != nil {
@@ -205,13 +218,13 @@ func (c *client) Serve(ctx context.Context) error {
 	// Wait for stop signal or context cancellation
 	select {
 	case <-c.stopCh:
-		fmt.Println("🛑 Service stopped by Stop() call")
+		c.logger.Infof("Service stopped by Stop() call")
 	case <-ctx.Done():
-		fmt.Println("🛑 Service stopped by context cancellation")
+		c.logger.Infof("Service stopped by context cancellation")
 	}
 
 	c.running = false
-	fmt.Println("🛑 Service has stopped")
+	c.logger.Infof("Service has stopped")
 	return nil
 }
 
@@ -220,14 +233,14 @@ func (c *client) Stop() error {
 	c.running = false
 	c.connected = false
 
-	fmt.Println("🛑 Stopping Croupier client...")
+	c.logger.Infof("Stopping Croupier client...")
 
 	if c.grpcManager != nil {
 		c.grpcManager.Disconnect()
 	}
 
 	close(c.stopCh)
-	fmt.Println("✅ Client stopped successfully")
+	c.logger.Infof("Client stopped successfully")
 	return nil
 }
 
@@ -309,7 +322,7 @@ func (c *client) registerCapabilities(ctx context.Context) error {
 		return err
 	}
 
-	fmt.Println("📤 Uploaded provider capabilities manifest")
+	c.logger.Infof("Uploaded provider capabilities manifest")
 	return nil
 }
 
@@ -345,21 +358,56 @@ func (c *client) dialControl(ctx context.Context) (*grpc.ClientConn, error) {
 }
 
 func (c *client) controlCredentials() (credentials.TransportCredentials, error) {
-	if c.config.CAFile == "" {
-		return credentials.NewTLS(&tls.Config{}), nil
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
 	}
 
-	pemBytes, err := os.ReadFile(c.config.CAFile)
-	if err != nil {
-		return nil, fmt.Errorf("read CA file: %w", err)
+	// Load CA certificate
+	if c.config.CAFile != "" {
+		pemBytes, err := os.ReadFile(c.config.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("read CA file: %w", err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(pemBytes) {
+			return nil, fmt.Errorf("failed to append CA certificate")
+		}
+		tlsConfig.RootCAs = pool
+	} else {
+		// Use system root CAs
+		systemCAs, err := x509.SystemCertPool()
+		if err != nil {
+			// Fallback to empty pool if system CAs unavailable
+			systemCAs = x509.NewCertPool()
+		}
+		tlsConfig.RootCAs = systemCAs
 	}
-	pool := x509.NewCertPool()
-	if !pool.AppendCertsFromPEM(pemBytes) {
-		return nil, fmt.Errorf("failed to append CA certificate")
+
+	// Load client certificate for mTLS
+	if c.config.CertFile != "" && c.config.KeyFile != "" {
+		cert, err := tls.LoadX509KeyPair(c.config.CertFile, c.config.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("load client certificate: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
 	}
-	tlsConfig := &tls.Config{
-		RootCAs: pool,
+
+	// Configure server name verification
+	if c.config.ServerName != "" {
+		tlsConfig.ServerName = c.config.ServerName
+	} else if !c.config.InsecureSkipVerify {
+		// Extract server name from address
+		host, _, err := net.SplitHostPort(c.config.ControlAddr)
+		if err == nil && host != "" {
+			tlsConfig.ServerName = host
+		}
 	}
+
+	// Skip verification if explicitly requested
+	if c.config.InsecureSkipVerify {
+		tlsConfig.InsecureSkipVerify = true
+	}
+
 	return credentials.NewTLS(tlsConfig), nil
 }
 

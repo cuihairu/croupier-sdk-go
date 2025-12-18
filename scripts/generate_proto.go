@@ -221,20 +221,44 @@ func main() {
 	fmt.Println("===============================")
 
 	// Check if we're in CI or local development
-	if !isCI() {
-		fmt.Println("Local development build detected, using mock gRPC implementation")
-		fmt.Println("To enable real gRPC, set CROUPIER_CI_BUILD=1")
-		return
+	isCI := isCI()
+	if !isCI {
+		fmt.Println("Local development build detected")
+		if os.Getenv("CROUPIER_SKIP_PROTO_GEN") != "" {
+			fmt.Println("CROUPIER_SKIP_PROTO_GEN is set, skipping proto generation")
+			fmt.Println("Using mock gRPC implementation")
+			return
+		}
+		fmt.Println("You can set CROUPIER_SKIP_PROTO_GEN=1 to skip proto generation")
+	} else {
+		fmt.Println("CI build detected, enabling proto generation...")
 	}
 
-	fmt.Println("CI build detected, enabling proto generation...")
-
 	// Check dependencies
+	fmt.Println("\nChecking dependencies...")
 	if err := checkProtocInstalled(); err != nil {
+		if !isCI {
+			fmt.Printf("⚠️  protoc not found: %v\n", err)
+			fmt.Println("Please install protoc:")
+			fmt.Println("  macOS: brew install protobuf")
+			fmt.Println("  Ubuntu: sudo apt-get install protobuf-compiler")
+			fmt.Println("  Or download from: https://github.com/protocolbuffers/protobuf/releases")
+			fmt.Println("\nSkipping proto generation, using mock implementation")
+			return
+		}
 		log.Fatalf("Dependency check failed: %v", err)
 	}
 
 	if err := checkGoProtocPlugins(); err != nil {
+		if !isCI {
+			fmt.Printf("⚠️  Go protoc plugins not found: %v\n", err)
+			fmt.Println("Please install go plugins:")
+			fmt.Println("  go install google.golang.org/protobuf/cmd/protoc-gen-go@latest")
+			fmt.Println("  go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest")
+			fmt.Println("  Make sure $GOPATH/bin is in your $PATH")
+			fmt.Println("\nSkipping proto generation, using mock implementation")
+			return
+		}
 		log.Fatalf("Go protoc plugin check failed: %v", err)
 	}
 
@@ -249,11 +273,19 @@ func main() {
 	genDir := "proto"
 
 	// Download proto files
+	fmt.Printf("\nDownloading proto files from branch '%s'...\n", branch)
 	if err := downloadProtoFiles(protoDir, branch); err != nil {
+		if !isCI {
+			fmt.Printf("⚠️  Failed to download proto files: %v\n", err)
+			fmt.Println("This might be due to network issues or an invalid branch name")
+			fmt.Println("Skipping proto generation, using mock implementation")
+			return
+		}
 		log.Fatalf("Failed to download proto files: %v", err)
 	}
 
 	// Generate gRPC code
+	fmt.Println("\nGenerating gRPC code...")
 	if err := generateGRPCCode(protoDir, genDir); err != nil {
 		log.Fatalf("Failed to generate gRPC code: %v", err)
 	}
@@ -265,7 +297,7 @@ func main() {
 
 package proto
 
-// This file is generated during CI builds when real gRPC proto files are available
+// This file is generated when real gRPC proto files are available
 const RealGRPCAvailable = true
 `
 
@@ -273,5 +305,7 @@ const RealGRPCAvailable = true
 		log.Printf("Warning: failed to create build tag file: %v", err)
 	}
 
-	fmt.Println("CI build setup completed with proto generation")
+	fmt.Println("\n✅ Proto generation completed successfully!")
+	fmt.Println("Real gRPC implementation is now available")
+	fmt.Println("Run 'go build ./...' with the tag croupier_real_grpc to use it")
 }
