@@ -9,6 +9,9 @@
   <a href="https://github.com/cuihairu/croupier-sdk-go/actions/workflows/nightly.yml">
     <img src="https://github.com/cuihairu/croupier-sdk-go/actions/workflows/nightly.yml/badge.svg" alt="Nightly Build">
   </a>
+  <a href="https://codecov.io/gh/cuihairu/croupier-sdk-go">
+    <img src="https://codecov.io/gh/cuihairu/croupier-sdk-go/branch/main/graph/badge.svg" alt="Coverage">
+  </a>
   <a href="https://www.apache.org/licenses/LICENSE-2.0">
     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License">
   </a>

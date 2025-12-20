@@ -65,6 +65,20 @@ jobs:
         cd sdk
         go test -tags croupier_real_grpc -v -race ./...
 
+    - name: Generate coverage (Go 1.25)
+      if: matrix.go-version == '1.25'
+      run: |
+        cd sdk
+        go test -tags croupier_real_grpc -coverprofile=coverage.out -covermode=atomic ./...
+
+    - name: Upload coverage to Codecov
+      if: matrix.go-version == '1.25'
+      uses: codecov/codecov-action@v5
+      with:
+        files: sdk/coverage.out
+        flags: go-sdk
+        fail_ci_if_error: false
+
     - name: Build examples
       run: |
         cd sdk
