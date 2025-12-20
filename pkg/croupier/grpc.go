@@ -34,4 +34,8 @@ type GRPCConfig struct {
 	CAFile         string
 	CertFile       string
 	KeyFile        string
+	ServerName     string
+
+	// skip TLS verification (not recommended)
+	InsecureSkipVerify bool
 }

@@ -146,13 +146,15 @@ func (c *client) Connect(ctx context.Context) error {
 
 	// Initialize gRPC manager
 	grpcConfig := GRPCConfig{
-		AgentAddr:      c.config.AgentAddr,
-		LocalListen:    c.config.LocalListen,
-		TimeoutSeconds: c.config.TimeoutSeconds,
-		Insecure:       c.config.Insecure,
-		CAFile:         c.config.CAFile,
-		CertFile:       c.config.CertFile,
-		KeyFile:        c.config.KeyFile,
+		AgentAddr:          c.config.AgentAddr,
+		LocalListen:        c.config.LocalListen,
+		TimeoutSeconds:     c.config.TimeoutSeconds,
+		Insecure:           c.config.Insecure,
+		CAFile:             c.config.CAFile,
+		CertFile:           c.config.CertFile,
+		KeyFile:            c.config.KeyFile,
+		ServerName:         c.config.ServerName,
+		InsecureSkipVerify: c.config.InsecureSkipVerify,
 	}
 
 	var err error
@@ -184,12 +186,12 @@ func (c *client) Connect(ctx context.Context) error {
 	c.localAddr = c.grpcManager.GetLocalAddress()
 	c.connected = true
 
-	c.logger.Infof("Successfully connected and registered with Agent"))
-	c.logger.Infof("Local service address: %s"), c.localAddr)
-	c.logger.Infof("Session ID: %s"), c.sessionID)
+	c.logger.Infof("Successfully connected and registered with Agent")
+	c.logger.Infof("Local service address: %s", c.localAddr)
+	c.logger.Infof("Session ID: %s", c.sessionID)
 
 	if err := c.registerCapabilities(ctx); err != nil {
-		c.logger.Warnf("Failed to register capabilities: %v"), err)
+		c.logger.Warnf("Failed to register capabilities: %v", err)
 	}
 
 	return nil
@@ -204,11 +206,11 @@ func (c *client) Serve(ctx context.Context) error {
 	}
 
 	c.running = true
-	c.logger.Infof("Croupier client service started"))
-	c.logger.Infof("Local service address: %s"), c.localAddr)
-	c.logger.Infof("Registered functions: %d"), len(c.handlers))
-	c.logger.Infof("Use Stop() to stop the service"))
-	c.logger.Infof("==============================================="))
+	c.logger.Infof("Croupier client service started")
+	c.logger.Infof("Local service address: %s", c.localAddr)
+	c.logger.Infof("Registered functions: %d", len(c.handlers))
+	c.logger.Infof("Use Stop() to stop the service")
+	c.logger.Infof("===============================================")
 
 	// Start local gRPC server
 	if err := c.grpcManager.StartServer(ctx); err != nil {

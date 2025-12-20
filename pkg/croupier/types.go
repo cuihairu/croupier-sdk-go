@@ -51,9 +51,13 @@ type ClientConfig struct {
 	Insecure       bool `json:"insecure"`        // use insecure gRPC (for development)
 
 	// TLS settings (when not insecure)
-	CAFile   string `json:"ca_file"`   // CA certificate file path
-	CertFile string `json:"cert_file"` // client certificate file path
-	KeyFile  string `json:"key_file"`  // client private key file path
+	CAFile     string `json:"ca_file"`     // CA certificate file path
+	CertFile   string `json:"cert_file"`   // client certificate file path
+	KeyFile    string `json:"key_file"`    // client private key file path
+	ServerName string `json:"server_name"` // override TLS server name verification
+
+	// TLS verification settings (when not insecure)
+	InsecureSkipVerify bool `json:"insecure_skip_verify"` // skip TLS verification (not recommended)
 
 	// Logging settings
 	DisableLogging bool `json:"disable_logging"` // Disable all logging output

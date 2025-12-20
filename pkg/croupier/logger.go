@@ -3,7 +3,6 @@ package croupier
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
