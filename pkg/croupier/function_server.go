@@ -75,7 +75,7 @@ func (s *functionServer) StartJob(ctx context.Context, req *functionv1.InvokeReq
 	s.jobs[jobID] = state
 	s.mu.Unlock()
 
-	state.events <- &functionv1.JobEvent{Type: "started", Message: "job started"}
+	state.events <- &functionv1.JobEvent{Type: "log", Message: "job started"}
 
 	go s.runJob(jobID, jobCtx, handler, req.GetPayload(), state.events)
 
@@ -94,7 +94,7 @@ func (s *functionServer) runJob(jobID string, jobCtx context.Context, handler Fu
 	if err != nil {
 		if jobCtx.Err() != nil {
 			ch <- &functionv1.JobEvent{
-				Type:    "cancelled",
+				Type:    "canceled",
 				Message: jobCtx.Err().Error(),
 			}
 		} else {
@@ -107,9 +107,9 @@ func (s *functionServer) runJob(jobID string, jobCtx context.Context, handler Fu
 	}
 
 	ch <- &functionv1.JobEvent{
-		Type:    "completed",
+		Type:    "done",
 		Payload: result,
-		Message: "job completed",
+		Message: "job done",
 	}
 }
 
