@@ -77,15 +77,69 @@ func DefaultClientConfig() *ClientConfig {
 	}
 }
 
+// ReconnectConfig holds configuration for automatic reconnection with exponential backoff
+type ReconnectConfig struct {
+	Enabled           bool    `json:"enabled"`            // enable automatic reconnection
+	MaxAttempts       int     `json:"max_attempts"`       // max reconnection attempts (0 = infinite)
+	InitialDelayMs    int     `json:"initial_delay_ms"`   // initial reconnection delay in milliseconds
+	MaxDelayMs        int     `json:"max_delay_ms"`       // maximum reconnection delay in milliseconds
+	BackoffMultiplier float64 `json:"backoff_multiplier"` // exponential backoff multiplier
+	JitterFactor      float64 `json:"jitter_factor"`      // jitter factor (0-1) to add randomness
+}
+
+// DefaultReconnectConfig returns a default reconnection configuration
+func DefaultReconnectConfig() *ReconnectConfig {
+	return &ReconnectConfig{
+		Enabled:           true,
+		MaxAttempts:       0,     // 0 = infinite retries
+		InitialDelayMs:    1000,  // 1 second
+		MaxDelayMs:        30000, // 30 seconds
+		BackoffMultiplier: 2.0,   // double each time
+		JitterFactor:      0.2,   // 20% jitter
+	}
+}
+
+// RetryConfig holds configuration for retrying failed invocations with exponential backoff
+type RetryConfig struct {
+	Enabled              bool    `json:"enabled"`                // enable retry on failure
+	MaxAttempts          int     `json:"max_attempts"`           // max retry attempts
+	InitialDelayMs       int     `json:"initial_delay_ms"`       // initial retry delay in milliseconds
+	MaxDelayMs           int     `json:"max_delay_ms"`           // maximum retry delay in milliseconds
+	BackoffMultiplier    float64 `json:"backoff_multiplier"`     // exponential backoff multiplier
+	JitterFactor         float64 `json:"jitter_factor"`          // jitter factor (0-1) to add randomness
+	RetryableStatusCodes []int32 `json:"retryable_status_codes"` // gRPC status codes that trigger retry
+}
+
+// DefaultRetryConfig returns a default retry configuration
+func DefaultRetryConfig() *RetryConfig {
+	return &RetryConfig{
+		Enabled:           true,
+		MaxAttempts:       3,
+		InitialDelayMs:    100,  // 100ms
+		MaxDelayMs:        5000, // 5 seconds
+		BackoffMultiplier: 2.0,  // double each time
+		JitterFactor:      0.1,  // 10% jitter
+		RetryableStatusCodes: []int32{
+			14, // UNAVAILABLE
+			13, // INTERNAL
+			2,  // UNKNOWN
+			10, // ABORTED
+			4,  // DEADLINE_EXCEEDED
+		},
+	}
+}
+
 // InvokerConfig holds configuration for the Croupier invoker
 type InvokerConfig struct {
-	Address        string        `json:"address"`         // server/agent address
-	TimeoutSeconds int           `json:"timeout_seconds"` // request timeout in seconds
-	Insecure       bool          `json:"insecure"`        // use insecure gRPC
-	CAFile         string        `json:"ca_file"`         // CA certificate file
-	CertFile       string        `json:"cert_file"`       // client certificate file
-	KeyFile        string        `json:"key_file"`        // client private key file
-	DefaultTimeout time.Duration `json:"-"`               // computed timeout duration
+	Address        string           `json:"address"`         // server/agent address
+	TimeoutSeconds int              `json:"timeout_seconds"` // request timeout in seconds
+	Insecure       bool             `json:"insecure"`        // use insecure gRPC
+	CAFile         string           `json:"ca_file"`         // CA certificate file
+	CertFile       string           `json:"cert_file"`       // client certificate file
+	KeyFile        string           `json:"key_file"`        // client private key file
+	DefaultTimeout time.Duration    `json:"-"`               // computed timeout duration
+	Reconnect      *ReconnectConfig `json:"reconnect"`       // reconnection configuration
+	Retry          *RetryConfig     `json:"retry"`           // retry configuration
 }
 
 // InvokeOptions provides options for function invocation
@@ -93,6 +147,7 @@ type InvokeOptions struct {
 	IdempotencyKey string            `json:"idempotency_key"` // idempotency key to prevent duplicate execution
 	Timeout        time.Duration     `json:"timeout"`         // request timeout
 	Headers        map[string]string `json:"headers"`         // custom headers
+	Retry          *RetryConfig      `json:"retry"`           // retry configuration override
 }
 
 // JobEvent represents a job execution event

@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
+	"math/rand"
 	"net"
 	"os"
 	"strings"
@@ -32,6 +34,12 @@ type invoker struct {
 
 	// Connection state
 	connected bool
+
+	// Reconnection state
+	isReconnecting      bool
+	reconnectAttempts   int
+	reconnectCancelCtx  context.CancelFunc
+	reconnectCancelFlag bool // flag to track if cancellation is active
 }
 
 // NewInvoker creates a new Croupier invoker
@@ -41,11 +49,23 @@ func NewInvoker(config *InvokerConfig) Invoker {
 			Address:        "localhost:8080",
 			TimeoutSeconds: 30,
 			Insecure:       true,
+			Reconnect:      DefaultReconnectConfig(),
+			Retry:          DefaultRetryConfig(),
 		}
 	}
 
 	if config.DefaultTimeout == 0 {
 		config.DefaultTimeout = time.Duration(config.TimeoutSeconds) * time.Second
+	}
+
+	// Set default reconnect config if not provided
+	if config.Reconnect == nil {
+		config.Reconnect = DefaultReconnectConfig()
+	}
+
+	// Set default retry config if not provided
+	if config.Retry == nil {
+		config.Retry = DefaultRetryConfig()
 	}
 
 	return &invoker{
@@ -56,6 +76,19 @@ func NewInvoker(config *InvokerConfig) Invoker {
 
 // Connect implements Invoker.Connect
 func (i *invoker) Connect(ctx context.Context) error {
+	err := i.connect(ctx)
+	if err != nil {
+		// Trigger reconnection if connection error and reconnection is enabled
+		if i.isConnectionError(err) {
+			i.scheduleReconnectIfNeeded()
+		}
+		return err
+	}
+	return nil
+}
+
+// connect performs the actual connection without triggering reconnection
+func (i *invoker) connect(ctx context.Context) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -63,7 +96,7 @@ func (i *invoker) Connect(ctx context.Context) error {
 		return nil
 	}
 
-	fmt.Printf("Connecting to server/agent at: %s\n", i.config.Address)
+	logInfof("Connecting to server/agent at: %s", i.config.Address)
 
 	// Setup connection options
 	var opts []grpc.DialOption
@@ -91,6 +124,10 @@ func (i *invoker) Connect(ctx context.Context) error {
 	i.client = functionv1.NewFunctionServiceClient(conn)
 	i.connected = true
 
+	// Reset reconnection attempts on successful connection
+	i.reconnectAttempts = 0
+	i.isReconnecting = false
+
 	logInfof("Connected to: %s\n", i.config.Address)
 	return nil
 }
@@ -98,7 +135,10 @@ func (i *invoker) Connect(ctx context.Context) error {
 // Invoke implements Invoker.Invoke
 func (i *invoker) Invoke(ctx context.Context, functionID, payload string, options InvokeOptions) (string, error) {
 	if !i.connected {
-		if err := i.Connect(ctx); err != nil {
+		if err := i.connect(ctx); err != nil {
+			if i.isConnectionError(err) {
+				i.scheduleReconnectIfNeeded()
+			}
 			return "", fmt.Errorf("not connected to server: %w", err)
 		}
 	}
@@ -110,54 +150,61 @@ func (i *invoker) Invoke(ctx context.Context, functionID, payload string, option
 		}
 	}
 
-	req := &functionv1.InvokeRequest{
-		FunctionId:     functionID,
-		IdempotencyKey: options.IdempotencyKey,
-		Payload:        []byte(payload),
-		Metadata:       map[string]string{},
-	}
-	for k, v := range options.Headers {
-		req.Metadata[k] = v
-	}
+	return i.executeWithRetry(ctx, options, func() (string, error) {
+		req := &functionv1.InvokeRequest{
+			FunctionId:     functionID,
+			IdempotencyKey: options.IdempotencyKey,
+			Payload:        []byte(payload),
+			Metadata:       map[string]string{},
+		}
+		for k, v := range options.Headers {
+			req.Metadata[k] = v
+		}
 
-	callCtx, cancel := i.callContext(ctx, options.Timeout)
-	defer cancel()
+		callCtx, cancel := i.callContext(ctx, options.Timeout)
+		defer cancel()
 
-	resp, err := i.client.Invoke(callCtx, req)
-	if err != nil {
-		return "", fmt.Errorf("invoke RPC failed: %w", err)
-	}
+		resp, err := i.client.Invoke(callCtx, req)
+		if err != nil {
+			return "", err
+		}
 
-	return string(resp.GetPayload()), nil
+		return string(resp.GetPayload()), nil
+	})
 }
 
 // StartJob implements Invoker.StartJob
 func (i *invoker) StartJob(ctx context.Context, functionID, payload string, options InvokeOptions) (string, error) {
 	if !i.connected {
-		if err := i.Connect(ctx); err != nil {
+		if err := i.connect(ctx); err != nil {
+			if i.isConnectionError(err) {
+				i.scheduleReconnectIfNeeded()
+			}
 			return "", fmt.Errorf("not connected to server: %w", err)
 		}
 	}
 
-	req := &functionv1.InvokeRequest{
-		FunctionId:     functionID,
-		IdempotencyKey: options.IdempotencyKey,
-		Payload:        []byte(payload),
-		Metadata:       map[string]string{},
-	}
-	for k, v := range options.Headers {
-		req.Metadata[k] = v
-	}
+	return i.executeWithRetry(ctx, options, func() (string, error) {
+		req := &functionv1.InvokeRequest{
+			FunctionId:     functionID,
+			IdempotencyKey: options.IdempotencyKey,
+			Payload:        []byte(payload),
+			Metadata:       map[string]string{},
+		}
+		for k, v := range options.Headers {
+			req.Metadata[k] = v
+		}
 
-	callCtx, cancel := i.callContext(ctx, options.Timeout)
-	defer cancel()
+		callCtx, cancel := i.callContext(ctx, options.Timeout)
+		defer cancel()
 
-	resp, err := i.client.StartJob(callCtx, req)
-	if err != nil {
-		return "", fmt.Errorf("start job RPC failed: %w", err)
-	}
+		resp, err := i.client.StartJob(callCtx, req)
+		if err != nil {
+			return "", err
+		}
 
-	return resp.GetJobId(), nil
+		return resp.GetJobId(), nil
+	})
 }
 
 // StreamJob implements Invoker.StreamJob
@@ -165,7 +212,10 @@ func (i *invoker) StreamJob(ctx context.Context, jobID string) (<-chan JobEvent,
 	eventCh := make(chan JobEvent, 10)
 
 	if !i.connected {
-		if err := i.Connect(ctx); err != nil {
+		if err := i.connect(ctx); err != nil {
+			if i.isConnectionError(err) {
+				i.scheduleReconnectIfNeeded()
+			}
 			close(eventCh)
 			return eventCh, fmt.Errorf("not connected to server: %w", err)
 		}
@@ -225,7 +275,10 @@ func (i *invoker) StreamJob(ctx context.Context, jobID string) (<-chan JobEvent,
 // CancelJob implements Invoker.CancelJob
 func (i *invoker) CancelJob(ctx context.Context, jobID string) error {
 	if !i.connected {
-		if err := i.Connect(ctx); err != nil {
+		if err := i.connect(ctx); err != nil {
+			if i.isConnectionError(err) {
+				i.scheduleReconnectIfNeeded()
+			}
 			return fmt.Errorf("not connected to server: %w", err)
 		}
 	}
@@ -246,7 +299,7 @@ func (i *invoker) SetSchema(functionID string, schema map[string]interface{}) er
 	defer i.mu.Unlock()
 
 	i.schemas[functionID] = schema
-	fmt.Printf("Set schema for function: %s\n", functionID)
+	logDebugf("Set schema for function: %s", functionID)
 	return nil
 }
 
@@ -255,8 +308,16 @@ func (i *invoker) Close() error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
+	// Cancel any pending reconnection
+	if i.reconnectCancelCtx != nil {
+		i.reconnectCancelCtx()
+		i.reconnectCancelCtx = nil
+	}
+
 	i.connected = false
 	i.client = nil
+	i.isReconnecting = false
+	i.reconnectAttempts = 0
 
 	if i.conn != nil {
 		i.conn.Close()
@@ -264,7 +325,7 @@ func (i *invoker) Close() error {
 	}
 
 	i.schemas = make(map[string]map[string]interface{})
-	fmt.Println("Invoker closed")
+	logInfof("Invoker closed")
 	return nil
 }
 
@@ -352,4 +413,231 @@ func buildTLSConfig(cfg *InvokerConfig) (*tls.Config, error) {
 	}
 
 	return tlsCfg, nil
+}
+
+// isConnectionError determines if an error is a connection-related error
+func (i *invoker) isConnectionError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	// Check for common connection error patterns
+	connectionPatterns := []string{
+		"connection refused",
+		"connection reset",
+		"broken pipe",
+		"network is unreachable",
+		"no such host",
+		"timeout",
+		"transport is closing",
+		"connection unavailable",
+	}
+	for _, pattern := range connectionPatterns {
+		if strings.Contains(strings.ToLower(errStr), pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// scheduleReconnectIfNeeded schedules a reconnection attempt if enabled
+func (i *invoker) scheduleReconnectIfNeeded() {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	// Check if reconnection is enabled
+	if !i.config.Reconnect.Enabled {
+		return
+	}
+
+	// Check if already reconnecting
+	if i.isReconnecting {
+		return
+	}
+
+	// Check max attempts
+	if i.config.Reconnect.MaxAttempts > 0 && i.reconnectAttempts >= i.config.Reconnect.MaxAttempts {
+		logInfof("Max reconnection attempts (%d) reached, giving up", i.config.Reconnect.MaxAttempts)
+		return
+	}
+
+	i.isReconnecting = true
+	i.reconnectAttempts++
+
+	delay := i.calculateReconnectDelay()
+	logInfof("Scheduling reconnection attempt %d in %v", i.reconnectAttempts, delay)
+
+	// Create a cancellable context for the reconnection
+	reconnectCtx, cancel := context.WithCancel(context.Background())
+	i.reconnectCancelCtx = cancel
+	i.reconnectCancelFlag = true
+
+	go func() {
+		defer func() {
+			i.mu.Lock()
+			if i.reconnectCancelFlag {
+				i.reconnectCancelCtx = nil
+				i.reconnectCancelFlag = false
+			}
+			i.mu.Unlock()
+			cancel()
+		}()
+
+		select {
+		case <-time.After(delay):
+			// Attempt reconnection
+			logInfof("Reconnecting... (attempt %d)", i.reconnectAttempts)
+			if err := i.connect(context.Background()); err != nil {
+				logInfof("Reconnection attempt %d failed: %v", i.reconnectAttempts, err)
+				// Schedule next attempt
+				i.scheduleReconnectIfNeeded()
+			} else {
+				logInfof("Reconnection successful")
+			}
+		case <-reconnectCtx.Done():
+			// Reconnection was cancelled
+			logInfof("Reconnection cancelled")
+		}
+	}()
+}
+
+// calculateReconnectDelay calculates the delay before next reconnection attempt
+func (i *invoker) calculateReconnectDelay() time.Duration {
+	cfg := i.config.Reconnect
+
+	// Calculate base delay using exponential backoff
+	baseDelay := time.Duration(cfg.InitialDelayMs) * time.Millisecond
+	exponentialDelay := baseDelay * time.Duration(math.Pow(float64(cfg.BackoffMultiplier), float64(i.reconnectAttempts-1)))
+
+	// Cap at max delay
+	maxDelay := time.Duration(cfg.MaxDelayMs) * time.Millisecond
+	if exponentialDelay > maxDelay {
+		exponentialDelay = maxDelay
+	}
+
+	// Add jitter to prevent thundering herd
+	jitter := time.Duration(float64(exponentialDelay) * cfg.JitterFactor)
+	// Random jitter in range [-jitter, +jitter]
+	randomJitter := time.Duration(float64(jitter) * (2*rand.Float64() - 1))
+
+	finalDelay := exponentialDelay + randomJitter
+	if finalDelay < 0 {
+		finalDelay = 0
+	}
+
+	return finalDelay
+}
+
+// executeWithRetry executes a function with retry logic
+func (i *invoker) executeWithRetry(ctx context.Context, options InvokeOptions, fn func() (string, error)) (string, error) {
+	// Use options retry if provided, otherwise use config retry
+	retryConfig := options.Retry
+	if retryConfig == nil {
+		retryConfig = i.config.Retry
+	}
+
+	// If retry is disabled, execute directly
+	if !retryConfig.Enabled {
+		return fn()
+	}
+
+	var lastErr error
+	maxAttempts := retryConfig.MaxAttempts
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		result, err := fn()
+		if err == nil {
+			return result, nil
+		}
+
+		lastErr = err
+
+		// Check if this is a retryable error
+		if !i.isRetryableError(err) || attempt >= maxAttempts-1 {
+			return "", fmt.Errorf("invoke failed after %d attempts: %w", attempt+1, err)
+		}
+
+		// Connection errors should trigger reconnection
+		if i.isConnectionError(err) && i.config.Reconnect.Enabled {
+			i.connected = false
+			i.scheduleReconnectIfNeeded()
+		}
+
+		// Calculate delay and wait
+		delay := i.calculateRetryDelay(attempt, retryConfig)
+		logInfof("Invocation attempt %d failed, retrying in %v: %v", attempt+1, delay, err)
+
+		select {
+		case <-time.After(delay):
+			// Continue to next attempt
+		case <-ctx.Done():
+			return "", fmt.Errorf("retry cancelled: %w", ctx.Err())
+		}
+	}
+
+	return "", fmt.Errorf("invoke failed after %d attempts: %w", maxAttempts, lastErr)
+}
+
+// isRetryableError checks if an error should trigger a retry based on gRPC status code
+func (i *invoker) isRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// Extract gRPC status code from error
+	// The error may contain status code information in its message
+	// For a production implementation, you would use status.FromError
+	errStr := err.Error()
+
+	for _, code := range i.config.Retry.RetryableStatusCodes {
+		// Check if error message contains status code indicators
+		// Common patterns: "code = XX", "Code: XX", etc.
+		if strings.Contains(errStr, fmt.Sprintf("code = %d", code)) ||
+			strings.Contains(errStr, fmt.Sprintf("Code(%d)", code)) {
+			return true
+		}
+	}
+
+	// Also check for common retryable error patterns
+	retryablePatterns := []string{
+		"unavailable",
+		"internal error",
+		"deadline exceeded",
+		"aborted",
+		"transport is closing",
+	}
+
+	errLower := strings.ToLower(errStr)
+	for _, pattern := range retryablePatterns {
+		if strings.Contains(errLower, pattern) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// calculateRetryDelay calculates the delay before next retry attempt
+func (i *invoker) calculateRetryDelay(attempt int, cfg *RetryConfig) time.Duration {
+	// Calculate base delay using exponential backoff
+	baseDelay := time.Duration(cfg.InitialDelayMs) * time.Millisecond
+	exponentialDelay := baseDelay * time.Duration(math.Pow(float64(cfg.BackoffMultiplier), float64(attempt)))
+
+	// Cap at max delay
+	maxDelay := time.Duration(cfg.MaxDelayMs) * time.Millisecond
+	if exponentialDelay > maxDelay {
+		exponentialDelay = maxDelay
+	}
+
+	// Add jitter to prevent thundering herd
+	jitter := time.Duration(float64(exponentialDelay) * cfg.JitterFactor)
+	// Random jitter in range [-jitter, +jitter]
+	randomJitter := time.Duration(float64(jitter) * (2*rand.Float64() - 1))
+
+	finalDelay := exponentialDelay + randomJitter
+	if finalDelay < 0 {
+		finalDelay = 0
+	}
+
+	return finalDelay
 }

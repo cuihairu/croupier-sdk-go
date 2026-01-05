@@ -91,7 +91,7 @@ func (g *grpcManager) Connect(ctx context.Context) error {
 	g.connected = true
 	g.localCli = localv1.NewLocalControlServiceClient(conn)
 
-	fmt.Printf("✅ Successfully connected to Agent: %s\n", g.config.AgentAddr)
+	logInfof("Successfully connected to Agent: %s", g.config.AgentAddr)
 	return nil
 }
 
@@ -124,7 +124,7 @@ func (g *grpcManager) Disconnect() {
 	}
 	g.localCli = nil
 
-	fmt.Println("📴 Disconnected from Agent")
+	logInfof("Disconnected from Agent")
 }
 
 // RegisterWithAgent implements GRPCManager.RegisterWithAgent
@@ -166,11 +166,8 @@ func (g *grpcManager) RegisterWithAgent(ctx context.Context, serviceID, serviceV
 		return "", fmt.Errorf("agent did not return a session ID")
 	}
 
-	fmt.Printf("📡 Registered service with Agent\n")
-	fmt.Printf("   Service ID: %s\n", serviceID)
-	fmt.Printf("   Version: %s\n", serviceVersion)
-	fmt.Printf("   Local Address: %s\n", g.localAddr)
-	fmt.Printf("   Functions: %d\n", len(pbFuncs))
+	logInfof("Registered service with Agent: ServiceID=%s, Version=%s, LocalAddr=%s, Functions=%d",
+		serviceID, serviceVersion, g.localAddr, len(pbFuncs))
 
 	g.sessionID = sessionID
 	g.serviceID = serviceID
@@ -225,7 +222,7 @@ func (g *grpcManager) StartServer(ctx context.Context) error {
 	}
 	functionv1.RegisterFunctionServiceServer(g.server, g.fnServer)
 
-	fmt.Printf("🚀 Local gRPC server started on: %s\n", g.localAddr)
+	logInfof("Local gRPC server started on: %s", g.localAddr)
 
 	// Start serving in a goroutine
 	go func() {

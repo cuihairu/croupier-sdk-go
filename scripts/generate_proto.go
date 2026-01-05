@@ -229,7 +229,7 @@ func main() {
 			fmt.Println("Using mock gRPC implementation")
 			return
 		}
-		fmt.Println("You can set CROUPIER_SKIP_PROTO_GEN=1 to skip proto generation")
+		fmt.Println("Tip: Set CROUPIER_SKIP_PROTO_GEN=1 to skip proto generation and use mock implementation")
 	} else {
 		fmt.Println("CI build detected, enabling proto generation...")
 	}
