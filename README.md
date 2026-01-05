@@ -89,7 +89,7 @@ Croupier Go SDK 是 [Croupier](https://github.com/cuihairu/croupier) 游戏后�
 
 ### 系统要求
 
-- **Go 1.20+**
+- **Go 1.25**
 - **Protocol Buffers 编译器** (protoc)
 - **Go protoc 插件**:
   ```bash

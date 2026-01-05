@@ -1,6 +1,6 @@
 module github.com/cuihairu/croupier/sdks/go
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/cuihairu/croupier v0.0.0-20251118233738-a49857081e46

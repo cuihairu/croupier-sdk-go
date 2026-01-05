@@ -9,9 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ['1.24', '1.25']
 
     steps:
     - name: Checkout SDK repository
@@ -29,7 +26,7 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go-version }}
+        go-version: '1.25'
         cache: true
         cache-dependency-path: sdk/go.sum
 
@@ -60,20 +57,12 @@ jobs:
         cd sdk
         go build -tags croupier_real_grpc -v ./...
 
-    - name: Run tests
-      if: matrix.go-version != '1.25'
-      run: |
-        cd sdk
-        go test -tags croupier_real_grpc -v -race ./...
-
-    - name: Run tests + coverage (Go 1.25)
-      if: matrix.go-version == '1.25'
+    - name: Run tests with coverage
       run: |
         cd sdk
         go test -tags croupier_real_grpc -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
     - name: Upload coverage to Codecov
-      if: matrix.go-version == '1.25'
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -89,7 +78,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: croupier-go-sdk-${{ matrix.go-version }}
+        name: croupier-go-sdk
         path: |
           sdk/proto/
           sdk/examples/
