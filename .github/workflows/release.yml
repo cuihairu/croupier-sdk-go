@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Add Go bin to PATH
+        run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Generate proto (CI mode)
+        env:
+          CROUPIER_CI_BUILD: "1"
+        run: go run ./scripts/generate_proto.go
+
+      - name: Go mod download
+        run: go mod download
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build
+        run: |
+          mkdir -p dist
+          go build -o dist/croupier-sdk-go ./...
+
+      - name: Package
+        run: |
+          mkdir -p artifacts
+          tar -czf "artifacts/croupier-go-sdk-${GITHUB_REF_NAME}.tar.gz" \
+            --exclude='.git*' \
+            --exclude='*.md' \
+            --exclude='docs' \
+            --exclude='examples' \
+            --exclude='tests' \
+            .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
