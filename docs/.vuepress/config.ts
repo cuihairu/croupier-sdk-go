@@ -16,7 +16,7 @@ export default defineUserConfig({
     ['meta', { property: 'og:title', content: 'Croupier Go SDK' }],
     ['meta', { property: 'og:site_name', content: 'Croupier Go SDK' }],
   ],
-  base: '/',
+  base: '/croupier-sdk-go/',
   bundler: viteBundler({
     viteOptions: {
       build: {
