@@ -16,7 +16,7 @@
     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License">
   </a>
   <a href="https://go.dev/">
-    <img src="https://img.shields.io/badge/Go-1.20+-00ADD8.svg" alt="Go Version">
+    <img src="https://img.shields.io/badge/Go-1.25+-00ADD8.svg" alt="Go Version">
   </a>
 </p>
 
