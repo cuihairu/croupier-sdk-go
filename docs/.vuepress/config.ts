@@ -31,6 +31,7 @@ export default defineUserConfig({
     lastUpdated: true,
     lastUpdatedText: '最后更新',
     contributors: false,
+    logo: '/logo.png',
 
     navbar: [
       {

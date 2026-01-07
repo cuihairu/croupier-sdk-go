@@ -2,6 +2,7 @@
 home: true
 title: Croupier Go SDK
 titleTemplate: false
+heroImage: /logo.png
 heroText: Croupier Go SDK
 tagline: 高性能 Go SDK，用于 Croupier 游戏函数注册与执行系统
 actions:
