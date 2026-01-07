@@ -5,8 +5,38 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+env:
+  SDK_VERSION_BASE: "0.1"
+
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_tag: ${{ steps.version.outputs.version_tag }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Generate Version
+      id: version
+      run: |
+        DATE=$(date +%Y%m%d)
+        COMMIT_SHORT=$(git rev-parse --short HEAD)
+        VERSION="${SDK_VERSION_BASE}.0-nightly.${DATE}.${COMMIT_SHORT}"
+        VERSION_TAG="nightly-${DATE}-${COMMIT_SHORT}"
+
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "version_tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
+
+        echo "Generated version: ${VERSION}"
+
   build:
+    needs: version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,6 +45,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
+          cache: true
       - name: Add Go bin to PATH
         run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
       - name: Install protoc
@@ -28,6 +59,89 @@ jobs:
       - name: Go mod download
         run: go mod download
       - name: Run tests
-        run: go test ./...
+        run: go test ./... -v -cover
       - name: Build
         run: go build ./...
+
+      # Package the SDK
+      - name: Create package
+        run: |
+          mkdir -p dist
+
+          # Create source archive
+          git archive --format=tar.gz --prefix=croupier-sdk-go/ HEAD > dist/croupier-sdk-go-${{ needs.version.outputs.version }}.tar.gz
+
+          # Build binaries for examples
+          mkdir -p bin
+          go build -o bin/croupier-example ./examples/basic/
+          go build -o bin/croupier-complete-example ./examples/complete/
+
+          # Create examples archive
+          tar -czf dist/croupier-sdk-go-examples-${{ needs.version.outputs.version }}.tar.gz bin/
+
+          echo "📦 Packages created:"
+          ls -la dist/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: croupier-sdk-go-packages
+          path: dist/*
+          retention-days: 30
+
+  release:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: croupier-sdk-go-packages
+          path: release_assets/
+
+      - name: Generate Release Notes
+        run: |
+          cat << EOF > RELEASE_NOTES.md
+          # Croupier Go SDK Nightly Build ${{ needs.version.outputs.version }}
+
+          ## 📦 Available Packages
+
+          - 📦 Source: \`croupier-sdk-go-*.tar.gz\`
+          - 📦 Examples: \`croupier-sdk-go-examples-*.tar.gz\`
+
+          ## 🛠️ Build Information
+          - Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          - Commit: ${{ github.sha }}
+          - Workflow: ${{ github.run_id }}
+          - Version Tag: ${{ needs.version.outputs.version_tag }}
+
+          ---
+          ⚠️ **This is a nightly build and may be unstable.** For stable releases, please use the official tagged releases.
+
+          ## Installation
+
+          \`\`\`bash
+          # Download and extract
+          tar -xzf croupier-sdk-go-${{ needs.version.outputs.version }}.tar.gz
+          cd croupier-sdk-go
+
+          # Install
+          go install ./...
+          \`\`\`
+          EOF
+
+      - name: Create Nightly Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.version_tag }}
+          name: "Croupier Go SDK Nightly ${{ needs.version.outputs.version }}"
+          body_path: RELEASE_NOTES.md
+          files: release_assets/*
+          draft: false
+          prerelease: true
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
