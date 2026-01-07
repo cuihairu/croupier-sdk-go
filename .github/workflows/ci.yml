@@ -60,7 +60,11 @@ jobs:
     - name: Run tests with coverage
       run: |
         cd sdk
-        go test -tags croupier_real_grpc -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        # Run tests for main package only (exclude proto-generated code which drags down coverage)
+        go test -tags croupier_real_grpc -v -race -coverprofile=coverage.out -covermode=atomic ./pkg/croupier
+
+        # Run tests for proto packages without coverage (they are generated code)
+        go test -tags croupier_real_grpc -v -race ./pkg/...
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
