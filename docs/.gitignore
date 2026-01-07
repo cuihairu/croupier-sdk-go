@@ -1,0 +1,4 @@
+# VuePress build output
+.vuepress/dist/
+.vuepress/.temp/
+node_modules/
