@@ -9,8 +9,8 @@ import (
 
 	functionv1 "github.com/cuihairu/croupier/pkg/pb/croupier/function/v1"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 func TestFunctionServer_NewFunctionServer(t *testing.T) {
@@ -141,7 +141,7 @@ func TestFunctionServer_Invoke(t *testing.T) {
 					t.Errorf("expected gRPC status error, got %v", err)
 					return
 				}
-			 if st.Code() != tt.wantCode {
+				if st.Code() != tt.wantCode {
 					t.Errorf("expected code %v, got %v", tt.wantCode, st.Code())
 				}
 				return
@@ -276,9 +276,9 @@ func TestFunctionServer_CancelJob(t *testing.T) {
 	s := newFunctionServer(handlers)
 
 	tests := []struct {
-		name    string
-		jobID   string
-		wantErr bool
+		name     string
+		jobID    string
+		wantErr  bool
 		wantCode codes.Code
 	}{
 		{
@@ -287,15 +287,15 @@ func TestFunctionServer_CancelJob(t *testing.T) {
 			wantErr: false, // CancelJob returns success even if job doesn't exist
 		},
 		{
-			name:    "empty job id",
-			jobID:   "",
-			wantErr: true,
+			name:     "empty job id",
+			jobID:    "",
+			wantErr:  true,
 			wantCode: codes.InvalidArgument,
 		},
 		{
-			name:    "nil request",
-			jobID:   "",
-			wantErr: true,
+			name:     "nil request",
+			jobID:    "",
+			wantErr:  true,
 			wantCode: codes.InvalidArgument,
 		},
 	}
@@ -835,7 +835,7 @@ func TestFunctionServer_StreamJobSendError(t *testing.T) {
 
 	// Create a mock stream that returns an error on Send
 	mockStream := &mockStreamServer{
-		t: t,
+		t:         t,
 		sendError: fmt.Errorf("stream send error"),
 	}
 
@@ -912,4 +912,3 @@ func TestFunctionServer_StreamJobMultipleJobs(t *testing.T) {
 		}
 	}
 }
-

@@ -342,7 +342,7 @@ func TestGRPCManager_createTLSCredentials(t *testing.T) {
 		{
 			name: "insecure skip verify",
 			config: GRPCConfig{
-				Insecure:          true,
+				Insecure:           true,
 				InsecureSkipVerify: true,
 			},
 			wantErr: false,
@@ -699,9 +699,9 @@ func TestGRPCManager_ConnectTimeout(t *testing.T) {
 	t.Parallel()
 
 	config := GRPCConfig{
-		LocalListen:   "127.0.0.1:0",
-		AgentAddr:     "127.0.0.1:19090",
-		Insecure:      true,
+		LocalListen:    "127.0.0.1:0",
+		AgentAddr:      "127.0.0.1:19090",
+		Insecure:       true,
 		TimeoutSeconds: 1,
 	}
 	handlers := map[string]FunctionHandler{}
@@ -865,7 +865,7 @@ func TestGRPCManager_createServerTLSCredentialsWithCert(t *testing.T) {
 	config := GRPCConfig{
 		LocalListen: "127.0.0.1:0",
 		AgentAddr:   "127.0.0.1:19090",
-		Insecure:   false, // Use TLS
+		Insecure:    false, // Use TLS
 		CertFile:    "/nonexistent/cert.pem",
 		KeyFile:     "/nonexistent/key.pem",
 	}
@@ -895,7 +895,7 @@ func TestGRPCManager_createServerTLSCredentialsInsecure(t *testing.T) {
 	config := GRPCConfig{
 		LocalListen: "127.0.0.1:0",
 		AgentAddr:   "127.0.0.1:19090",
-		Insecure:   true, // Insecure mode
+		Insecure:    true, // Insecure mode
 	}
 	handlers := map[string]FunctionHandler{}
 
@@ -1142,8 +1142,8 @@ func TestGRPCManager_createTLSCredentialsWithCAFile(t *testing.T) {
 	config := GRPCConfig{
 		LocalListen: "127.0.0.1:0",
 		AgentAddr:   "127.0.0.1:19090",
-		Insecure:   false,
-		CAFile:     tmpfile.Name(),
+		Insecure:    false,
+		CAFile:      tmpfile.Name(),
 	}
 	handlers := map[string]FunctionHandler{}
 
@@ -1191,7 +1191,7 @@ func TestGRPCManager_createTLSCredentialsWithCertKeyPair(t *testing.T) {
 	config := GRPCConfig{
 		LocalListen: "127.0.0.1:0",
 		AgentAddr:   "127.0.0.1:19090",
-		Insecure:   false,
+		Insecure:    false,
 		CertFile:    tmpCert.Name(),
 		KeyFile:     tmpKey.Name(),
 	}
@@ -1229,7 +1229,7 @@ func TestGRPCManager_createTLSCredentialsWithOnlyCert(t *testing.T) {
 	config := GRPCConfig{
 		LocalListen: "127.0.0.1:0",
 		AgentAddr:   "127.0.0.1:19090",
-		Insecure:   false,
+		Insecure:    false,
 		CertFile:    tmpCert.Name(),
 		// KeyFile not provided
 	}
@@ -1262,8 +1262,8 @@ func TestGRPCManager_createTLSCredentialsInvalidCA(t *testing.T) {
 	config := GRPCConfig{
 		LocalListen: "127.0.0.1:0",
 		AgentAddr:   "127.0.0.1:19090",
-		Insecure:   false,
-		CAFile:     "/nonexistent/ca.pem",
+		Insecure:    false,
+		CAFile:      "/nonexistent/ca.pem",
 	}
 	handlers := map[string]FunctionHandler{}
 
@@ -1320,10 +1320,10 @@ func TestGRPCManager_createServerTLSCredentialsWithCA(t *testing.T) {
 	config := GRPCConfig{
 		LocalListen: "127.0.0.1:0",
 		AgentAddr:   "127.0.0.1:19090",
-		Insecure:   false,
-		CertFile:   tmpCert.Name(),
-		KeyFile:    tmpKey.Name(),
-		CAFile:     tmpCA.Name(),
+		Insecure:    false,
+		CertFile:    tmpCert.Name(),
+		KeyFile:     tmpKey.Name(),
+		CAFile:      tmpCA.Name(),
 	}
 	handlers := map[string]FunctionHandler{}
 
@@ -1416,9 +1416,9 @@ func TestGRPCManager_createServerTLSCredentialsWithoutCA(t *testing.T) {
 	config := GRPCConfig{
 		LocalListen: "127.0.0.1:0",
 		AgentAddr:   "127.0.0.1:19090",
-		Insecure:   false,
-		CertFile:   tmpCert.Name(),
-		KeyFile:    tmpKey.Name(),
+		Insecure:    false,
+		CertFile:    tmpCert.Name(),
+		KeyFile:     tmpKey.Name(),
 		// No CAFile
 	}
 	handlers := map[string]FunctionHandler{}
@@ -1529,9 +1529,9 @@ func TestGRPCManager_RegisterWithAgentWithEmptyFunctionID(t *testing.T) {
 	impl.localAddr = "127.0.0.1:12345"
 
 	functions := []LocalFunctionDescriptor{
-		{ID: "", Version: "1.0.0"},        // Empty ID - should be filtered
+		{ID: "", Version: "1.0.0"},         // Empty ID - should be filtered
 		{ID: "valid_fn", Version: "1.0.0"}, // Valid ID
-		{ID: "", Version: "2.0.0"},        // Another empty ID
+		{ID: "", Version: "2.0.0"},         // Another empty ID
 	}
 
 	// Should fail due to no actual client, but verify function filtering works
@@ -1581,7 +1581,7 @@ func TestGRPCManager_startHeartbeatWithNilLocalCli(t *testing.T) {
 
 	config := GRPCConfig{
 		AgentAddr: "127.0.0.1:19090",
-		Insecure: true,
+		Insecure:  true,
 	}
 	handlers := map[string]FunctionHandler{}
 
@@ -1614,7 +1614,7 @@ func TestGRPCManager_startHeartbeatWithEmptySessionID(t *testing.T) {
 
 	config := GRPCConfig{
 		AgentAddr: "127.0.0.1:19090",
-		Insecure: true,
+		Insecure:  true,
 	}
 	handlers := map[string]FunctionHandler{}
 

@@ -1171,8 +1171,8 @@ func TestInvoker_calculateRetryDelayNoBackoff(t *testing.T) {
 	t.Parallel()
 
 	config := &RetryConfig{
-		MaxAttempts:     3,
-		InitialDelayMs:   10,
+		MaxAttempts:       3,
+		InitialDelayMs:    10,
 		BackoffMultiplier: 1.0, // No backoff - same delay
 	}
 
@@ -2174,12 +2174,12 @@ func TestInvoker_StartJobWithVariousOptions(t *testing.T) {
 		t.Parallel()
 
 		customRetry := &RetryConfig{
-			Enabled:          false, // Disable retry for faster failure
-			MaxAttempts:      1,
-			InitialDelayMs:   10,
-			MaxDelayMs:       100,
+			Enabled:           false, // Disable retry for faster failure
+			MaxAttempts:       1,
+			InitialDelayMs:    10,
+			MaxDelayMs:        100,
 			BackoffMultiplier: 2.0,
-			JitterFactor:     0.1,
+			JitterFactor:      0.1,
 		}
 
 		opts := InvokeOptions{
@@ -2204,7 +2204,7 @@ func TestInvoker_ValidatePayloadWithComplexSchema(t *testing.T) {
 	}).(*invoker)
 
 	schema := map[string]any{
-		"type": "object",
+		"type":     "object",
 		"required": []string{"name", "age"},
 		"properties": map[string]any{
 			"name": map[string]any{
@@ -2393,7 +2393,7 @@ func TestInvoker_StreamJobWithReconnectEnabled(t *testing.T) {
 		Address:  "127.0.0.1:19997", // Port unlikely to have server
 		Insecure: true,
 		Reconnect: &ReconnectConfig{
-			Enabled:    true,
+			Enabled:     true,
 			MaxAttempts: 2,
 		},
 	})
@@ -2519,7 +2519,7 @@ func TestInvoker_CancelJobWithConnectionError(t *testing.T) {
 		Address:  "127.0.0.1:19996",
 		Insecure: true,
 		Reconnect: &ReconnectConfig{
-			Enabled:    true,
+			Enabled:     true,
 			MaxAttempts: 2,
 		},
 	})
@@ -2591,8 +2591,8 @@ func TestInvoker_InvokeWithRetryOptions(t *testing.T) {
 
 	opts := InvokeOptions{
 		Retry: &RetryConfig{
-			MaxAttempts:     3,
-			InitialDelayMs:  10,
+			MaxAttempts:       3,
+			InitialDelayMs:    10,
 			BackoffMultiplier: 2.0,
 		},
 	}
@@ -2711,7 +2711,7 @@ func TestInvoker_executeWithRetryWithConnectionError(t *testing.T) {
 		Address:  "127.0.0.1:19996",
 		Insecure: true,
 		Reconnect: &ReconnectConfig{
-			Enabled:    false, // Disable reconnect to avoid goroutine
+			Enabled:     false, // Disable reconnect to avoid goroutine
 			MaxAttempts: 2,
 		},
 	}).(*invoker)
@@ -2727,9 +2727,9 @@ func TestInvoker_executeWithRetryWithConnectionError(t *testing.T) {
 
 	opts := InvokeOptions{
 		Retry: &RetryConfig{
-			Enabled:          true,
-			MaxAttempts:      3,
-			InitialDelayMs:   1, // Very short
+			Enabled:           true,
+			MaxAttempts:       3,
+			InitialDelayMs:    1, // Very short
 			BackoffMultiplier: 1.0,
 		},
 	}
@@ -2768,9 +2768,9 @@ func TestInvoker_executeWithRetryCancelledByContext(t *testing.T) {
 
 	opts := InvokeOptions{
 		Retry: &RetryConfig{
-			Enabled:          true,
-			MaxAttempts:      10,
-			InitialDelayMs:   1, // Very short delay
+			Enabled:           true,
+			MaxAttempts:       10,
+			InitialDelayMs:    1, // Very short delay
 			BackoffMultiplier: 1.0,
 		},
 	}
@@ -2806,9 +2806,9 @@ func TestInvoker_executeWithRetryMaxAttempts(t *testing.T) {
 
 	opts := InvokeOptions{
 		Retry: &RetryConfig{
-			Enabled:          true,
-			MaxAttempts:      maxAttempts,
-			InitialDelayMs:   1, // Very short
+			Enabled:           true,
+			MaxAttempts:       maxAttempts,
+			InitialDelayMs:    1, // Very short
 			BackoffMultiplier: 1.0,
 		},
 	}
@@ -3004,7 +3004,7 @@ func TestInvoker_calculateReconnectDelayNegative(t *testing.T) {
 			InitialDelayMs:    1,
 			MaxDelayMs:        10,
 			BackoffMultiplier: 100.0, // Large multiplier
-			JitterFactor:      1.0,    // 100% jitter
+			JitterFactor:      1.0,   // 100% jitter
 		},
 	}).(*invoker)
 
@@ -3031,7 +3031,7 @@ func TestInvoker_calculateRetryDelayNegative(t *testing.T) {
 		InitialDelayMs:    1,
 		MaxDelayMs:        10,
 		BackoffMultiplier: 100.0, // Large multiplier
-		JitterFactor:      1.0,    // 100% jitter
+		JitterFactor:      1.0,   // 100% jitter
 	}
 
 	delay := i.calculateRetryDelay(5, cfg)
@@ -3187,7 +3187,7 @@ func TestInvoker_validatePayloadWithRequiredFields(t *testing.T) {
 	}).(*invoker)
 
 	schema := map[string]any{
-		"type": "object",
+		"type":     "object",
 		"required": []interface{}{"field1", "field2", "field3"},
 		"properties": map[string]any{
 			"field1": map[string]any{"type": "string"},
@@ -3350,12 +3350,12 @@ func TestInvoker_isRetryableErrorWithRetryableStatusCode(t *testing.T) {
 		err      error
 		expected bool
 	}{
-		{fmt.Errorf("rpc error: code = 14"), true},  // Unavailable
-		{fmt.Errorf("rpc error: code = 8"), true},   // ResourceExhausted
-		{fmt.Errorf("rpc error: code = 10"), true},  // Aborted
-		{fmt.Errorf("rpc error: code = 1"), true},   // OK (in retryable list)
-		{fmt.Errorf("rpc error: code = 4"), true},   // NotFound (in retryable list)
-		{fmt.Errorf("rpc error: code = 3"), false},  // InvalidArgument (not in list)
+		{fmt.Errorf("rpc error: code = 14"), true},   // Unavailable
+		{fmt.Errorf("rpc error: code = 8"), true},    // ResourceExhausted
+		{fmt.Errorf("rpc error: code = 10"), true},   // Aborted
+		{fmt.Errorf("rpc error: code = 1"), true},    // OK (in retryable list)
+		{fmt.Errorf("rpc error: code = 4"), true},    // NotFound (in retryable list)
+		{fmt.Errorf("rpc error: code = 3"), false},   // InvalidArgument (not in list)
 		{fmt.Errorf("some unavailable error"), true}, // Pattern match
 	}
 
@@ -3366,4 +3366,3 @@ func TestInvoker_isRetryableErrorWithRetryableStatusCode(t *testing.T) {
 		}
 	}
 }
-

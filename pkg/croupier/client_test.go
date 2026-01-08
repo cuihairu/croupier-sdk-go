@@ -1124,16 +1124,16 @@ func TestClient_ConnectWithTimeout(t *testing.T) {
 
 	c := &client{
 		config: &ClientConfig{
-			AgentAddr:       "127.0.0.1:49996",
-			Insecure:        true,
-			TimeoutSeconds:  1,
-			GameID:          "test-game",
-			Env:             "test",
-			ServiceID:       "test-service",
-			ServiceVersion:  "1.0.0",
-			ProviderLang:    "go",
-			ProviderSDK:     "croupier-go-sdk",
-			ControlAddr:     "",
+			AgentAddr:      "127.0.0.1:49996",
+			Insecure:       true,
+			TimeoutSeconds: 1,
+			GameID:         "test-game",
+			Env:            "test",
+			ServiceID:      "test-service",
+			ServiceVersion: "1.0.0",
+			ProviderLang:   "go",
+			ProviderSDK:    "croupier-go-sdk",
+			ControlAddr:    "",
 		},
 		descriptors: make(map[string]FunctionDescriptor),
 		handlers:    make(map[string]FunctionHandler),
@@ -1202,7 +1202,7 @@ func TestClient_convertToLocalFunctionsWithEmptyVersion(t *testing.T) {
 
 	c := &client{
 		descriptors: map[string]FunctionDescriptor{
-			"func1": {ID: "func1", Version: ""}, // Empty version
+			"func1": {ID: "func1", Version: ""},       // Empty version
 			"func2": {ID: "func2", Version: "custom"}, // Custom version
 		},
 		handlers: map[string]FunctionHandler{
@@ -1351,8 +1351,8 @@ func TestClient_dialControlWithInsecure(t *testing.T) {
 
 	c := &client{
 		config: &ClientConfig{
-			ControlAddr:   "127.0.0.1:19999", // Non-existent server
-			Insecure:      true,
+			ControlAddr:    "127.0.0.1:19999", // Non-existent server
+			Insecure:       true,
 			TimeoutSeconds: 1,
 		},
 	}
@@ -1373,8 +1373,8 @@ func TestClient_dialControlWithTimeout(t *testing.T) {
 
 	c := &client{
 		config: &ClientConfig{
-			ControlAddr:   "127.0.0.1:19999",
-			Insecure:      false,
+			ControlAddr:    "127.0.0.1:19999",
+			Insecure:       false,
 			TimeoutSeconds: 1,
 		},
 	}
@@ -1415,8 +1415,8 @@ func TestClient_registerCapabilitiesErrors(t *testing.T) {
 
 		c := &client{
 			config: &ClientConfig{
-				ControlAddr:   "127.0.0.1:19999",
-				Insecure:      true,
+				ControlAddr:    "127.0.0.1:19999",
+				Insecure:       true,
 				TimeoutSeconds: 1,
 			},
 			descriptors: map[string]FunctionDescriptor{},
@@ -1437,8 +1437,8 @@ func TestClient_registerCapabilitiesErrors(t *testing.T) {
 		// that registerCapabilities calls it
 		c := &client{
 			config: &ClientConfig{
-				ServiceID:    "test-service",
-				ControlAddr:  "", // Empty so it returns early
+				ServiceID:      "test-service",
+				ControlAddr:    "", // Empty so it returns early
 				ServiceVersion: "1.0.0",
 			},
 			descriptors: map[string]FunctionDescriptor{},
@@ -1686,11 +1686,11 @@ func TestClient_buildManifestWithComplexDescriptors(t *testing.T) {
 				Enabled:   true,
 			},
 			"fn2": {
-				ID:        "fn2",
-				Version:   "", // Should default to 1.0.0
-				Category:  "game",
-				Risk:      "low",
-				Enabled:   false, // Should be omitted
+				ID:       "fn2",
+				Version:  "", // Should default to 1.0.0
+				Category: "game",
+				Risk:     "low",
+				Enabled:  false, // Should be omitted
 			},
 		},
 	}
@@ -2056,7 +2056,7 @@ func TestClient_registerCapabilitiesWithControlAddr(t *testing.T) {
 	c := &client{
 		config: &ClientConfig{
 			ControlAddr: "127.0.0.1:8080",
-			ServiceID:    "test-service",
+			ServiceID:   "test-service",
 		},
 		localAddr: "127.0.0.1:9090",
 		handlers: map[string]FunctionHandler{
@@ -2091,7 +2091,7 @@ func TestClient_registerCapabilitiesBuildsManifest(t *testing.T) {
 	c := &client{
 		config: &ClientConfig{
 			ControlAddr: "", // Empty to skip RPC
-			ServiceID:    "test-service",
+			ServiceID:   "test-service",
 		},
 		localAddr: "127.0.0.1:9090",
 		handlers: map[string]FunctionHandler{
@@ -2101,10 +2101,10 @@ func TestClient_registerCapabilitiesBuildsManifest(t *testing.T) {
 		},
 		descriptors: map[string]FunctionDescriptor{
 			"func1": {
-				ID:        "func1",
-				Version:   "1.0.0",
-				Risk:      "low",
-				Enabled:   true,
+				ID:      "func1",
+				Version: "1.0.0",
+				Risk:    "low",
+				Enabled: true,
 			},
 		},
 		logger: &NoOpLogger{},
@@ -2162,9 +2162,9 @@ func TestClient_ServeIdempotent(t *testing.T) {
 	// the client becomes disconnected while Serve is running
 	c := &client{
 		config: &ClientConfig{
-			ServiceID:  "test-service",
-			AgentAddr:  "127.0.0.1:19999",
-			Insecure:   true,
+			ServiceID:   "test-service",
+			AgentAddr:   "127.0.0.1:19999",
+			Insecure:    true,
 			LocalListen: "127.0.0.1:0",
 		},
 		handlers: map[string]FunctionHandler{
@@ -2256,7 +2256,7 @@ func TestClient_ConnectAlreadyConnected(t *testing.T) {
 			AgentAddr: "127.0.0.1:19093",
 		},
 		connected: true,
-		logger:     &NoOpLogger{},
+		logger:    &NoOpLogger{},
 	}
 
 	// Should return nil immediately
@@ -2408,8 +2408,8 @@ func TestClient_buildManifestEmptyHandlers(t *testing.T) {
 	t.Parallel()
 
 	c := &client{
-		config:     &ClientConfig{ServiceID: "empty-service"},
-		handlers:   map[string]FunctionHandler{},
+		config:      &ClientConfig{ServiceID: "empty-service"},
+		handlers:    map[string]FunctionHandler{},
 		descriptors: map[string]FunctionDescriptor{},
 		logger:      &NoOpLogger{},
 	}
@@ -2594,9 +2594,9 @@ func TestClient_dialControlTimeoutContext(t *testing.T) {
 
 	c := &client{
 		config: &ClientConfig{
-			ControlAddr:     "192.0.2.1:9999", // Non-routable
-			Insecure:        true,
-			TimeoutSeconds:  1, // Set short timeout
+			ControlAddr:    "192.0.2.1:9999", // Non-routable
+			Insecure:       true,
+			TimeoutSeconds: 1, // Set short timeout
 		},
 	}
 
@@ -2766,10 +2766,10 @@ func TestClient_StopWithNilGRPCManager(t *testing.T) {
 	t.Parallel()
 
 	c := &client{
-		config:     &ClientConfig{},
+		config:      &ClientConfig{},
 		grpcManager: nil, // Explicitly nil
-		stopCh:     make(chan struct{}),
-		logger:     &NoOpLogger{},
+		stopCh:      make(chan struct{}),
+		logger:      &NoOpLogger{},
 	}
 
 	err := c.Stop()
@@ -2790,10 +2790,10 @@ func TestClient_StopTwice(t *testing.T) {
 	t.Parallel()
 
 	c := &client{
-		config:     &ClientConfig{},
+		config:      &ClientConfig{},
 		grpcManager: nil,
-		stopCh:     make(chan struct{}),
-		logger:     &NoOpLogger{},
+		stopCh:      make(chan struct{}),
+		logger:      &NoOpLogger{},
 	}
 
 	// First Stop
@@ -2818,10 +2818,10 @@ func TestClient_CloseWithNilHandlers(t *testing.T) {
 	t.Parallel()
 
 	c := &client{
-		config:     &ClientConfig{},
-		handlers:   nil,
-		stopCh:     make(chan struct{}),
-		logger:     &NoOpLogger{},
+		config:   &ClientConfig{},
+		handlers: nil,
+		stopCh:   make(chan struct{}),
+		logger:   &NoOpLogger{},
 	}
 
 	err := c.Close()
@@ -2886,10 +2886,10 @@ func TestClient_RegisterFunctionWithDefaultVersion(t *testing.T) {
 	t.Parallel()
 
 	c := &client{
-		config:     &ClientConfig{},
-		handlers:   make(map[string]FunctionHandler),
+		config:      &ClientConfig{},
+		handlers:    make(map[string]FunctionHandler),
 		descriptors: make(map[string]FunctionDescriptor),
-		logger:     &NoOpLogger{},
+		logger:      &NoOpLogger{},
 	}
 
 	desc := FunctionDescriptor{
@@ -2985,4 +2985,3 @@ func TestClient_NewClientWithNilConfig(t *testing.T) {
 		t.Error("expected stopCh to be initialized")
 	}
 }
-
