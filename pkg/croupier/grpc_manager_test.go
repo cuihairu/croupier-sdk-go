@@ -1574,3 +1574,116 @@ func TestGRPCManager_RegisterWithAgentWithEmptyServiceInfo(t *testing.T) {
 		t.Error("expected error when localCli is nil")
 	}
 }
+
+// TestGRPCManager_startHeartbeatWithNilLocalCli tests heartbeat with nil client
+func TestGRPCManager_startHeartbeatWithNilLocalCli(t *testing.T) {
+	t.Parallel()
+
+	config := GRPCConfig{
+		AgentAddr: "127.0.0.1:19090",
+		Insecure: true,
+	}
+	handlers := map[string]FunctionHandler{}
+
+	mgr, err := NewGRPCManager(config, handlers)
+	if err != nil {
+		t.Fatalf("failed to create manager: %v", err)
+	}
+
+	impl, ok := mgr.(*grpcManager)
+	if !ok {
+		t.Fatal("type assertion failed")
+	}
+
+	// Set up state with nil localCli
+	impl.localCli = nil
+	impl.sessionID = "test-session"
+	impl.serviceID = "test-service"
+
+	// Should not panic
+	impl.startHeartbeatLocked()
+
+	if impl.heartbeatStop != nil {
+		t.Error("expected heartbeatStop to be nil when localCli is nil")
+	}
+}
+
+// TestGRPCManager_startHeartbeatWithEmptySessionID tests heartbeat with empty session ID
+func TestGRPCManager_startHeartbeatWithEmptySessionID(t *testing.T) {
+	t.Parallel()
+
+	config := GRPCConfig{
+		AgentAddr: "127.0.0.1:19090",
+		Insecure: true,
+	}
+	handlers := map[string]FunctionHandler{}
+
+	mgr, err := NewGRPCManager(config, handlers)
+	if err != nil {
+		t.Fatalf("failed to create manager: %v", err)
+	}
+
+	impl, ok := mgr.(*grpcManager)
+	if !ok {
+		t.Fatal("type assertion failed")
+	}
+
+	// Create a mock local client
+	impl.localCli = nil // Not actually connecting
+	impl.sessionID = "" // Empty session ID
+	impl.serviceID = "test-service"
+
+	// Should return early without starting heartbeat
+	impl.startHeartbeatLocked()
+
+	if impl.heartbeatStop != nil {
+		t.Error("expected heartbeatStop to be nil when sessionID is empty")
+	}
+}
+
+// TestGRPCManager_StartServerIdempotent2 tests calling StartServer multiple times
+func TestGRPCManager_StartServerIdempotent2(t *testing.T) {
+	t.Parallel()
+
+	config := GRPCConfig{
+		LocalListen: "127.0.0.1:0",
+		Insecure:    true,
+	}
+	handlers := map[string]FunctionHandler{
+		"test": func(ctx context.Context, payload []byte) ([]byte, error) {
+			return payload, nil
+		},
+	}
+
+	mgr, err := NewGRPCManager(config, handlers)
+	if err != nil {
+		t.Fatalf("failed to create manager: %v", err)
+	}
+
+	ctx := context.Background()
+
+	// First start
+	err = mgr.StartServer(ctx)
+	if err != nil {
+		t.Fatalf("first StartServer failed: %v", err)
+	}
+
+	// Get the address after first start
+	addr1 := mgr.GetLocalAddress()
+
+	// Second start should be idempotent
+	err = mgr.StartServer(ctx)
+	if err != nil {
+		t.Fatalf("second StartServer failed: %v", err)
+	}
+
+	addr2 := mgr.GetLocalAddress()
+
+	// Address should be the same
+	if addr1 != addr2 {
+		t.Errorf("expected same address, got %s and %s", addr1, addr2)
+	}
+
+	// Cleanup
+	mgr.(*grpcManager).server.Stop()
+}

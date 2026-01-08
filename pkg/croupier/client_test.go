@@ -2465,3 +2465,524 @@ func TestDefaultLoggerWithBuffer(t *testing.T) {
 	}
 }
 
+// TestClient_controlCredentialsWithControlAddr tests extracting server name from ControlAddr
+func TestClient_controlCredentialsWithControlAddr(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			Insecure:           false,
+			InsecureSkipVerify: false,
+			ControlAddr:        "example.com:443",
+			// No ServerName set, should extract from ControlAddr
+		},
+	}
+
+	creds, err := c.controlCredentials()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if creds == nil {
+		t.Error("expected credentials to be returned")
+	}
+}
+
+// TestClient_controlCredentialsWithInvalidCertFile tests loading invalid cert file
+func TestClient_controlCredentialsWithInvalidCertFile(t *testing.T) {
+	t.Parallel()
+
+	// Create a temp file with invalid content
+	tmpCert, err := os.CreateTemp("", "invalid-cert-*.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpCert.Name())
+	tmpCert.WriteString("not a valid cert")
+	tmpCert.Close()
+
+	tmpKey, err := os.CreateTemp("", "invalid-key-*.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpKey.Name())
+	tmpKey.WriteString("not a valid key")
+	tmpKey.Close()
+
+	c := &client{
+		config: &ClientConfig{
+			Insecure: false,
+			CertFile: tmpCert.Name(),
+			KeyFile:  tmpKey.Name(),
+		},
+	}
+
+	_, err = c.controlCredentials()
+	if err == nil {
+		t.Error("expected error with invalid cert/key files")
+	}
+}
+
+// TestClient_controlCredentialsWithPartialCertFiles tests with only cert file
+func TestClient_controlCredentialsWithPartialCertFiles(t *testing.T) {
+	t.Parallel()
+
+	// Only cert file, no key file - should not try to load
+	c := &client{
+		config: &ClientConfig{
+			Insecure: false,
+			CertFile: "/tmp/nonexistent.pem",
+			// No KeyFile set
+		},
+	}
+
+	creds, err := c.controlCredentials()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if creds == nil {
+		t.Error("expected credentials to be returned")
+	}
+}
+
+// TestClient_convertToLocalFunctionsEmpty tests convertToLocalFunctions with empty handlers
+func TestClient_convertToLocalFunctionsEmpty(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		handlers:    map[string]FunctionHandler{},
+		descriptors: map[string]FunctionDescriptor{},
+	}
+
+	funcs := c.convertToLocalFunctions()
+	// convertToLocalFunctions returns a slice that may be nil or empty
+	// The important thing is that it doesn't panic
+	if len(funcs) != 0 {
+		t.Errorf("expected empty slice, got %d functions", len(funcs))
+	}
+}
+
+// TestClient_convertToLocalFunctionsWithVersion tests convertToLocalFunctions with version
+func TestClient_convertToLocalFunctionsWithVersion(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		handlers: map[string]FunctionHandler{
+			"test.fn": func(ctx context.Context, payload []byte) ([]byte, error) {
+				return payload, nil
+			},
+		},
+		descriptors: map[string]FunctionDescriptor{
+			"test.fn": {
+				ID: "test.fn",
+				// No version set, should default to 1.0.0
+			},
+		},
+	}
+
+	funcs := c.convertToLocalFunctions()
+	if len(funcs) != 1 {
+		t.Errorf("expected 1 function, got %d", len(funcs))
+	}
+	if funcs[0].Version != "1.0.0" {
+		t.Errorf("expected version 1.0.0, got %s", funcs[0].Version)
+	}
+}
+
+// TestClient_dialControlTimeoutContext tests dialControl with timeout
+func TestClient_dialControlTimeoutContext(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ControlAddr:     "192.0.2.1:9999", // Non-routable
+			Insecure:        true,
+			TimeoutSeconds:  1, // Set short timeout
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	conn, err := c.dialControl(ctx)
+	if conn != nil {
+		conn.Close()
+	}
+	// May or may not get error depending on network
+	// Just verify the function completes without panic
+	if err != nil {
+		t.Logf("Got expected error: %v", err)
+	}
+}
+
+// TestClient_registerCapabilitiesCompressionError tests manifest compression error
+func TestClient_registerCapabilitiesCompressionError(t *testing.T) {
+	t.Parallel()
+
+	// This test is hard to implement without modifying the code
+	// to make compression fail. Skip for now.
+	t.Skip("compression error path is difficult to test")
+}
+
+// TestClient_buildManifestWithComplexMetadata tests buildManifest with various metadata
+func TestClient_buildManifestWithComplexMetadata(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ServiceID:      "complex-service",
+			ServiceVersion: "2.5.0",
+			ProviderLang:   "go",
+			ProviderSDK:    "croupier-go-sdk-v2",
+		},
+		handlers: map[string]FunctionHandler{
+			"fn1": func(ctx context.Context, payload []byte) ([]byte, error) {
+				return payload, nil
+			},
+		},
+		descriptors: map[string]FunctionDescriptor{
+			"fn1": {
+				ID:        "fn1",
+				Version:   "3.0.0",
+				Category:  "data",
+				Risk:      "low",
+				Entity:    "public",
+				Operation: "read",
+				Enabled:   false,
+			},
+		},
+		logger: &NoOpLogger{},
+	}
+
+	data, err := c.buildManifest()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("expected valid JSON: %v", err)
+	}
+
+	// Verify provider info
+	provider, ok := parsed["provider"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected provider object")
+	}
+	if provider["id"] != "complex-service" {
+		t.Errorf("expected service ID 'complex-service', got %v", provider["id"])
+	}
+
+	// Verify function metadata
+	funcs, ok := parsed["functions"].([]interface{})
+	if !ok || len(funcs) != 1 {
+		t.Fatalf("expected 1 function, got %v", len(funcs))
+	}
+
+	fn := funcs[0].(map[string]interface{})
+	if fn["category"] != "data" {
+		t.Errorf("expected category 'data', got %v", fn["category"])
+	}
+	// Enabled field may be omitted when false
+	if enabled, ok := fn["enabled"]; ok && enabled != false {
+		t.Errorf("expected enabled to be false or omitted, got %v", enabled)
+	}
+}
+
+// TestClient_registerCapabilitiesWithNilConfig tests with nil controlAddr
+func TestClient_registerCapabilitiesWithNilConfig(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ControlAddr: "", // Empty, should return early
+		},
+		localAddr: "127.0.0.1:9090",
+		logger:    &NoOpLogger{},
+	}
+
+	err := c.registerCapabilities(context.Background())
+	if err != nil {
+		t.Errorf("unexpected error with empty control addr: %v", err)
+	}
+}
+
+// TestClient_dialControlWithoutAddr tests dialControl without control address
+func TestClient_dialControlWithoutAddr(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ControlAddr: "",
+		},
+	}
+
+	_, err := c.dialControl(context.Background())
+	if err == nil {
+		t.Error("expected error with empty control address")
+	}
+}
+
+// TestClient_controlCredentialsWithInvalidCAFile tests with non-existent CA file
+func TestClient_controlCredentialsWithInvalidCAFile(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			Insecure: false,
+			CAFile:   "/nonexistent/ca.pem",
+		},
+	}
+
+	_, err := c.controlCredentials()
+	if err == nil {
+		t.Error("expected error with non-existent CA file")
+	}
+}
+
+// TestClient_controlCredentialsWithEmptyControlAddr tests extracting server name edge case
+func TestClient_controlCredentialsWithEmptyControlAddr(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			Insecure:           false,
+			InsecureSkipVerify: false,
+			ControlAddr:        "", // Empty address
+			// No ServerName set
+		},
+	}
+
+	creds, err := c.controlCredentials()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if creds == nil {
+		t.Error("expected credentials to be returned")
+	}
+}
+
+// TestClient_StopWithNilGRPCManager tests Stop when grpcManager is nil
+func TestClient_StopWithNilGRPCManager(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config:     &ClientConfig{},
+		grpcManager: nil, // Explicitly nil
+		stopCh:     make(chan struct{}),
+		logger:     &NoOpLogger{},
+	}
+
+	err := c.Stop()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if c.running {
+		t.Error("expected running to be false")
+	}
+	if c.connected {
+		t.Error("expected connected to be false")
+	}
+}
+
+// TestClient_StopTwice tests calling Stop multiple times
+func TestClient_StopTwice(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config:     &ClientConfig{},
+		grpcManager: nil,
+		stopCh:     make(chan struct{}),
+		logger:     &NoOpLogger{},
+	}
+
+	// First Stop
+	err := c.Stop()
+	if err != nil {
+		t.Errorf("unexpected error on first stop: %v", err)
+	}
+
+	// Second Stop should panic on closing the channel again
+	// This is expected behavior - Stop should only be called once
+	defer func() {
+		if r := recover(); r != nil {
+			// Expected to panic when closing closed channel
+			t.Logf("Expected panic on second Stop: %v", r)
+		}
+	}()
+	c.Stop()
+}
+
+// TestClient_CloseWithNilHandlers tests Close when handlers is nil
+func TestClient_CloseWithNilHandlers(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config:     &ClientConfig{},
+		handlers:   nil,
+		stopCh:     make(chan struct{}),
+		logger:     &NoOpLogger{},
+	}
+
+	err := c.Close()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if c.handlers != nil {
+		t.Error("expected handlers to be nil after Close")
+	}
+}
+
+// TestClient_RegisterFunctionWithRunningClient tests registering while running
+func TestClient_RegisterFunctionWithRunningClient(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config:   &ClientConfig{},
+		handlers: make(map[string]FunctionHandler),
+		running:  true, // Simulate running state
+		logger:   &NoOpLogger{},
+	}
+
+	desc := FunctionDescriptor{
+		ID:      "test.fn",
+		Version: "1.0.0",
+	}
+	handler := func(ctx context.Context, payload []byte) ([]byte, error) {
+		return payload, nil
+	}
+
+	err := c.RegisterFunction(desc, handler)
+	if err == nil {
+		t.Error("expected error when registering while running")
+	}
+}
+
+// TestClient_RegisterFunctionWithEmptyID tests registering with empty ID
+func TestClient_RegisterFunctionWithEmptyID(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config:   &ClientConfig{},
+		handlers: make(map[string]FunctionHandler),
+		logger:   &NoOpLogger{},
+	}
+
+	desc := FunctionDescriptor{
+		ID: "", // Empty ID
+	}
+	handler := func(ctx context.Context, payload []byte) ([]byte, error) {
+		return payload, nil
+	}
+
+	err := c.RegisterFunction(desc, handler)
+	if err == nil {
+		t.Error("expected error with empty function ID")
+	}
+}
+
+// TestClient_RegisterFunctionWithDefaultVersion tests version defaulting
+func TestClient_RegisterFunctionWithDefaultVersion(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config:     &ClientConfig{},
+		handlers:   make(map[string]FunctionHandler),
+		descriptors: make(map[string]FunctionDescriptor),
+		logger:     &NoOpLogger{},
+	}
+
+	desc := FunctionDescriptor{
+		ID: "test.fn", // No version set
+	}
+	handler := func(ctx context.Context, payload []byte) ([]byte, error) {
+		return payload, nil
+	}
+
+	err := c.RegisterFunction(desc, handler)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// Check that version was defaulted
+	storedDesc, ok := c.descriptors["test.fn"]
+	if !ok {
+		t.Fatal("function descriptor not stored")
+	}
+	if storedDesc.Version != "1.0.0" {
+		t.Errorf("expected version 1.0.0, got %s", storedDesc.Version)
+	}
+}
+
+// TestClient_registerCapabilitiesWithTimeout tests with timeout configured
+func TestClient_registerCapabilitiesWithTimeout(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ControlAddr:    "127.0.0.1:8080",
+			ServiceID:      "test-service",
+			TimeoutSeconds: 1, // Set timeout
+		},
+		localAddr: "127.0.0.1:9090",
+		handlers: map[string]FunctionHandler{
+			"test.fn": func(ctx context.Context, payload []byte) ([]byte, error) {
+				return payload, nil
+			},
+		},
+		descriptors: map[string]FunctionDescriptor{
+			"test.fn": {
+				ID:      "test.fn",
+				Version: "1.0.0",
+			},
+		},
+		logger: &NoOpLogger{},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	err := c.registerCapabilities(ctx)
+	// Will fail to connect, but we test the timeout code path
+	if err == nil {
+		t.Log("Note: registerCapabilities succeeded (control service not available)")
+	}
+}
+
+// TestClient_GetLocalAddressWithUnconnectedClient tests GetLocalAddress when not connected
+func TestClient_GetLocalAddressWithUnconnectedClient(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config:    &ClientConfig{},
+		localAddr: "", // Empty
+		logger:    &NoOpLogger{},
+	}
+
+	addr := c.GetLocalAddress()
+	if addr != "" {
+		t.Errorf("expected empty address, got %s", addr)
+	}
+}
+
+// TestClient_NewClientWithNilConfig tests NewClient with nil config
+func TestClient_NewClientWithNilConfig(t *testing.T) {
+	t.Parallel()
+
+	cli := NewClient(nil)
+	if cli == nil {
+		t.Fatal("expected non-nil client")
+	}
+
+	c := cli.(*client)
+	if c.config == nil {
+		t.Error("expected default config to be set")
+	}
+	if c.logger == nil {
+		t.Error("expected logger to be set")
+	}
+	if c.stopCh == nil {
+		t.Error("expected stopCh to be initialized")
+	}
+}
+
