@@ -139,7 +139,9 @@ func TestNoOpLogger(t *testing.T) {
 }
 
 func TestSetGlobalLogger(t *testing.T) {
-	t.Parallel()
+	// Note: This test cannot be parallel because it modifies global state.
+	// atomic.Value requires consistent types, so we cannot run this in parallel
+	// with other tests that might set different logger types.
 
 	// Save original logger
 	original := GetGlobalLogger()

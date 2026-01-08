@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sync/atomic"
+	"sync"
 )
 
 // Logger interface for configurable logging
@@ -70,21 +70,24 @@ func (l *NoOpLogger) Warnf(format string, args ...interface{}) {}
 func (l *NoOpLogger) Errorf(format string, args ...interface{}) {}
 
 // global logger instance - can be replaced by user
-// Using atomic.Value for thread-safe access
-var globalLogger atomic.Value // stores Logger
-
-func init() {
-	globalLogger.Store(NewDefaultLogger(false, os.Stdout))
-}
+// Using mutex for thread-safe access to support different logger types
+var (
+	globalLogger Logger = NewDefaultLogger(false, os.Stdout)
+	loggerMutex  sync.RWMutex
+)
 
 // SetGlobalLogger sets the global logger instance
 func SetGlobalLogger(logger Logger) {
-	globalLogger.Store(logger)
+	loggerMutex.Lock()
+	defer loggerMutex.Unlock()
+	globalLogger = logger
 }
 
 // GetGlobalLogger returns the current global logger
 func GetGlobalLogger() Logger {
-	return globalLogger.Load().(Logger)
+	loggerMutex.RLock()
+	defer loggerMutex.RUnlock()
+	return globalLogger
 }
 
 // Log helpers using global logger
