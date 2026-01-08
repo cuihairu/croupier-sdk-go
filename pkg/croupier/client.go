@@ -259,10 +259,8 @@ func (c *client) GetLocalAddress() string {
 }
 
 // convertToLocalFunctions converts FunctionDescriptors to LocalFunctionDescriptors
+// Note: This method must be called while holding c.mu (either read or write lock)
 func (c *client) convertToLocalFunctions() []LocalFunctionDescriptor {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
 	var localFuncs []LocalFunctionDescriptor
 	for funcID := range c.handlers {
 		desc, ok := c.descriptors[funcID]

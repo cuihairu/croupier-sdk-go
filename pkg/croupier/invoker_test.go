@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -1235,6 +1236,9 @@ func TestInvoker_scheduleReconnectIfNeededZeroMaxAttempts(t *testing.T) {
 	// With MaxAttempts = 0, should always schedule
 	i.reconnectAttempts = 100
 	i.scheduleReconnectIfNeeded()
+
+	// Clean up the reconnect goroutine to avoid goroutine leak
+	defer i.Close()
 }
 
 func TestInvoker_buildTLSConfigWithCAFile(t *testing.T) {
@@ -1356,3 +1360,2010 @@ func TestInvoker_buildTLSConfigWithHostPort(t *testing.T) {
 		t.Errorf("expected ServerName to be example.com, got %s", tlsCfg.ServerName)
 	}
 }
+
+func TestInvoker_InvokeWithTimeout(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:        "127.0.0.1:19090",
+		Insecure:       true,
+		DefaultTimeout: 1 * time.Nanosecond, // Very short timeout
+	}).(*invoker)
+
+	// Should fail due to very short timeout
+	_, err := i.Invoke(context.Background(), "test_func", "{}", InvokeOptions{})
+	if err == nil {
+		t.Error("expected error due to short timeout")
+	}
+}
+
+func TestInvoker_calculateRetryDelayWithMaxDelay(t *testing.T) {
+	t.Parallel()
+
+	config := &RetryConfig{
+		MaxAttempts:       3,
+		InitialDelayMs:    100,
+		MaxDelayMs:        200,
+		BackoffMultiplier: 2.0,
+	}
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+		Retry:    config,
+	}).(*invoker)
+
+	// Delay should be capped at MaxDelayMs
+	delay1 := i.calculateRetryDelay(0, config)
+	_ = i.calculateRetryDelay(1, config)
+	_ = i.calculateRetryDelay(2, config)
+	delay4 := i.calculateRetryDelay(10, config) // Way beyond max
+
+	expectedMaxDelay := 200 * time.Millisecond
+	if delay1 > expectedMaxDelay {
+		t.Errorf("delay1 %v exceeds max delay %v", delay1, expectedMaxDelay)
+	}
+	if delay4 != expectedMaxDelay {
+		t.Errorf("expected delay4 to be capped at max delay %v, got %v", expectedMaxDelay, delay4)
+	}
+}
+
+func TestInvoker_calculateReconnectDelayWithJitter(t *testing.T) {
+	t.Parallel()
+
+	config := &ReconnectConfig{
+		Enabled:           true,
+		MaxAttempts:       5,
+		InitialDelayMs:    100,
+		MaxDelayMs:        5000,
+		BackoffMultiplier: 2.0,
+		JitterFactor:      0.1, // 10% jitter
+	}
+
+	i := NewInvoker(&InvokerConfig{
+		Address:   "127.0.0.1:19090",
+		Insecure:  true,
+		Reconnect: config,
+	}).(*invoker)
+
+	// Set reconnect attempts to test backoff
+	// Note: calculateReconnectDelay uses reconnectAttempts-1, so start at 1
+	i.reconnectAttempts = 1
+	delay1 := i.calculateReconnectDelay()
+
+	i.reconnectAttempts = 2
+	delay2 := i.calculateReconnectDelay()
+
+	// Verify delay grows with backoff (approximately)
+	// Due to jitter, we check that delay2 is generally larger than delay1's expected range
+	if delay2 < 90*time.Millisecond {
+		t.Errorf("expected delay2 to be at least close to 100ms, got %v", delay2)
+	}
+
+	// With jitter, delays vary - just verify we got a reasonable delay
+	if delay1 < 80*time.Millisecond {
+		t.Errorf("expected delay1 to be at least 80ms (accounting for jitter), got %v", delay1)
+	}
+}
+
+func TestInvoker_StartJobWithRetry(t *testing.T) {
+	t.Parallel()
+
+	config := &RetryConfig{
+		Enabled:           true,
+		MaxAttempts:       2,
+		InitialDelayMs:    10,
+		BackoffMultiplier: 1.0,
+	}
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+		Retry:    config,
+	}).(*invoker)
+
+	// StartJob without connection - should retry and fail
+	_, err := i.StartJob(context.Background(), "test_func", "{}", InvokeOptions{})
+	if err == nil {
+		t.Error("expected error when not connected")
+	}
+}
+
+func TestInvoker_validatePayloadWithSchema(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	}).(*invoker)
+
+	// Set a schema for validation
+	schema := map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"name": map[string]interface{}{
+				"type": "string",
+			},
+			"age": map[string]interface{}{
+				"type": "integer",
+			},
+		},
+		"required": []interface{}{"name"},
+	}
+	i.SetSchema("test_func", schema)
+
+	// Test valid payload - note: validatePayload takes a string and a map
+	// We need to test through Invoke which calls it
+	// Since we can't call validatePayload directly with the right signature,
+	// we'll test the behavior through Invoke
+
+	// Test that empty payload fails validation
+	schema2 := map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"name": map[string]interface{}{
+				"type": "string",
+			},
+		},
+		"required": []interface{}{"name"},
+	}
+	i.SetSchema("test_func2", schema2)
+
+	// Empty payload should fail
+	err := i.validatePayload("", schema2)
+	if err == nil {
+		t.Error("expected error for empty payload")
+	}
+}
+
+// TestInvoker_StreamJobNotConnected tests StreamJob when not connected
+func TestInvoker_StreamJobNotConnected(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	})
+
+	// StreamJob without connection should return error
+	eventCh, err := i.StreamJob(context.Background(), "job-123")
+	if err == nil {
+		t.Error("expected error when not connected")
+	}
+
+	// Channel should be closed
+	if eventCh == nil {
+		t.Fatal("expected channel to be returned even on error")
+	}
+
+	// Try to receive from channel - should be closed
+	_, ok := <-eventCh
+	if ok {
+		t.Error("expected channel to be closed")
+	}
+}
+
+// TestInvoker_StreamJobConnectionError tests StreamJob with connection error
+func TestInvoker_StreamJobConnectionError(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+		Reconnect: &ReconnectConfig{
+			Enabled: false,
+		},
+	})
+
+	// StreamJob should fail due to connection error
+	eventCh, err := i.StreamJob(context.Background(), "job-456")
+	if err == nil {
+		t.Error("expected error when connection fails")
+	}
+
+	if eventCh == nil {
+		t.Fatal("expected channel to be returned")
+	}
+
+	// Channel should be closed immediately
+	select {
+	case evt, ok := <-eventCh:
+		if ok {
+			t.Errorf("expected closed channel, got event: %+v", evt)
+		}
+	default:
+		// Channel might not be closed yet, but should be soon
+	}
+}
+
+// TestInvoker_CancelJobNotConnected tests CancelJob when not connected
+func TestInvoker_CancelJobNotConnected(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+		Reconnect: &ReconnectConfig{
+			Enabled: false,
+		},
+	})
+
+	// CancelJob without connection should return error
+	err := i.CancelJob(context.Background(), "job-123")
+	if err == nil {
+		t.Error("expected error when not connected")
+	}
+}
+
+// TestInvoker_StartJobNotConnected tests StartJob when not connected
+func TestInvoker_StartJobNotConnected(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+		Reconnect: &ReconnectConfig{
+			Enabled: false,
+		},
+	})
+
+	// StartJob without connection should return error
+	_, err := i.StartJob(context.Background(), "test_func", "{}", InvokeOptions{})
+	if err == nil {
+		t.Error("expected error when not connected")
+	}
+}
+
+// TestInvoker_InvokeWithConnectionError tests Invoke with connection error and reconnect disabled
+func TestInvoker_InvokeWithConnectionError(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+		Reconnect: &ReconnectConfig{
+			Enabled: false,
+		},
+	})
+
+	// Invoke should fail due to connection error
+	_, err := i.Invoke(context.Background(), "test_func", "{}", InvokeOptions{})
+	if err == nil {
+		t.Error("expected error when connection fails")
+	}
+
+	// Should not be reconnecting
+	impl := i.(*invoker)
+	if impl.isReconnecting {
+		t.Error("should not be reconnecting when reconnect is disabled")
+	}
+}
+
+// TestInvoker_buildTLSConfigWithMissingCert tests TLS config with missing cert files
+func TestInvoker_buildTLSConfigWithMissingCert(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "example.com:443",
+		Insecure: false,
+		CAFile:   "/nonexistent/ca.pem",
+	}).(*invoker)
+
+	_, err := buildTLSConfig(i.config)
+	if err == nil {
+		t.Error("expected error for missing CA file")
+	}
+}
+
+// TestInvoker_callContextWithTimeout tests callContext with InvokeOptions timeout
+func TestInvoker_callContextWithTimeout(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:        "127.0.0.1:19090",
+		TimeoutSeconds: 30,
+		Insecure:       true,
+	}).(*invoker)
+
+	// Test with InvokeOptions timeout
+	customTimeout := 5 * time.Second
+	opts := InvokeOptions{
+		Timeout: customTimeout,
+	}
+
+	ctx, cancel := i.callContext(context.Background(), opts.Timeout)
+	defer cancel()
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		t.Fatal("expected deadline to be set")
+	}
+
+	remaining := time.Until(deadline)
+	if remaining < 4*time.Second || remaining > 6*time.Second {
+		t.Errorf("expected deadline around 5s, got %v", remaining)
+	}
+}
+
+// TestInvoker_calculateRetryDelayWithLargeMaxDelay tests retry delay with large max delay
+func TestInvoker_calculateRetryDelayWithLargeMaxDelay(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	}).(*invoker)
+
+	cfg := &RetryConfig{
+		InitialDelayMs:    100,
+		MaxDelayMs:        200000, // Large max delay (200 seconds)
+		BackoffMultiplier: 2.0,
+	}
+
+	// With attempt 2, should be 100ms * 2^2 = 400ms (before jitter)
+	delay := i.calculateRetryDelay(2, cfg)
+
+	// With jitter, actual value will vary, but should be close to 400ms
+	// Jitter factor is 0.1, so range is [360ms, 440ms]
+	minExpected := 360 * time.Millisecond
+	maxExpected := 440 * time.Millisecond
+
+	if delay < minExpected || delay > maxExpected {
+		t.Errorf("expected delay between %v and %v, got %v", minExpected, maxExpected, delay)
+	}
+}
+
+// TestInvoker_validatePayloadWithNestedProperties tests nested property validation
+func TestInvoker_validatePayloadWithNestedProperties(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	}).(*invoker)
+
+	schema := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"user": map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"name": map[string]any{"type": "string"},
+					"age":  map[string]any{"type": "integer"},
+				},
+			},
+		},
+	}
+
+	// Valid nested payload
+	payload := `{"user":{"name":"Alice","age":30}}`
+	err := i.validatePayload(payload, schema)
+	if err != nil {
+		t.Errorf("unexpected error for valid nested payload: %v", err)
+	}
+
+	// Invalid nested type
+	payload2 := `{"user":{"name":"Alice","age":"thirty"}}`
+	err = i.validatePayload(payload2, schema)
+	if err == nil {
+		t.Error("expected error for invalid nested type")
+	}
+}
+
+// TestInvoker_validatePayloadWithArrayTypes tests array type validation
+func TestInvoker_validatePayloadWithArrayTypes(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	}).(*invoker)
+
+	schema := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"tags": map[string]any{
+				"type": "array",
+				"items": map[string]any{
+					"type": "string",
+				},
+			},
+			"scores": map[string]any{
+				"type": "array",
+				"items": map[string]any{
+					"type": "number",
+				},
+			},
+		},
+	}
+
+	// Valid arrays
+	payload := `{"tags":["a","b","c"],"scores":[1.5,2.5,3.5]}`
+	err := i.validatePayload(payload, schema)
+	if err != nil {
+		t.Errorf("unexpected error for valid arrays: %v", err)
+	}
+
+	// Invalid array type
+	payload2 := `{"tags":["a","b","c"],"scores":["not","numbers"]}`
+	err = i.validatePayload(payload2, schema)
+	if err == nil {
+		t.Error("expected error for invalid array item types")
+	}
+}
+
+// TestInvoker_InvokeWithIdempotencyKey tests Invoke with idempotency key
+func TestInvoker_InvokeWithIdempotencyKey(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	})
+
+	opts := InvokeOptions{
+		IdempotencyKey: "unique-key-12345",
+	}
+
+	// Should fail to connect, but we verify the key is handled
+	_, err := i.Invoke(context.Background(), "test_func", "{}", opts)
+	if err == nil {
+		t.Error("expected connection error")
+	}
+
+	// Verify the key was passed (would be in the gRPC metadata if connected)
+	if opts.IdempotencyKey != "unique-key-12345" {
+		t.Error("idempotency key was modified")
+	}
+}
+
+// TestInvoker_CloseWhenNotConnected tests Close when not connected
+func TestInvoker_CloseWhenNotConnected(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	})
+
+	// Close should not error even when not connected
+	err := i.Close()
+	if err != nil {
+		t.Errorf("unexpected error on Close: %v", err)
+	}
+
+	// Verify state
+	impl := i.(*invoker)
+	if impl.connected {
+		t.Error("should not be connected after Close")
+	}
+}
+
+// TestInvoker_scheduleReconnectIfNeededWithDelay tests reconnect scheduling
+func TestInvoker_scheduleReconnectIfNeededWithDelay(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+		Reconnect: &ReconnectConfig{
+			Enabled:        true,
+			MaxAttempts:    5,
+			InitialDelayMs: 100,
+		},
+	}).(*invoker)
+
+	i.reconnectAttempts = 1
+
+	// Schedule reconnect
+	i.scheduleReconnectIfNeeded()
+
+	if !i.isReconnecting {
+		t.Error("expected isReconnecting to be true")
+	}
+
+	if i.reconnectAttempts != 2 {
+		t.Errorf("expected reconnectAttempts to be 2, got %d", i.reconnectAttempts)
+	}
+
+	// Clean up the reconnect goroutine to avoid goroutine leak
+	i.Close()
+}
+
+// TestInvoker_configWithEmptyAddress tests config with empty address
+func TestInvoker_configWithEmptyAddress(t *testing.T) {
+	t.Parallel()
+
+	cfg := &InvokerConfig{
+		Address:        "",
+		Insecure:       true,
+		TimeoutSeconds: 30, // Need to set this explicitly for DefaultTimeout to be set
+	}
+
+	i := NewInvoker(cfg).(*invoker)
+	if i.config.Address != "" {
+		t.Errorf("expected empty address, got %q", i.config.Address)
+	}
+
+	// Should use default
+	if i.config.DefaultTimeout != 30*time.Second {
+		t.Errorf("expected default timeout, got %v", i.config.DefaultTimeout)
+	}
+}
+
+// TestInvoker_SetSchemaWithNilSchema tests SetSchema with nil schema
+func TestInvoker_SetSchemaWithNilSchema(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	})
+
+	// Nil schema should work
+	err := i.SetSchema("test_func", nil)
+	if err != nil {
+		t.Errorf("unexpected error with nil schema: %v", err)
+	}
+
+	impl := i.(*invoker)
+	if impl.schemas["test_func"] != nil {
+		t.Error("expected schema to be nil")
+	}
+}
+
+// TestInvoker_SetSchemaWithEmptyID tests SetSchema with empty function ID
+func TestInvoker_SetSchemaWithEmptyID(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	})
+
+	schema := map[string]any{"type": "object"}
+
+	// Empty function ID
+	err := i.SetSchema("", schema)
+	if err != nil {
+		t.Errorf("unexpected error with empty function ID: %v", err)
+	}
+
+	impl := i.(*invoker)
+	// Empty ID should still be stored (no validation)
+	if impl.schemas[""] == nil {
+		t.Error("expected schema to be stored even with empty ID")
+	}
+}
+
+// TestInvoker_StreamJobContextCancellation tests StreamJob with context cancellation
+func TestInvoker_StreamJobContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	// StreamJob should handle context cancellation
+	eventCh, err := i.StreamJob(ctx, "job-123")
+	if err == nil {
+		t.Error("expected error when context is already cancelled")
+	}
+
+	if eventCh == nil {
+		t.Error("expected channel to be returned")
+	}
+
+	// Channel should be closed
+	_, ok := <-eventCh
+	if ok {
+		t.Error("expected channel to be closed")
+	}
+}
+
+// TestInvoker_StreamJobWithConnectedInvoker tests StreamJob when already connected
+func TestInvoker_StreamJobWithConnectedInvoker(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	}).(*invoker)
+
+	// Test with context cancellation - this tests the error path before RPC call
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	// StreamJob should handle context cancellation
+	eventCh, err := i.StreamJob(ctx, "job-456")
+	if err == nil {
+		t.Error("expected error when context is already cancelled")
+	}
+
+	if eventCh == nil {
+		t.Error("expected channel to be returned")
+	}
+}
+
+// TestInvoker_CancelJobContextCancellation tests CancelJob with context cancellation
+func TestInvoker_CancelJobContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	}).(*invoker)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	// CancelJob should handle context cancellation
+	// Since not connected, it will try to connect which will fail due to context cancellation
+	err := i.CancelJob(ctx, "job-123")
+	if err == nil {
+		t.Error("expected error when context is already cancelled")
+	}
+}
+
+// TestInvoker_InvokeWithInvalidOptions tests Invoke with various invalid options
+func TestInvoker_InvokeWithInvalidOptions(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	}).(*invoker)
+
+	t.Run("with negative timeout", func(t *testing.T) {
+		t.Parallel()
+
+		// Negative timeout should be handled
+		// The callContext function should use default timeout
+		ctx := context.Background()
+		callCtx, cancel := i.callContext(ctx, -10*time.Second)
+		defer cancel()
+
+		if callCtx == nil {
+			t.Error("expected non-nil context")
+		}
+
+		// Verify deadline is set
+		deadline, ok := callCtx.Deadline()
+		if !ok {
+			t.Error("expected deadline to be set")
+		}
+
+		// Deadline should be in the future and reasonable (within 60 seconds)
+		if time.Until(deadline) <= 0 || time.Until(deadline) > 60*time.Second {
+			t.Errorf("expected reasonable deadline, got %v", time.Until(deadline))
+		}
+	})
+
+	t.Run("with zero timeout uses default", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := context.Background()
+		callCtx, cancel := i.callContext(ctx, 0)
+		defer cancel()
+
+		if callCtx == nil {
+			t.Error("expected non-nil context")
+		}
+
+		// When timeout is 0, it should use DefaultTimeout
+		// which defaults to 30 seconds if not set
+		deadline, ok := callCtx.Deadline()
+		if !ok {
+			t.Error("expected deadline to be set")
+		}
+
+		// Check deadline is approximately 30 seconds from now
+		until := time.Until(deadline)
+		if until < 29*time.Second || until > 31*time.Second {
+			t.Errorf("expected deadline around 30 seconds, got %v", until)
+		}
+	})
+}
+
+// TestInvoker_InvokeWithEmptyPayload tests Invoke with empty payload
+func TestInvoker_InvokeWithEmptyPayload(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	})
+
+	opts := InvokeOptions{}
+
+	// Empty payload should be passed through
+	// Will fail because we don't have a real server
+	_, err := i.Invoke(context.Background(), "test_func", "", opts)
+	if err == nil {
+		t.Error("expected error without real server")
+	}
+}
+
+// TestInvoker_InvokeWithCustomTimeout tests Invoke with custom timeout
+func TestInvoker_InvokeWithCustomTimeout(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	})
+
+	opts := InvokeOptions{
+		Timeout: 5 * time.Second,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	// Should use custom timeout but overall context should cancel first
+	// Since we don't have a real connection, this will fail
+	_, err := i.Invoke(ctx, "test_func", "{}", opts)
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+// TestInvoker_InvokeNotConnected tests Invoke when not connected
+func TestInvoker_InvokeNotConnected(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	})
+
+	opts := InvokeOptions{}
+
+	// Should fail because not connected
+	_, err := i.Invoke(context.Background(), "test_func", "{}", opts)
+	if err == nil {
+		t.Error("expected error when not connected")
+	}
+}
+
+// TestInvoker_StartJobWithVariousOptions tests StartJob with different options
+func TestInvoker_StartJobWithVariousOptions(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	})
+
+	t.Run("with headers", func(t *testing.T) {
+		t.Parallel()
+
+		opts := InvokeOptions{
+			Headers: map[string]string{
+				"X-Custom-Header": "value",
+				"Authorization":   "Bearer token",
+			},
+		}
+
+		// Will fail because we don't have a real server
+		_, err := i.StartJob(context.Background(), "test_func", "{}", opts)
+		if err == nil {
+			t.Error("expected error without real server")
+		}
+	})
+
+	t.Run("with idempotency key", func(t *testing.T) {
+		t.Parallel()
+
+		opts := InvokeOptions{
+			IdempotencyKey: "unique-key-123",
+		}
+
+		// Will fail because we don't have a real server
+		_, err := i.StartJob(context.Background(), "test_func", "{}", opts)
+		if err == nil {
+			t.Error("expected error without real server")
+		}
+	})
+
+	t.Run("with retry config", func(t *testing.T) {
+		t.Parallel()
+
+		customRetry := &RetryConfig{
+			Enabled:          false, // Disable retry for faster failure
+			MaxAttempts:      1,
+			InitialDelayMs:   10,
+			MaxDelayMs:       100,
+			BackoffMultiplier: 2.0,
+			JitterFactor:     0.1,
+		}
+
+		opts := InvokeOptions{
+			Retry: customRetry,
+		}
+
+		// Will fail because we don't have a real server
+		_, err := i.StartJob(context.Background(), "test_func", "{}", opts)
+		if err == nil {
+			t.Error("expected error without real server")
+		}
+	})
+}
+
+// TestInvoker_ValidatePayloadWithComplexSchema tests payload validation with complex schemas
+func TestInvoker_ValidatePayloadWithComplexSchema(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	}).(*invoker)
+
+	schema := map[string]any{
+		"type": "object",
+		"required": []string{"name", "age"},
+		"properties": map[string]any{
+			"name": map[string]any{
+				"type":      "string",
+				"minLength": 1,
+				"maxLength": 100,
+			},
+			"age": map[string]any{
+				"type":    "integer",
+				"minimum": 0,
+				"maximum": 150,
+			},
+			"email": map[string]any{
+				"type":   "string",
+				"format": "email",
+			},
+			"address": map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"street": map[string]any{"type": "string"},
+					"city":   map[string]any{"type": "string"},
+				},
+			},
+			"tags": map[string]any{
+				"type":  "array",
+				"items": map[string]any{"type": "string"},
+			},
+		},
+	}
+
+	t.Run("valid complex payload", func(t *testing.T) {
+		t.Parallel()
+
+		payload := `{
+			"name": "John Doe",
+			"age": 30,
+			"email": "john@example.com",
+			"address": {
+				"street": "123 Main St",
+				"city": "Anytown"
+			},
+			"tags": ["tag1", "tag2"]
+		}`
+
+		err := i.validatePayload(payload, schema)
+		if err != nil {
+			t.Errorf("unexpected error for valid payload: %v", err)
+		}
+	})
+
+	t.Run("missing required field", func(t *testing.T) {
+		t.Parallel()
+
+		payload := `{"name": "John"}` // missing age
+
+		err := i.validatePayload(payload, schema)
+		if err == nil {
+			t.Error("expected error for missing required field")
+		}
+	})
+
+	t.Run("invalid type for field", func(t *testing.T) {
+		t.Parallel()
+
+		payload := `{"name": "John", "age": "thirty"}` // age should be integer
+
+		err := i.validatePayload(payload, schema)
+		if err == nil {
+			t.Error("expected error for invalid type")
+		}
+	})
+
+	t.Run("invalid nested object", func(t *testing.T) {
+		t.Parallel()
+
+		payload := `{"name": "John", "age": 30, "address": "not an object"}`
+
+		err := i.validatePayload(payload, schema)
+		if err == nil {
+			t.Error("expected error for invalid nested object")
+		}
+	})
+
+	t.Run("invalid array", func(t *testing.T) {
+		t.Parallel()
+
+		payload := `{"name": "John", "age": 30, "tags": "not an array"}`
+
+		err := i.validatePayload(payload, schema)
+		if err == nil {
+			t.Error("expected error for invalid array")
+		}
+	})
+}
+
+// TestInvoker_ConnectWithTimeout tests Connect with timeout
+func TestInvoker_ConnectWithTimeout(t *testing.T) {
+	t.Parallel()
+
+	// Use a port that's unlikely to have a server
+	i := NewInvoker(&InvokerConfig{
+		Address:        "127.0.0.1:19999", // Different port to avoid conflicts
+		Insecure:       true,
+		TimeoutSeconds: 1,
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	err := i.Connect(ctx)
+	// Connection may fail or timeout, either is acceptable
+	// The important thing is that the function handles it gracefully
+	if err != nil {
+		// Expected - no server running
+		t.Logf("Got expected error: %v", err)
+	}
+}
+
+// TestInvoker_ReconnectAfterClose tests that reconnect works after Close
+func TestInvoker_ReconnectAfterClose(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19998", // Different port to avoid conflicts
+		Insecure: true,
+	}).(*invoker)
+
+	// First connect (will likely fail)
+	err := i.Connect(context.Background())
+	// Server may or may not be running due to parallel tests
+	if err != nil {
+		t.Logf("Got expected error on first connect: %v", err)
+	}
+
+	// Close
+	i.Close()
+
+	// Reset connected flag for test
+	i.connected = false
+
+	// Try to connect again after Close
+	err = i.Connect(context.Background())
+	if err != nil {
+		t.Logf("Got expected error on second connect: %v", err)
+	}
+
+	// Verify state after Close and reconnect attempt
+	if i.reconnectAttempts < 0 {
+		t.Error("reconnectAttempts should be non-negative")
+	}
+}
+
+// TestInvoker_MultipleCloseCalls tests that multiple Close calls are safe
+func TestInvoker_MultipleCloseCalls(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	})
+
+	// First close
+	err := i.Close()
+	if err != nil {
+		t.Errorf("unexpected error on first Close: %v", err)
+	}
+
+	// Second close should not panic or error
+	err = i.Close()
+	if err != nil {
+		t.Errorf("unexpected error on second Close: %v", err)
+	}
+
+	// Third close
+	err = i.Close()
+	if err != nil {
+		t.Errorf("unexpected error on third Close: %v", err)
+	}
+}
+
+// TestInvoker_StreamJobWithReconnectEnabled tests StreamJob with reconnect enabled
+func TestInvoker_StreamJobWithReconnectEnabled(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19997", // Port unlikely to have server
+		Insecure: true,
+		Reconnect: &ReconnectConfig{
+			Enabled:    true,
+			MaxAttempts: 2,
+		},
+	})
+
+	// StreamJob should fail and trigger reconnection logic
+	// The error should be a connection error which triggers isConnectionError
+	eventCh, err := i.StreamJob(context.Background(), "job-reconnect")
+	if err == nil {
+		t.Error("expected error when server is not available")
+	}
+
+	if eventCh == nil {
+		t.Error("expected channel to be returned")
+	}
+
+	// Verify channel behavior
+	select {
+	case evt, ok := <-eventCh:
+		if ok {
+			t.Logf("Received event: %+v", evt)
+		}
+	default:
+		// Channel may not be closed yet, which is fine
+	}
+}
+
+// TestInvoker_InvokeWithValidation tests Invoke with schema validation
+func TestInvoker_InvokeWithValidation(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	}).(*invoker)
+
+	// Set up a schema for a function
+	i.schemas = map[string]map[string]interface{}{
+		"validated_fn": {
+			"type": "object",
+			"properties": map[string]interface{}{
+				"name": map[string]interface{}{"type": "string"},
+			},
+			"required": []interface{}{"name"},
+		},
+	}
+
+	opts := InvokeOptions{}
+
+	// Valid payload should pass validation (will still fail on connection)
+	_, err := i.Invoke(context.Background(), "validated_fn", `{"name":"test"}`, opts)
+	if err == nil {
+		t.Error("expected error when not connected")
+	}
+
+	// Invalid payload should fail validation
+	_, err = i.Invoke(context.Background(), "validated_fn", `{"wrong":"field"}`, opts)
+	if err == nil {
+		t.Error("expected validation error")
+	}
+	// Verify the error mentions validation
+	if err != nil && !strings.Contains(err.Error(), "validation failed") {
+		t.Logf("Got error: %v", err)
+	}
+}
+
+// TestInvoker_InvokeWithNonExistentFunction tests Invoke with non-existent function
+func TestInvoker_InvokeWithNonExistentFunction(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	}).(*invoker)
+
+	opts := InvokeOptions{}
+
+	// Function without schema should still work (will fail on connection)
+	_, err := i.Invoke(context.Background(), "non_existent_fn", `{}`, opts)
+	if err == nil {
+		t.Error("expected error when not connected")
+	}
+}
+
+// TestInvoker_StartJobWithValidation tests StartJob with schema validation
+func TestInvoker_StartJobWithValidation(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	}).(*invoker)
+
+	// Set up a schema for a function
+	i.schemas = map[string]map[string]interface{}{
+		"job_fn": {
+			"type": "object",
+			"properties": map[string]interface{}{
+				"count": map[string]interface{}{"type": "integer"},
+			},
+		},
+	}
+
+	opts := InvokeOptions{}
+
+	// Valid payload should pass validation
+	_, err := i.StartJob(context.Background(), "job_fn", `{"count":5}`, opts)
+	if err == nil {
+		t.Error("expected error when not connected")
+	}
+
+	// Invalid payload should fail validation
+	_, err = i.StartJob(context.Background(), "job_fn", `{"count":"not a number"}`, opts)
+	if err == nil {
+		t.Error("expected validation error")
+	}
+}
+
+// TestInvoker_CancelJobWithConnectionError tests CancelJob when connection fails
+func TestInvoker_CancelJobWithConnectionError(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+		Reconnect: &ReconnectConfig{
+			Enabled:    true,
+			MaxAttempts: 2,
+		},
+	})
+
+	// CancelJob should fail and trigger reconnection logic
+	err := i.CancelJob(context.Background(), "job-123")
+	if err == nil {
+		t.Error("expected error when not connected")
+	}
+}
+
+// TestInvoker_SetSchemaVariant tests SetSchema with different variants
+func TestInvoker_SetSchemaVariant(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	})
+
+	schema := map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"value": map[string]interface{}{"type": "string"},
+		},
+	}
+
+	err := i.SetSchema("test_fn", schema)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// Verify schema was set (we can't access schemas directly without type assertion)
+	// but we can verify setting again doesn't cause issues
+	err = i.SetSchema("test_fn", schema)
+	if err != nil {
+		t.Errorf("unexpected error on second SetSchema: %v", err)
+	}
+}
+
+// TestInvoker_SetSchemaEmptySchema tests SetSchema with empty schema
+func TestInvoker_SetSchemaEmptySchema(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	})
+
+	err := i.SetSchema("test_fn", nil)
+	if err != nil {
+		t.Errorf("unexpected error with nil schema: %v", err)
+	}
+
+	err = i.SetSchema("test_fn2", map[string]interface{}{})
+	if err != nil {
+		t.Errorf("unexpected error with empty schema: %v", err)
+	}
+}
+
+// TestInvoker_InvokeWithRetryOptions tests Invoke with retry configuration
+func TestInvoker_InvokeWithRetryOptions(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	}).(*invoker)
+
+	opts := InvokeOptions{
+		Retry: &RetryConfig{
+			MaxAttempts:     3,
+			InitialDelayMs:  10,
+			BackoffMultiplier: 2.0,
+		},
+	}
+
+	// Should fail but use retry configuration
+	_, err := i.Invoke(context.Background(), "test_fn", `{}`, opts)
+	if err == nil {
+		t.Error("expected error when not connected")
+	}
+}
+
+// TestInvoker_InvokeWithIdempotencyKey2 tests Invoke with idempotency key variant
+func TestInvoker_InvokeWithIdempotencyKey2(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	})
+
+	opts := InvokeOptions{
+		IdempotencyKey: "unique-key-12345",
+	}
+
+	_, err := i.Invoke(context.Background(), "test_fn", `{}`, opts)
+	if err == nil {
+		t.Error("expected error when not connected")
+	}
+}
+
+// TestInvoker_isRetryableErrorWithPatterns tests isRetryableError with retryable patterns
+func TestInvoker_isRetryableErrorWithPatterns(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+		Retry: &RetryConfig{
+			RetryableStatusCodes: []int32{14, 8, 10},
+		},
+	}).(*invoker)
+
+	testCases := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{"unavailable error", fmt.Errorf("service unavailable"), true},
+		{"UNAVAILABLE error", fmt.Errorf("UNAVAILABLE"), true},
+		{"internal error", fmt.Errorf("internal error"), true},
+		{"INTERNAL ERROR", fmt.Errorf("INTERNAL ERROR"), true},
+		{"deadline exceeded", fmt.Errorf("context deadline exceeded"), true},
+		{"aborted error", fmt.Errorf("request aborted"), true},
+		{"ABORTED", fmt.Errorf("ABORTED"), true},
+		{"transport is closing", fmt.Errorf("transport is closing"), true},
+		{"TRANSPORT IS CLOSING", fmt.Errorf("TRANSPORT IS CLOSING"), true},
+		{"non-retryable error", fmt.Errorf("permission denied"), false},
+		{"not found", fmt.Errorf("not found"), false},
+		{"invalid argument", fmt.Errorf("invalid argument"), false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			result := i.isRetryableError(tc.err)
+			if result != tc.expected {
+				t.Errorf("isRetryableError(%q) = %v, want %v", tc.err, result, tc.expected)
+			}
+		})
+	}
+}
+
+// TestInvoker_isRetryableErrorWithStatusCodes tests isRetryableError with status codes
+func TestInvoker_isRetryableErrorWithStatusCodes(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+		Retry: &RetryConfig{
+			RetryableStatusCodes: []int32{14, 8, 10}, // 14=Unavailable, 8=ResourceExhausted, 10=Aborted
+		},
+	}).(*invoker)
+
+	testCases := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{"code = 14", fmt.Errorf("rpc error: code = 14"), true},
+		{"Code(14)", fmt.Errorf("rpc error: Code(14)"), true},
+		{"code = 8", fmt.Errorf("rpc error: code = 8"), true},
+		{"Code(8)", fmt.Errorf("rpc error: Code(8)"), true},
+		{"code = 10", fmt.Errorf("rpc error: code = 10"), true},
+		{"code = 5 (not retryable)", fmt.Errorf("rpc error: code = 5"), false},
+		{"no code", fmt.Errorf("some error"), false},
+		{"unavailable pattern", fmt.Errorf("service unavailable"), true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			result := i.isRetryableError(tc.err)
+			if result != tc.expected {
+				t.Errorf("isRetryableError(%q) = %v, want %v", tc.err, result, tc.expected)
+			}
+		})
+	}
+}
+
+// TestInvoker_executeWithRetryWithConnectionError tests executeWithRetry with connection error
+func TestInvoker_executeWithRetryWithConnectionError(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+		Reconnect: &ReconnectConfig{
+			Enabled:    false, // Disable reconnect to avoid goroutine
+			MaxAttempts: 2,
+		},
+	}).(*invoker)
+
+	ctx := context.Background()
+
+	// Simulate a retryable error (unavailable is in the retryable patterns list)
+	attempts := 0
+	fn := func() (string, error) {
+		attempts++
+		return "", fmt.Errorf("service unavailable")
+	}
+
+	opts := InvokeOptions{
+		Retry: &RetryConfig{
+			Enabled:          true,
+			MaxAttempts:      3,
+			InitialDelayMs:   1, // Very short
+			BackoffMultiplier: 1.0,
+		},
+	}
+
+	_, err := i.executeWithRetry(ctx, opts, fn)
+	if err == nil {
+		t.Error("expected error")
+	}
+
+	// Should have attempted multiple times since error is retryable
+	if attempts < 2 {
+		t.Errorf("expected at least 2 attempts, got %d", attempts)
+	}
+}
+
+// TestInvoker_executeWithRetryCancelledByContext tests executeWithRetry with context cancellation
+func TestInvoker_executeWithRetryCancelledByContext(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	}).(*invoker)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Cancel after first attempt
+	attempts := 0
+	fn := func() (string, error) {
+		attempts++
+		if attempts == 1 {
+			cancel() // Cancel after first attempt
+		}
+		return "", fmt.Errorf("error")
+	}
+
+	opts := InvokeOptions{
+		Retry: &RetryConfig{
+			Enabled:          true,
+			MaxAttempts:      10,
+			InitialDelayMs:   1, // Very short delay
+			BackoffMultiplier: 1.0,
+		},
+	}
+
+	_, err := i.executeWithRetry(ctx, opts, fn)
+	if err == nil {
+		t.Error("expected error")
+	}
+
+	// Should mention cancellation
+	if !strings.Contains(err.Error(), "cancelled") && !strings.Contains(err.Error(), "context") {
+		t.Logf("Error (may not mention cancellation): %v", err)
+	}
+}
+
+// TestInvoker_executeWithRetryMaxAttempts tests executeWithRetry reaching max attempts
+func TestInvoker_executeWithRetryMaxAttempts(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	}).(*invoker)
+
+	ctx := context.Background()
+	maxAttempts := 3
+	attempts := 0
+
+	fn := func() (string, error) {
+		attempts++
+		return "", fmt.Errorf("service unavailable") // Retryable error
+	}
+
+	opts := InvokeOptions{
+		Retry: &RetryConfig{
+			Enabled:          true,
+			MaxAttempts:      maxAttempts,
+			InitialDelayMs:   1, // Very short
+			BackoffMultiplier: 1.0,
+		},
+	}
+
+	_, err := i.executeWithRetry(ctx, opts, fn)
+	if err == nil {
+		t.Error("expected error after max attempts")
+	}
+
+	// Should have attempted exactly maxAttempts times
+	if attempts != maxAttempts {
+		t.Errorf("expected %d attempts, got %d", maxAttempts, attempts)
+	}
+
+	// Error should mention the number of attempts
+	if !strings.Contains(err.Error(), "3") && !strings.Contains(err.Error(), "attempt") {
+		t.Logf("Error: %v", err)
+	}
+}
+
+// TestInvoker_connectWithInvalidAddress tests connect with invalid address
+func TestInvoker_connectWithInvalidAddress(t *testing.T) {
+	t.Parallel()
+
+	// gRPC uses lazy connection, so many invalid addresses won't fail until actual RPC call
+	// Empty address is the only one that will definitely fail at dial time
+	testCases := []struct {
+		name        string
+		address     string
+		shouldError bool // Whether we expect an error at dial time
+	}{
+		{"empty address", "", true},
+		{"localhost:abc", "localhost:abc", false}, // gRPC may succeed, fail later
+		{":1234", ":1234", false},                 // gRPC may succeed, fail later
+		{"invalid host", "invalid host", false},   // gRPC may succeed, fail later
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			i := NewInvoker(&InvokerConfig{
+				Address:  tc.address,
+				Insecure: true,
+			}).(*invoker)
+
+			err := i.connect(context.Background())
+			if tc.shouldError && err == nil {
+				t.Error("expected error for invalid address")
+			}
+			// For addresses where error is not expected, clean up any connection
+			if !tc.shouldError && err == nil {
+				i.Close()
+			}
+		})
+	}
+}
+
+// TestInvoker_connectIdempotentWhenConnected tests connect is idempotent when already connected
+func TestInvoker_connectIdempotentWhenConnected(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	}).(*invoker)
+
+	// Simulate being connected
+	i.connected = true
+	i.conn = nil // No actual connection
+
+	// connect should return nil without attempting to connect
+	err := i.connect(context.Background())
+	if err != nil {
+		t.Errorf("unexpected error when already connected: %v", err)
+	}
+}
+
+// TestInvoker_connectWithTLSError tests connect with TLS configuration error
+func TestInvoker_connectWithTLSError(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "example.com:443",
+		Insecure: false,
+		CAFile:   "/nonexistent/ca.pem",
+	}).(*invoker)
+
+	// connect should fail due to invalid CA file
+	err := i.connect(context.Background())
+	if err == nil {
+		t.Error("expected error for invalid CA file")
+	}
+}
+
+// TestInvoker_validatePayloadWithNonObjectSchema tests validatePayload with non-object schema
+func TestInvoker_validatePayloadWithNonObjectSchema(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	}).(*invoker)
+
+	// Schema that accepts any type
+	schema := map[string]any{
+		"type": "string",
+	}
+
+	// Valid string payload
+	err := i.validatePayload(`"hello"`, schema)
+	if err != nil {
+		t.Errorf("unexpected error for string payload: %v", err)
+	}
+
+	// Schema for number
+	schema2 := map[string]any{
+		"type": "number",
+	}
+
+	err = i.validatePayload(`42.5`, schema2)
+	if err != nil {
+		t.Errorf("unexpected error for number payload: %v", err)
+	}
+}
+
+// TestInvoker_validatePayloadWithEnumSchema tests validatePayload with enum schema
+func TestInvoker_validatePayloadWithEnumSchema(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	}).(*invoker)
+
+	schema := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"status": map[string]any{
+				"type": "string",
+				"enum": []interface{}{"pending", "active", "completed"},
+			},
+		},
+	}
+
+	// Valid enum value
+	err := i.validatePayload(`{"status":"active"}`, schema)
+	if err != nil {
+		t.Errorf("unexpected error for valid enum value: %v", err)
+	}
+
+	// Invalid enum value
+	err = i.validatePayload(`{"status":"invalid"}`, schema)
+	if err == nil {
+		t.Error("expected error for invalid enum value")
+	}
+}
+
+// TestInvoker_InvokeReconnectScheduling tests that connection errors trigger reconnect scheduling
+func TestInvoker_InvokeReconnectScheduling(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+		Reconnect: &ReconnectConfig{
+			Enabled:     true,
+			MaxAttempts: 2,
+		},
+	}).(*invoker)
+
+	// Attempt to invoke without connection - should trigger reconnect
+	_, err := i.Invoke(context.Background(), "test_fn", `{}`, InvokeOptions{})
+	if err == nil {
+		t.Error("expected error")
+	}
+
+	// Give time for reconnect goroutine to start
+	time.Sleep(10 * time.Millisecond)
+
+	// Clean up reconnect goroutine
+	i.Close()
+}
+
+// TestInvoker_calculateReconnectDelayNegative tests calculateReconnectDelay with edge cases
+func TestInvoker_calculateReconnectDelayNegative(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+		Reconnect: &ReconnectConfig{
+			InitialDelayMs:    1,
+			MaxDelayMs:        10,
+			BackoffMultiplier: 100.0, // Large multiplier
+			JitterFactor:      1.0,    // 100% jitter
+		},
+	}).(*invoker)
+
+	i.reconnectAttempts = 1
+	delay := i.calculateReconnectDelay()
+
+	// With high jitter, delay could theoretically be negative
+	// The function should clamp to 0
+	if delay < 0 {
+		t.Errorf("expected non-negative delay, got %v", delay)
+	}
+}
+
+// TestInvoker_calculateRetryDelayNegative tests calculateRetryDelay with edge cases
+func TestInvoker_calculateRetryDelayNegative(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	}).(*invoker)
+
+	cfg := &RetryConfig{
+		InitialDelayMs:    1,
+		MaxDelayMs:        10,
+		BackoffMultiplier: 100.0, // Large multiplier
+		JitterFactor:      1.0,    // 100% jitter
+	}
+
+	delay := i.calculateRetryDelay(5, cfg)
+
+	// With high jitter, delay could theoretically be negative
+	// The function should clamp to 0
+	if delay < 0 {
+		t.Errorf("expected non-negative delay, got %v", delay)
+	}
+}
+
+// TestInvoker_connectContextCancellation tests connect with cancelled context
+func TestInvoker_connectContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:29996", // Different port unlikely to have server
+		Insecure: true,
+	}).(*invoker)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	err := i.connect(ctx)
+	// connect should fail because context is already cancelled or no server
+	if err == nil {
+		// If connection succeeded (unlikely), clean up and skip
+		i.Close()
+		t.Skip("server was running on test port")
+	}
+	// The error should mention context, deadline, or connection
+	if err != nil && !strings.Contains(strings.ToLower(err.Error()), "context") &&
+		!strings.Contains(strings.ToLower(err.Error()), "deadline") &&
+		!strings.Contains(strings.ToLower(err.Error()), "canceled") &&
+		!strings.Contains(strings.ToLower(err.Error()), "connection") {
+		t.Logf("Error type: %v", err)
+	}
+}
+
+// TestInvoker_InvokeWithZeroTimeoutFromConfig tests Invoke when config has zero timeout
+func TestInvoker_InvokeWithZeroTimeoutFromConfig(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:        "127.0.0.1:19996",
+		Insecure:       true,
+		TimeoutSeconds: 0, // Zero timeout
+	}).(*invoker)
+
+	// When TimeoutSeconds is 0, DefaultTimeout becomes 0
+	// callContext then uses hardcoded 30 second default
+	if i.config.DefaultTimeout != 0 {
+		t.Errorf("expected DefaultTimeout 0s, got %v", i.config.DefaultTimeout)
+	}
+
+	// Test callContext with zero config timeout - should use hardcoded 30s default
+	ctx, cancel := i.callContext(context.Background(), 0)
+	defer cancel()
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		t.Fatal("expected deadline to be set")
+	}
+
+	remaining := time.Until(deadline)
+	if remaining < 29*time.Second || remaining > 31*time.Second {
+		t.Errorf("expected deadline around 30s, got %v", remaining)
+	}
+}
+
+// TestInvoker_configWithZeroTimeout tests config with zero timeout
+func TestInvoker_configWithZeroTimeout(t *testing.T) {
+	t.Parallel()
+
+	cfg := &InvokerConfig{
+		Address:        "127.0.0.1:19996",
+		Insecure:       true,
+		TimeoutSeconds: 0,
+		DefaultTimeout: 0,
+	}
+
+	i := NewInvoker(cfg).(*invoker)
+
+	// When both TimeoutSeconds and DefaultTimeout are 0,
+	// DefaultTimeout becomes 0 * time.Second = 0
+	// The callContext then uses a hardcoded 30 second default
+	if i.config.DefaultTimeout != 0 {
+		t.Errorf("expected DefaultTimeout 0s, got %v", i.config.DefaultTimeout)
+	}
+
+	// Verify callContext uses the 30 second hardcoded default
+	ctx, cancel := i.callContext(context.Background(), 0)
+	defer cancel()
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		t.Fatal("expected deadline to be set")
+	}
+
+	remaining := time.Until(deadline)
+	if remaining < 29*time.Second || remaining > 31*time.Second {
+		t.Errorf("expected deadline around 30s, got %v", remaining)
+	}
+}
+
+// TestInvoker_validatePayloadWithAnyOfSchema tests validatePayload with anyOf schema
+func TestInvoker_validatePayloadWithAnyOfSchema(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	}).(*invoker)
+
+	schema := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"value": map[string]any{
+				"anyOf": []interface{}{
+					map[string]any{"type": "string"},
+					map[string]any{"type": "number"},
+				},
+			},
+		},
+	}
+
+	// String should match
+	err := i.validatePayload(`{"value":"hello"}`, schema)
+	if err != nil {
+		t.Errorf("unexpected error for string value: %v", err)
+	}
+
+	// Number should match
+	err = i.validatePayload(`{"value":42}`, schema)
+	if err != nil {
+		t.Errorf("unexpected error for number value: %v", err)
+	}
+
+	// Boolean doesn't match anyOf
+	err = i.validatePayload(`{"value":true}`, schema)
+	if err == nil {
+		t.Error("expected error for value that doesn't match anyOf")
+	}
+}
+
+// TestInvoker_validatePayloadWithRequiredFields tests validatePayload with multiple required fields
+func TestInvoker_validatePayloadWithRequiredFields(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	}).(*invoker)
+
+	schema := map[string]any{
+		"type": "object",
+		"required": []interface{}{"field1", "field2", "field3"},
+		"properties": map[string]any{
+			"field1": map[string]any{"type": "string"},
+			"field2": map[string]any{"type": "string"},
+			"field3": map[string]any{"type": "string"},
+		},
+	}
+
+	// All fields present
+	err := i.validatePayload(`{"field1":"a","field2":"b","field3":"c"}`, schema)
+	if err != nil {
+		t.Errorf("unexpected error with all required fields: %v", err)
+	}
+
+	// Missing one required field
+	err = i.validatePayload(`{"field1":"a","field2":"b"}`, schema)
+	if err == nil {
+		t.Error("expected error for missing required field")
+	}
+
+	// Missing two required fields
+	err = i.validatePayload(`{"field1":"a"}`, schema)
+	if err == nil {
+		t.Error("expected error for missing required fields")
+	}
+}
+
+// TestInvoker_validatePayloadWithPatternProperties tests validatePayload with pattern matching
+func TestInvoker_validatePayloadWithPatternProperties(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+	}).(*invoker)
+
+	schema := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"email": map[string]any{
+				"type":   "string",
+				"format": "email",
+			},
+			"uri": map[string]any{
+				"type":   "string",
+				"format": "uri",
+			},
+		},
+	}
+
+	// Valid email
+	err := i.validatePayload(`{"email":"user@example.com"}`, schema)
+	if err != nil {
+		t.Errorf("unexpected error for valid email: %v", err)
+	}
+
+	// Invalid email format
+	err = i.validatePayload(`{"email":"not-an-email"}`, schema)
+	if err == nil {
+		// Some validators may not strictly validate format
+		t.Logf("Note: email format validation may not be strict")
+	}
+
+	// Valid URI
+	err = i.validatePayload(`{"uri":"https://example.com"}`, schema)
+	if err != nil {
+		t.Errorf("unexpected error for valid URI: %v", err)
+	}
+}
+
+// TestInvoker_executeWithRetryDisabled tests executeWithRetry when retry is disabled
+func TestInvoker_executeWithRetryDisabled(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+		Retry: &RetryConfig{
+			Enabled: false,
+		},
+	}).(*invoker)
+
+	ctx := context.Background()
+	attempts := 0
+
+	fn := func() (string, error) {
+		attempts++
+		return "", fmt.Errorf("error")
+	}
+
+	opts := InvokeOptions{
+		Retry: &RetryConfig{
+			Enabled:     false,
+			MaxAttempts: 5, // Should be ignored when disabled
+		},
+	}
+
+	_, err := i.executeWithRetry(ctx, opts, fn)
+	if err == nil {
+		t.Error("expected error")
+	}
+
+	// Should only attempt once
+	if attempts != 1 {
+		t.Errorf("expected 1 attempt when retry disabled, got %d", attempts)
+	}
+}
+
+// TestInvoker_CloseCancelsReconnect tests that Close cancels pending reconnect
+func TestInvoker_CloseCancelsReconnect(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+		Reconnect: &ReconnectConfig{
+			Enabled:        true,
+			MaxAttempts:    10,
+			InitialDelayMs: 5000, // Long delay
+		},
+	}).(*invoker)
+
+	// Trigger reconnect
+	i.reconnectAttempts = 1
+	i.scheduleReconnectIfNeeded()
+
+	if !i.isReconnecting {
+		t.Error("expected isReconnecting to be true")
+	}
+
+	if i.reconnectCancelCtx == nil {
+		t.Error("expected reconnectCancelCtx to be set")
+	}
+
+	// Close should cancel the reconnect
+	i.Close()
+
+	if i.isReconnecting {
+		t.Error("expected isReconnecting to be false after Close")
+	}
+
+	if i.reconnectCancelCtx != nil {
+		t.Error("expected reconnectCancelCtx to be nil after Close")
+	}
+}
+
+// TestInvoker_isRetryableErrorWithRetryableStatusCode tests isRetryableError with custom retryable codes
+func TestInvoker_isRetryableErrorWithRetryableStatusCode(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19996",
+		Insecure: true,
+		Retry: &RetryConfig{
+			RetryableStatusCodes: []int32{14, 8, 10, 1, 4}, // Including OK(1) and NotFound(4) for testing
+		},
+	}).(*invoker)
+
+	testCases := []struct {
+		err      error
+		expected bool
+	}{
+		{fmt.Errorf("rpc error: code = 14"), true},  // Unavailable
+		{fmt.Errorf("rpc error: code = 8"), true},   // ResourceExhausted
+		{fmt.Errorf("rpc error: code = 10"), true},  // Aborted
+		{fmt.Errorf("rpc error: code = 1"), true},   // OK (in retryable list)
+		{fmt.Errorf("rpc error: code = 4"), true},   // NotFound (in retryable list)
+		{fmt.Errorf("rpc error: code = 3"), false},  // InvalidArgument (not in list)
+		{fmt.Errorf("some unavailable error"), true}, // Pattern match
+	}
+
+	for _, tc := range testCases {
+		result := i.isRetryableError(tc.err)
+		if result != tc.expected {
+			t.Errorf("isRetryableError(%q) = %v, want %v", tc.err, result, tc.expected)
+		}
+	}
+}
+

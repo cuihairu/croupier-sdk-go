@@ -225,8 +225,10 @@ func (g *grpcManager) StartServer(ctx context.Context) error {
 	logInfof("Local gRPC server started on: %s", g.localAddr)
 
 	// Start serving in a goroutine
+	// Capture server locally to avoid race condition with Disconnect
+	server := g.server
 	go func() {
-		if err := g.server.Serve(lis); err != nil {
+		if err := server.Serve(lis); err != nil {
 			log.Printf("gRPC server error: %v", err)
 		}
 	}()

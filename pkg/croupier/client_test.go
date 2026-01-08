@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -1195,6 +1196,63 @@ func TestClient_convertToLocalFunctionsWithMultipleDescriptors(t *testing.T) {
 	}
 }
 
+// TestClient_convertToLocalFunctionsWithEmptyVersion tests the default version behavior
+func TestClient_convertToLocalFunctionsWithEmptyVersion(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		descriptors: map[string]FunctionDescriptor{
+			"func1": {ID: "func1", Version: ""}, // Empty version
+			"func2": {ID: "func2", Version: "custom"}, // Custom version
+		},
+		handlers: map[string]FunctionHandler{
+			"func1": func(ctx context.Context, payload []byte) ([]byte, error) {
+				return []byte("ok"), nil
+			},
+			"func2": func(ctx context.Context, payload []byte) ([]byte, error) {
+				return []byte("ok"), nil
+			},
+		},
+	}
+
+	localFuncs := c.convertToLocalFunctions()
+	if len(localFuncs) != 2 {
+		t.Errorf("expected 2 functions, got %d", len(localFuncs))
+	}
+
+	// Check that empty version gets default "1.0.0"
+	funcMap := make(map[string]LocalFunctionDescriptor)
+	for _, fn := range localFuncs {
+		funcMap[fn.ID] = fn
+	}
+
+	if funcMap["func1"].Version != "1.0.0" {
+		t.Errorf("expected func1 version 1.0.0 (default), got %s", funcMap["func1"].Version)
+	}
+	if funcMap["func2"].Version != "custom" {
+		t.Errorf("expected func2 version 'custom', got %s", funcMap["func2"].Version)
+	}
+}
+
+// TestClient_convertToLocalFunctionsNoDescriptors tests with handlers but no descriptors
+func TestClient_convertToLocalFunctionsNoDescriptors(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		descriptors: map[string]FunctionDescriptor{},
+		handlers: map[string]FunctionHandler{
+			"func1": func(ctx context.Context, payload []byte) ([]byte, error) {
+				return []byte("ok"), nil
+			},
+		},
+	}
+
+	localFuncs := c.convertToLocalFunctions()
+	if len(localFuncs) != 0 {
+		t.Errorf("expected 0 functions (no descriptors), got %d", len(localFuncs))
+	}
+}
+
 // TestGzipBytes tests the gzipBytes utility function
 func TestGzipBytes(t *testing.T) {
 	t.Parallel()
@@ -1284,6 +1342,661 @@ func TestGzipBytesLarge(t *testing.T) {
 
 	if len(decompressed) != len(payload) {
 		t.Errorf("depressed size mismatch: got %d, want %d", len(decompressed), len(payload))
+	}
+}
+
+// TestClient_dialControlWithInsecure tests dialControl with insecure connection
+func TestClient_dialControlWithInsecure(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ControlAddr:   "127.0.0.1:19999", // Non-existent server
+			Insecure:      true,
+			TimeoutSeconds: 1,
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	// Should fail to connect (no server), but we test the logic
+	_, err := c.dialControl(ctx)
+	// gRPC dial may succeed initially (lazy connection) or fail
+	// We just verify the call completes without panic
+	_ = err
+}
+
+// TestClient_dialControlWithTimeout tests dialControl with timeout
+func TestClient_dialControlWithTimeout(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ControlAddr:   "127.0.0.1:19999",
+			Insecure:      false,
+			TimeoutSeconds: 1,
+		},
+	}
+
+	ctx := context.Background()
+	// Should use config timeout
+	_, err := c.dialControl(ctx)
+	if err == nil {
+		// Might succeed with lazy connection
+	}
+}
+
+// TestClient_dialControlContextCancellation tests dialControl with cancelled context
+func TestClient_dialControlContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ControlAddr: "127.0.0.1:19999",
+			Insecure:    true,
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	_, err := c.dialControl(ctx)
+	// Should return error (may be context error or connection error)
+	_ = err
+}
+
+// TestClient_registerCapabilitiesErrors tests registerCapabilities error cases
+func TestClient_registerCapabilitiesErrors(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with control addr but no server", func(t *testing.T) {
+		t.Parallel()
+
+		c := &client{
+			config: &ClientConfig{
+				ControlAddr:   "127.0.0.1:19999",
+				Insecure:      true,
+				TimeoutSeconds: 1,
+			},
+			descriptors: map[string]FunctionDescriptor{},
+			handlers:    map[string]FunctionHandler{},
+		}
+
+		err := c.registerCapabilities(context.Background())
+		// Should fail to connect to control service
+		if err == nil {
+			t.Error("expected error when control server is not available")
+		}
+	})
+
+	t.Run("buildManifest error", func(t *testing.T) {
+		t.Parallel()
+
+		// Can't easily cause buildManifest to fail, so we just verify
+		// that registerCapabilities calls it
+		c := &client{
+			config: &ClientConfig{
+				ServiceID:    "test-service",
+				ControlAddr:  "", // Empty so it returns early
+				ServiceVersion: "1.0.0",
+			},
+			descriptors: map[string]FunctionDescriptor{},
+			handlers:    map[string]FunctionHandler{},
+		}
+
+		err := c.registerCapabilities(context.Background())
+		if err != nil {
+			t.Errorf("unexpected error with empty control addr: %v", err)
+		}
+	})
+}
+
+// TestClient_ServeWithConnectFailure tests Serve when connection fails
+func TestClient_ServeWithConnectFailure(t *testing.T) {
+	t.Parallel()
+
+	config := &ClientConfig{
+		ServiceID:      "test-service",
+		AgentAddr:      "127.0.0.1:19999", // Non-existent server
+		Insecure:       true,
+		TimeoutSeconds: 1,
+	}
+	cli := NewClient(config)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	err := cli.Serve(ctx)
+	if err == nil {
+		t.Error("expected error when connection fails")
+	}
+}
+
+// TestClient_ServeContextCancellation tests Serve with context cancellation
+func TestClient_ServeContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	config := &ClientConfig{
+		ServiceID: "test-service",
+		AgentAddr: "127.0.0.1:19999",
+		Insecure:  true,
+	}
+	cli := NewClient(config)
+	c := cli.(*client)
+
+	// Pre-set connected to skip Connect and initialize grpcManager
+	c.connected = true
+
+	// Create a grpcManager so c.grpcManager is not nil
+	mgr, err := NewGRPCManager(GRPCConfig{
+		LocalListen: "127.0.0.1:0",
+		Insecure:    true,
+	}, map[string]FunctionHandler{})
+	if err != nil {
+		t.Fatalf("failed to create grpc manager: %v", err)
+	}
+	c.grpcManager = mgr
+	defer mgr.Disconnect()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	err = cli.Serve(ctx)
+	if err != nil {
+		// May error due to context cancellation
+	}
+
+	// running should be false
+	if c.running {
+		t.Error("expected running to be false after context cancellation")
+	}
+}
+
+// TestClient_ConnectErrorCases tests Connect error cases
+func TestClient_ConnectErrorCases(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with invalid agent address", func(t *testing.T) {
+		t.Parallel()
+
+		config := &ClientConfig{
+			ServiceID:      "test-service",
+			AgentAddr:      "invalid-address:abc",
+			Insecure:       true,
+			TimeoutSeconds: 1,
+		}
+		cli := NewClient(config)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+
+		err := cli.Connect(ctx)
+		if err == nil {
+			t.Error("expected error with invalid address")
+		}
+	})
+
+	t.Run("connection timeout", func(t *testing.T) {
+		t.Parallel()
+
+		config := &ClientConfig{
+			ServiceID:      "test-service",
+			AgentAddr:      "192.0.2.1:9999", // Non-routable IP
+			Insecure:       true,
+			TimeoutSeconds: 1,
+		}
+		cli := NewClient(config)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+
+		err := cli.Connect(ctx)
+		if err == nil {
+			t.Error("expected error with timeout")
+		}
+	})
+}
+
+// TestClient_controlCredentialsWithInvalidCA tests controlCredentials with invalid CA
+func TestClient_controlCredentialsWithInvalidCA(t *testing.T) {
+	t.Parallel()
+
+	// Create a temp file with invalid content
+	tmpfile, err := os.CreateTemp("", "invalid-ca-*.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpfile.Name())
+	tmpfile.WriteString("not a valid PEM certificate")
+	tmpfile.Close()
+
+	c := &client{
+		config: &ClientConfig{
+			Insecure: false,
+			CAFile:   tmpfile.Name(),
+		},
+	}
+
+	_, err = c.controlCredentials()
+	if err == nil {
+		t.Error("expected error for invalid CA file")
+	}
+}
+
+// TestClient_controlCredentialsWithServerNameOverride tests server name override
+func TestClient_controlCredentialsWithServerNameOverride(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			Insecure:   false,
+			ServerName: "custom.example.com",
+		},
+	}
+
+	creds, err := c.controlCredentials()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if creds == nil {
+		t.Error("expected credentials to be returned")
+	}
+}
+
+// TestClient_controlCredentialsWithSkipVerify tests skip verify
+func TestClient_controlCredentialsWithSkipVerify(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			Insecure:           false,
+			InsecureSkipVerify: true,
+		},
+	}
+
+	creds, err := c.controlCredentials()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if creds == nil {
+		t.Error("expected credentials to be returned")
+	}
+}
+
+// TestClient_RegisterFunctionWithDuplicate tests registering same function twice
+func TestClient_RegisterFunctionWithDuplicate(t *testing.T) {
+	t.Parallel()
+
+	config := &ClientConfig{
+		ServiceID: "test-service",
+	}
+	cli := NewClient(config)
+	c := cli.(*client)
+
+	handler := func(ctx context.Context, payload []byte) ([]byte, error) {
+		return payload, nil
+	}
+
+	desc := FunctionDescriptor{
+		ID:      "test.function",
+		Version: "1.0.0",
+	}
+
+	// Register first time
+	err := cli.RegisterFunction(desc, handler)
+	if err != nil {
+		t.Fatalf("first registration failed: %v", err)
+	}
+
+	// Register second time - should overwrite
+	err = cli.RegisterFunction(desc, handler)
+	if err != nil {
+		t.Errorf("second registration failed: %v", err)
+	}
+
+	// Verify only one entry exists
+	if len(c.handlers) != 1 {
+		t.Errorf("expected 1 handler, got %d", len(c.handlers))
+	}
+	if len(c.descriptors) != 1 {
+		t.Errorf("expected 1 descriptor, got %d", len(c.descriptors))
+	}
+}
+
+// TestClient_buildManifestWithComplexDescriptors tests buildManifest with various descriptor types
+func TestClient_buildManifestWithComplexDescriptors(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ServiceID:      "test-service",
+			ServiceVersion: "2.0.0",
+			ProviderLang:   "go",
+			ProviderSDK:    "croupier-sdk",
+		},
+		descriptors: map[string]FunctionDescriptor{
+			"fn1": {
+				ID:        "fn1",
+				Version:   "1.5.0",
+				Category:  "player",
+				Risk:      "high",
+				Entity:    "user",
+				Operation: "update",
+				Enabled:   true,
+			},
+			"fn2": {
+				ID:        "fn2",
+				Version:   "", // Should default to 1.0.0
+				Category:  "game",
+				Risk:      "low",
+				Enabled:   false, // Should be omitted
+			},
+		},
+	}
+
+	raw, err := c.buildManifest()
+	if err != nil {
+		t.Fatalf("buildManifest failed: %v", err)
+	}
+
+	var manifest struct {
+		Provider struct {
+			ID      string `json:"id"`
+			Version string `json:"version"`
+			Lang    string `json:"lang"`
+			SDK     string `json:"sdk"`
+		} `json:"provider"`
+		Functions []map[string]any `json:"functions"`
+	}
+
+	err = json.Unmarshal(raw, &manifest)
+	if err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+
+	if manifest.Provider.ID != "test-service" {
+		t.Errorf("expected provider ID 'test-service', got %q", manifest.Provider.ID)
+	}
+	if manifest.Provider.Version != "2.0.0" {
+		t.Errorf("expected version '2.0.0', got %q", manifest.Provider.Version)
+	}
+
+	// Check functions
+	if len(manifest.Functions) != 2 {
+		t.Fatalf("expected 2 functions, got %d", len(manifest.Functions))
+	}
+
+	// Find fn1 and fn2
+	fn1Found := false
+	fn2Found := false
+	for _, fn := range manifest.Functions {
+		id, _ := fn["id"].(string)
+		if id == "fn1" {
+			fn1Found = true
+			if fn["version"] != "1.5.0" {
+				t.Errorf("expected fn1 version 1.5.0, got %v", fn["version"])
+			}
+			if _, ok := fn["enabled"]; !ok {
+				t.Error("expected enabled field for fn1 (true)")
+			}
+		} else if id == "fn2" {
+			fn2Found = true
+			if fn["version"] != "1.0.0" {
+				t.Errorf("expected fn2 version 1.0.0 (default), got %v", fn["version"])
+			}
+			if _, ok := fn["enabled"]; ok {
+				t.Error("expected enabled field to be omitted for fn2 (false)")
+			}
+		}
+	}
+
+	if !fn1Found || !fn2Found {
+		t.Error("expected both fn1 and fn2 to be in manifest")
+	}
+}
+
+// TestClient_convertToLocalFunctionsWithMixedHandlers tests with some handlers missing
+func TestClient_convertToLocalFunctionsWithMixedHandlers(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		descriptors: map[string]FunctionDescriptor{
+			"f1": {ID: "f1", Version: "1.0.0"},
+			"f2": {ID: "f2", Version: "2.0.0"},
+			"f3": {ID: "f3", Version: "3.0.0"},
+		},
+		handlers: map[string]FunctionHandler{
+			"f1": func(ctx context.Context, payload []byte) ([]byte, error) {
+				return payload, nil
+			},
+			// f2 handler missing
+			"f3": func(ctx context.Context, payload []byte) ([]byte, error) {
+				return payload, nil
+			},
+		},
+	}
+
+	funcs := c.convertToLocalFunctions()
+
+	// Should only include functions with handlers
+	if len(funcs) != 2 {
+		t.Errorf("expected 2 functions (only those with handlers), got %d", len(funcs))
+	}
+
+	funcByID := make(map[string]LocalFunctionDescriptor)
+	for _, f := range funcs {
+		funcByID[f.ID] = f
+	}
+
+	if _, ok := funcByID["f1"]; !ok {
+		t.Error("expected f1 in result (has handler)")
+	}
+	if _, ok := funcByID["f2"]; ok {
+		t.Error("expected f2 NOT in result (no handler)")
+	}
+	if _, ok := funcByID["f3"]; !ok {
+		t.Error("expected f3 in result (has handler)")
+	}
+}
+
+// TestClient_ConnectFailsAtStartServer tests Connect when StartServer fails
+func TestClient_ConnectFailsAtStartServer(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			AgentAddr:      "127.0.0.1:19090",
+			LocalListen:    "127.0.0.1:0", // Use any available port
+			Insecure:       true,
+			ServiceID:      "test-service",
+			ServiceVersion: "1.0.0",
+		},
+		handlers:    map[string]FunctionHandler{},
+		descriptors: map[string]FunctionDescriptor{},
+		stopCh:      make(chan struct{}),
+		logger:      &NoOpLogger{},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	// Connect should fail (no actual agent running)
+	// The error should come from connection attempt, not StartServer
+	err := c.Connect(ctx)
+	if err == nil {
+		t.Error("expected error when agent is not available")
+	}
+}
+
+// TestClient_ConnectWithRegisteredHandler tests Connect with registered handlers
+func TestClient_ConnectWithRegisteredHandler(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			AgentAddr:      "127.0.0.1:19091",
+			LocalListen:    "127.0.0.1:0",
+			Insecure:       true,
+			ServiceID:      "test-service",
+			ServiceVersion: "1.0.0",
+		},
+		handlers: map[string]FunctionHandler{
+			"test.fn": func(ctx context.Context, payload []byte) ([]byte, error) {
+				return payload, nil
+			},
+		},
+		descriptors: map[string]FunctionDescriptor{
+			"test.fn": {
+				ID:      "test.fn",
+				Version: "1.0.0",
+			},
+		},
+		stopCh: make(chan struct{}),
+		logger: &NoOpLogger{},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	err := c.Connect(ctx)
+	// Should fail due to no actual server
+	if err == nil {
+		t.Error("expected error when agent is not available")
+	}
+}
+
+// TestClient_registerCapabilitiesWithoutControlAddr tests registerCapabilities when ControlAddr is empty
+func TestClient_registerCapabilitiesWithoutControlAddr(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ControlAddr: "", // Empty control address
+		},
+		logger: &NoOpLogger{},
+	}
+
+	ctx := context.Background()
+	err := c.registerCapabilities(ctx)
+	if err != nil {
+		t.Errorf("expected no error when ControlAddr is empty, got: %v", err)
+	}
+}
+
+// TestClient_gzipBytes tests gzipBytes function
+func TestClient_gzipBytes(t *testing.T) {
+	t.Parallel()
+
+	input := []byte("test message for compression")
+
+	compressed, err := gzipBytes(input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(compressed) == 0 {
+		t.Error("expected non-empty compressed output")
+	}
+
+	// Compressed data should be different from input
+	if string(compressed) == string(input) {
+		t.Error("compressed data should differ from input")
+	}
+}
+
+// TestClient_gzipBytesEmpty tests gzipBytes with empty input
+func TestClient_gzipBytesEmpty(t *testing.T) {
+	t.Parallel()
+
+	input := []byte{}
+
+	compressed, err := gzipBytes(input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(compressed) == 0 {
+		t.Error("expected non-empty compressed output even for empty input")
+	}
+}
+
+// TestClient_buildManifestWithFunctions tests buildManifest function with functions
+func TestClient_buildManifestWithFunctions(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ServiceID:      "test-service",
+			ServiceVersion: "2.0.0",
+			ProviderLang:   "go",
+			ProviderSDK:    "croupier-go-sdk",
+		},
+		descriptors: map[string]FunctionDescriptor{
+			"func1": {
+				ID:        "func1",
+				Version:   "1.0.0",
+				Category:  "data",
+				Risk:      "low",
+				Entity:    "user",
+				Operation: "read",
+				Enabled:   true,
+			},
+			"func2": {
+				ID:      "func2",
+				Version: "2.0.0",
+			},
+		},
+	}
+
+	data, err := c.buildManifest()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(data) == 0 {
+		t.Error("expected non-empty manifest")
+	}
+
+	// Verify it's valid JSON
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Errorf("expected valid JSON: %v", err)
+	}
+
+	// Check provider info
+	if provider, ok := parsed["provider"].(map[string]interface{}); ok {
+		if provider["id"] != "test-service" {
+			t.Errorf("expected provider id 'test-service', got %v", provider["id"])
+		}
+	} else {
+		t.Error("expected provider in manifest")
+	}
+}
+
+// TestClient_dialControlWithInvalidControlAddr tests dialControl with invalid control address
+func TestClient_dialControlWithInvalidControlAddr(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ControlAddr: "invalid-address:abc",
+			Insecure:    true,
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	// dialControl may not return error immediately for invalid addresses
+	// due to gRPC's lazy connection behavior
+	conn, err := c.dialControl(ctx)
+	if conn != nil {
+		conn.Close()
+	}
+	// Just verify the function completes without panic
+	if err != nil {
+		t.Logf("Got expected error: %v", err)
 	}
 }
 

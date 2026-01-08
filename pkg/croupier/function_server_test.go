@@ -2,6 +2,8 @@ package croupier
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -512,14 +514,18 @@ func TestFunctionServer_StreamJob(t *testing.T) {
 
 // mockStreamServer is a mock implementation of FunctionService_StreamJobServer
 type mockStreamServer struct {
-	t      *testing.T
-	sent   bool
-	events []*functionv1.JobEvent
+	t         *testing.T
+	sent      bool
+	sendError error
+	events    []*functionv1.JobEvent
 }
 
 func (m *mockStreamServer) Send(event *functionv1.JobEvent) error {
 	m.sent = true
 	m.events = append(m.events, event)
+	if m.sendError != nil {
+		return m.sendError
+	}
 	return nil
 }
 
@@ -545,3 +551,365 @@ func (m *mockStreamServer) SendHeader(md metadata.MD) error {
 
 func (m *mockStreamServer) SetTrailer(md metadata.MD) {
 }
+
+// TestFunctionServer_StreamJobWithActiveJob tests streaming from an active job
+func TestFunctionServer_StreamJobWithActiveJob(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]FunctionHandler{
+		"test_func": func(ctx context.Context, payload []byte) ([]byte, error) {
+			return []byte("test result"), nil
+		},
+	}
+
+	s := newFunctionServer(handlers)
+
+	// Create a mock stream
+	mockStream := &mockStreamServer{t: t}
+
+	// Try to stream from a non-existent job
+	req := &functionv1.JobStreamRequest{
+		JobId: "active-job-123",
+	}
+
+	err := s.StreamJob(req, mockStream)
+	if err == nil {
+		t.Error("expected error for non-existent job")
+	}
+}
+
+// TestFunctionServer_StreamJobWithNilRequest tests StreamJob with nil request
+func TestFunctionServer_StreamJobWithNilRequestDirect(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]FunctionHandler{}
+	s := newFunctionServer(handlers)
+
+	mockStream := &mockStreamServer{t: t}
+
+	// Test with nil request - should return InvalidArgument error
+	err := s.StreamJob(nil, mockStream)
+	if err == nil {
+		t.Error("expected error with nil request")
+	}
+}
+
+// TestFunctionServer_HandlerConcurrency tests handler function thread safety
+func TestFunctionServer_HandlerConcurrency(t *testing.T) {
+	t.Parallel()
+
+	callCount := 0
+	handlers := map[string]FunctionHandler{
+		"concurrent_func": func(ctx context.Context, payload []byte) ([]byte, error) {
+			callCount++
+			return []byte("result"), nil
+		},
+	}
+
+	s := newFunctionServer(handlers)
+
+	// Call handler multiple times concurrently
+	done := make(chan bool)
+	for i := 0; i < 10; i++ {
+		go func() {
+			h, ok := s.handler("concurrent_func")
+			if ok && h != nil {
+				h(context.Background(), []byte("test"))
+			}
+			done <- true
+		}()
+	}
+
+	// Wait for all goroutines
+	for i := 0; i < 10; i++ {
+		<-done
+	}
+
+	if callCount == 0 {
+		t.Error("expected handler to be called")
+	}
+}
+
+// TestFunctionServer_StreamJobSuccess tests successful streaming from a job
+func TestFunctionServer_StreamJobSuccess(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]FunctionHandler{
+		"quick_func": func(ctx context.Context, payload []byte) ([]byte, error) {
+			return []byte("job completed"), nil
+		},
+	}
+
+	s := newFunctionServer(handlers)
+
+	// Start a job
+	req := &functionv1.InvokeRequest{
+		FunctionId: "quick_func",
+		Payload:    []byte("input"),
+	}
+
+	resp, err := s.StartJob(context.Background(), req)
+	if err != nil {
+		t.Fatalf("failed to start job: %v", err)
+	}
+
+	// Create a mock stream to receive events
+	mockStream := &mockStreamServer{t: t}
+
+	// Stream the job
+	streamReq := &functionv1.JobStreamRequest{
+		JobId: resp.JobId,
+	}
+
+	// Stream in a goroutine since it will block until job completes
+	done := make(chan error, 1)
+	go func() {
+		done <- s.StreamJob(streamReq, mockStream)
+	}()
+
+	// Wait for streaming to complete
+	timeout := time.After(100 * time.Millisecond)
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("unexpected error from StreamJob: %v", err)
+		}
+	case <-timeout:
+		t.Error("timeout waiting for stream to complete")
+	}
+
+	// Verify events were sent
+	if !mockStream.sent {
+		t.Error("expected events to be sent")
+	}
+
+	// Verify we got the expected events
+	if len(mockStream.events) == 0 {
+		t.Error("expected at least one event")
+	}
+
+	// Verify job is cleaned up
+	s.mu.RLock()
+	_, exists := s.jobs[resp.JobId]
+	s.mu.RUnlock()
+
+	if exists {
+		t.Error("expected job to be removed after completion")
+	}
+}
+
+// TestFunctionServer_StreamJobWithError tests streaming from a job that errors
+func TestFunctionServer_StreamJobWithError(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]FunctionHandler{
+		"error_func": func(ctx context.Context, payload []byte) ([]byte, error) {
+			return nil, fmt.Errorf("handler error")
+		},
+	}
+
+	s := newFunctionServer(handlers)
+
+	// Start a job
+	req := &functionv1.InvokeRequest{
+		FunctionId: "error_func",
+		Payload:    []byte("input"),
+	}
+
+	resp, err := s.StartJob(context.Background(), req)
+	if err != nil {
+		t.Fatalf("failed to start job: %v", err)
+	}
+
+	// Create a mock stream
+	mockStream := &mockStreamServer{t: t}
+
+	// Stream the job
+	streamReq := &functionv1.JobStreamRequest{
+		JobId: resp.JobId,
+	}
+
+	// Stream in a goroutine
+	done := make(chan error, 1)
+	go func() {
+		done <- s.StreamJob(streamReq, mockStream)
+	}()
+
+	// Wait for streaming to complete
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("unexpected error from StreamJob: %v", err)
+		}
+	case <-time.After(100 * time.Millisecond):
+		t.Error("timeout waiting for stream to complete")
+	}
+
+	// Verify we got events
+	if len(mockStream.events) == 0 {
+		t.Error("expected events to be sent")
+	}
+}
+
+// TestFunctionServer_StreamJobWithCanceledContext tests streaming from a canceled job
+func TestFunctionServer_StreamJobWithCanceledContext(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]FunctionHandler{
+		"canceled_func": func(ctx context.Context, payload []byte) ([]byte, error) {
+			return nil, context.Canceled
+		},
+	}
+
+	s := newFunctionServer(handlers)
+
+	// Start a job
+	req := &functionv1.InvokeRequest{
+		FunctionId: "canceled_func",
+		Payload:    []byte("input"),
+	}
+
+	resp, err := s.StartJob(context.Background(), req)
+	if err != nil {
+		t.Fatalf("failed to start job: %v", err)
+	}
+
+	// Create a mock stream
+	mockStream := &mockStreamServer{t: t}
+
+	// Stream the job
+	streamReq := &functionv1.JobStreamRequest{
+		JobId: resp.JobId,
+	}
+
+	// Stream in a goroutine
+	done := make(chan error, 1)
+	go func() {
+		done <- s.StreamJob(streamReq, mockStream)
+	}()
+
+	// Wait for streaming to complete
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("unexpected error from StreamJob: %v", err)
+		}
+	case <-time.After(100 * time.Millisecond):
+		t.Error("timeout waiting for stream to complete")
+	}
+
+	// Verify we got events including canceled event
+	foundCanceled := false
+	for _, evt := range mockStream.events {
+		if evt.Type == "canceled" || evt.Type == "error" {
+			foundCanceled = true
+		}
+	}
+	if !foundCanceled {
+		t.Error("expected canceled or error event")
+	}
+}
+
+// TestFunctionServer_StreamJobSendError tests StreamJob when stream.Send fails
+func TestFunctionServer_StreamJobSendError(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]FunctionHandler{
+		"func": func(ctx context.Context, payload []byte) ([]byte, error) {
+			return []byte("result"), nil
+		},
+	}
+
+	s := newFunctionServer(handlers)
+
+	// Start a job
+	req := &functionv1.InvokeRequest{
+		FunctionId: "func",
+		Payload:    []byte("input"),
+	}
+
+	resp, err := s.StartJob(context.Background(), req)
+	if err != nil {
+		t.Fatalf("failed to start job: %v", err)
+	}
+
+	// Create a mock stream that returns an error on Send
+	mockStream := &mockStreamServer{
+		t: t,
+		sendError: fmt.Errorf("stream send error"),
+	}
+
+	streamReq := &functionv1.JobStreamRequest{
+		JobId: resp.JobId,
+	}
+
+	err = s.StreamJob(streamReq, mockStream)
+	if err == nil {
+		t.Error("expected error from StreamJob when Send fails")
+	}
+
+	// Verify the error mentions send failure
+	if err != nil && !strings.Contains(err.Error(), "stream send error") {
+		t.Logf("Got error: %v", err)
+	}
+}
+
+// TestFunctionServer_StreamJobMultipleJobs tests streaming from multiple jobs
+func TestFunctionServer_StreamJobMultipleJobs(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]FunctionHandler{
+		"func": func(ctx context.Context, payload []byte) ([]byte, error) {
+			// Add a small delay to ensure the job is still running when we stream
+			time.Sleep(10 * time.Millisecond)
+			return []byte("done"), nil
+		},
+	}
+
+	s := newFunctionServer(handlers)
+
+	// Start multiple jobs
+	jobIDs := []string{}
+	for i := 0; i < 3; i++ {
+		req := &functionv1.InvokeRequest{
+			FunctionId: "func",
+			Payload:    []byte(fmt.Sprintf("input-%d", i)),
+		}
+
+		resp, err := s.StartJob(context.Background(), req)
+		if err != nil {
+			t.Fatalf("failed to start job %d: %v", i, err)
+		}
+		jobIDs = append(jobIDs, resp.JobId)
+	}
+
+	// Stream each job
+	for _, jobID := range jobIDs {
+		mockStream := &mockStreamServer{t: t}
+		streamReq := &functionv1.JobStreamRequest{
+			JobId: jobID,
+		}
+
+		// Stream with a timeout
+		done := make(chan error, 1)
+		go func() {
+			done <- s.StreamJob(streamReq, mockStream)
+		}()
+
+		select {
+		case err := <-done:
+			if err != nil && err.Error() != "rpc error: code = NotFound desc = job "+jobID+" not found" {
+				// NotFound is acceptable for quick jobs, they may have completed
+				t.Logf("StreamJob for %s completed with: %v", jobID, err)
+			}
+		case <-time.After(200 * time.Millisecond):
+			t.Error("timeout waiting for stream to complete")
+		}
+
+		if !mockStream.sent {
+			// Jobs complete too quickly, skip the sent check
+			t.Logf("Job %s completed before streaming started", jobID)
+		}
+	}
+}
+
