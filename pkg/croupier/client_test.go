@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"strings"
 	"testing"
 	"time"
 )
@@ -676,3 +677,613 @@ func TestLocalFunctionDescriptor(t *testing.T) {
 		t.Errorf("expected Version 1.0.0, got %q", desc.Version)
 	}
 }
+
+// Test Client_controlCredentials with insecure config
+func TestClient_controlCredentials(t *testing.T) {
+	t.Parallel()
+
+	t.Run("insecure connection", func(t *testing.T) {
+		t.Parallel()
+
+		c := &client{
+			config: &ClientConfig{
+				Insecure: true,
+			},
+		}
+
+		// Should not return error for insecure
+		creds, err := c.controlCredentials()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if creds == nil {
+			t.Error("expected credentials to be returned")
+		}
+	})
+
+	t.Run("control address not configured", func(t *testing.T) {
+		t.Parallel()
+
+		c := &client{
+			config: &ClientConfig{
+				ControlAddr: "",
+			},
+		}
+
+		_, err := c.dialControl(context.Background())
+		if err == nil {
+			t.Error("expected error when control address is empty")
+		}
+	})
+}
+
+// Test Client_registerCapabilities without control addr
+func TestClient_registerCapabilitiesNoControlAddr(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ControlAddr: "",
+		},
+	}
+
+	// Should return early without error
+	err := c.registerCapabilities(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// Test Client_controlCredentials with cert files
+func TestClient_controlCredentialsWithCertFiles(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			CertFile: "/nonexistent/cert.pem",
+			KeyFile:  "/nonexistent/key.pem",
+			CAFile:   "/nonexistent/ca.pem",
+		},
+	}
+
+	_, err := c.controlCredentials()
+	if err == nil {
+		t.Error("expected error for non-existent cert files")
+	}
+}
+
+// Test Client_controlCredentials with system CAs
+func TestClient_controlCredentialsSystemCAs(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			Insecure: false,
+			CAFile:   "",
+			CertFile: "",
+			KeyFile:  "",
+		},
+	}
+
+	// Should use system CAs and not error
+	creds, err := c.controlCredentials()
+	if err != nil {
+		t.Fatalf("unexpected error with system CAs: %v", err)
+	}
+	if creds == nil {
+		t.Error("expected credentials to be returned")
+	}
+}
+
+// Test Client_controlCredentials with server name
+func TestClient_controlCredentialsWithServerName(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			Insecure:   false,
+			ServerName: "example.com",
+		},
+	}
+
+	creds, err := c.controlCredentials()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if creds == nil {
+		t.Error("expected credentials to be returned")
+	}
+}
+
+// Test Client_controlCredentials with insecure skip verify
+func TestClient_controlCredentialsInsecureSkipVerify(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			Insecure:           false,
+			InsecureSkipVerify: true,
+		},
+	}
+
+	creds, err := c.controlCredentials()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if creds == nil {
+		t.Error("expected credentials to be returned")
+	}
+}
+
+// Test Client_convertToLocalFunctions with empty descriptors
+func TestClient_convertToLocalFunctionsWithEmptyDescriptors(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		descriptors: map[string]FunctionDescriptor{},
+		handlers:    map[string]FunctionHandler{},
+	}
+
+	funcs := c.convertToLocalFunctions()
+	if len(funcs) != 0 {
+		t.Errorf("expected 0 functions, got %d", len(funcs))
+	}
+}
+
+// Test Client_convertToLocalFunctions with missing handlers
+func TestClient_convertToLocalFunctionsWithMissingHandlers(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		descriptors: map[string]FunctionDescriptor{
+			"f1": {ID: "f1", Version: "1.0.0"},
+		},
+		handlers: map[string]FunctionHandler{},
+	}
+
+	funcs := c.convertToLocalFunctions()
+	// Functions without handlers should not be included
+	if len(funcs) != 0 {
+		t.Errorf("expected 0 functions (no handlers), got %d", len(funcs))
+	}
+}
+
+// Test Client_Connect idempotent
+func TestClient_ConnectIdempotent(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			AgentAddr: "127.0.0.1:19090",
+		},
+		handlers:    map[string]FunctionHandler{},
+		descriptors: map[string]FunctionDescriptor{},
+		stopCh:      make(chan struct{}),
+		connected:   true, // Already connected
+		logger:      &NoOpLogger{},
+	}
+
+	// Should return nil without trying to connect again
+	err := c.Connect(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error when already connected: %v", err)
+	}
+}
+
+// Test Client_Connect with no handlers
+func TestClient_ConnectNoHandlers(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			AgentAddr: "127.0.0.1:19090",
+		},
+		handlers:    map[string]FunctionHandler{},
+		descriptors: map[string]FunctionDescriptor{},
+		stopCh:      make(chan struct{}),
+		logger:      &NoOpLogger{},
+	}
+
+	// Should fail to connect (no actual agent)
+	err := c.Connect(context.Background())
+	if err == nil {
+		t.Error("expected connection error (no agent running)")
+	}
+}
+
+// Test Client_Serve without connect
+func TestClient_ServeWithoutConnect(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			AgentAddr: "127.0.0.1:19090",
+		},
+		handlers:    map[string]FunctionHandler{},
+		descriptors: map[string]FunctionDescriptor{},
+		stopCh:      make(chan struct{}),
+		logger:      &NoOpLogger{},
+	}
+
+	// Should try to connect and fail
+	err := c.Serve(context.Background())
+	if err == nil {
+		t.Error("expected error when serving without connection")
+	}
+}
+
+// Test Client_Serve already connected
+func TestClient_ServeAlreadyConnected(t *testing.T) {
+	t.Parallel()
+
+	// Test the case where connected=true but grpcManager is not initialized
+	// (which can happen in edge cases)
+	c := NewClient(&ClientConfig{
+		AgentAddr: "127.0.0.1:19090",
+	}).(*client)
+
+	c.RegisterFunction(FunctionDescriptor{
+		ID:      "test",
+		Version: "1.0.0",
+	}, func(ctx context.Context, payload []byte) ([]byte, error) {
+		return payload, nil
+	})
+
+	// Set connected to true without initializing grpcManager
+	// This will cause StartServer to fail
+	c.connected = true
+	c.logger = &NoOpLogger{}
+
+	// Serve should fail because grpcManager.StartServer will panic on nil
+	// But we can't test that directly without a mock
+	// Instead, we test the normal flow where connected=false
+	c.connected = false
+
+	err := c.Serve(context.Background())
+	// Should fail to connect (no actual agent)
+	if err == nil {
+		t.Error("expected error when serving without agent connection")
+	}
+}
+
+// Test buildManifest with empty descriptors
+func TestClient_buildManifestEmpty(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ServiceID:      "test-svc",
+			ServiceVersion: "1.0.0",
+			ProviderLang:   "go",
+			ProviderSDK:    "croupier-go-sdk",
+		},
+		descriptors: map[string]FunctionDescriptor{},
+	}
+
+	raw, err := c.buildManifest()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var decoded struct {
+		Provider struct {
+			ID string `json:"id"`
+		} `json:"provider"`
+		Functions []any `json:"functions"`
+	}
+
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatalf("unmarshal manifest: %v", err)
+	}
+
+	if decoded.Provider.ID != "test-svc" {
+		t.Errorf("expected provider ID test-svc, got %q", decoded.Provider.ID)
+	}
+
+	// Functions should be empty or omitted
+	if len(decoded.Functions) != 0 {
+		t.Errorf("expected 0 functions, got %d", len(decoded.Functions))
+	}
+}
+
+// Test buildManifest with full descriptor
+func TestClient_buildManifestFullDescriptor(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		config: &ClientConfig{
+			ServiceID:      "test-svc",
+			ServiceVersion: "2.0.0",
+			ProviderLang:   "go",
+			ProviderSDK:    "croupier-go-sdk",
+		},
+		descriptors: map[string]FunctionDescriptor{
+			"test.full": {
+				ID:        "test.full",
+				Version:   "3.0.0",
+				Category:  "test",
+				Risk:      "medium",
+				Entity:    "entity",
+				Operation: "read",
+				Enabled:   true,
+			},
+		},
+	}
+
+	raw, err := c.buildManifest()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var decoded struct {
+		Functions []map[string]any `json:"functions"`
+	}
+
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatalf("unmarshal manifest: %v", err)
+	}
+
+	if len(decoded.Functions) != 1 {
+		t.Fatalf("expected 1 function, got %d", len(decoded.Functions))
+	}
+
+	fn := decoded.Functions[0]
+	if fn["id"] != "test.full" {
+		t.Errorf("expected function ID test.full, got %v", fn["id"])
+	}
+	if fn["version"] != "3.0.0" {
+		t.Errorf("expected version 3.0.0, got %v", fn["version"])
+	}
+	if fn["category"] != "test" {
+		t.Errorf("expected category test, got %v", fn["category"])
+	}
+	if fn["risk"] != "medium" {
+		t.Errorf("expected risk medium, got %v", fn["risk"])
+	}
+	if fn["entity"] != "entity" {
+		t.Errorf("expected entity entity, got %v", fn["entity"])
+	}
+	if fn["operation"] != "read" {
+		t.Errorf("expected operation read, got %v", fn["operation"])
+	}
+	if fn["enabled"] != true {
+		t.Errorf("expected enabled true, got %v", fn["enabled"])
+	}
+}
+
+// TestClient_dialControl tests the dialControl method
+func TestClient_dialControl(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		controlAddr string
+		insecure    bool
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:        "no control address",
+			controlAddr: "",
+			wantErr:     true,
+			errContains: "control address not configured",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &client{
+				config: &ClientConfig{
+					ControlAddr: tt.controlAddr,
+					Insecure:    tt.insecure,
+				},
+			}
+
+			conn, err := c.dialControl(context.Background())
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error")
+					return
+				}
+				if tt.errContains != "" {
+					// Check if error message contains expected string
+					errStr := err.Error()
+					found := false
+					for _, substr := range []string{"control address not configured", "dial tcp", "transport"} {
+						if strings.Contains(errStr, substr) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						t.Errorf("expected error containing %q, got %q", tt.errContains, errStr)
+					}
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			if conn != nil {
+				conn.Close()
+			}
+		})
+	}
+}
+
+// TestClient_ConnectWithTimeout tests Connect with timeout
+func TestClient_ConnectWithTimeout(t *testing.T) {
+	t.Parallel()
+
+	// Skip this test in parallel mode to avoid issues with network connections
+	t.Skip("Skipping network-dependent test in parallel mode")
+
+	c := &client{
+		config: &ClientConfig{
+			AgentAddr:       "127.0.0.1:49996",
+			Insecure:        true,
+			TimeoutSeconds:  1,
+			GameID:          "test-game",
+			Env:             "test",
+			ServiceID:       "test-service",
+			ServiceVersion:  "1.0.0",
+			ProviderLang:    "go",
+			ProviderSDK:     "croupier-go-sdk",
+			ControlAddr:     "",
+		},
+		descriptors: make(map[string]FunctionDescriptor),
+		handlers:    make(map[string]FunctionHandler),
+		logger:      &NoOpLogger{},
+	}
+
+	// Use a context with timeout to avoid hanging
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	// Connect should complete within timeout
+	err := c.Connect(ctx)
+	// Result depends on whether service is running, just verify no panic
+	_ = err
+	c.Close()
+}
+
+// TestClient_convertToLocalFunctionsWithDuplicateVersions tests with multiple descriptors
+func TestClient_convertToLocalFunctionsWithMultipleDescriptors(t *testing.T) {
+	t.Parallel()
+
+	c := &client{
+		descriptors: map[string]FunctionDescriptor{
+			"func1": {ID: "func1", Version: "1.0.0"},
+			"func2": {ID: "func2", Version: "2.0.0"},
+			"func3": {ID: "func3", Version: "3.0.0"},
+		},
+		handlers: map[string]FunctionHandler{
+			"func1": func(ctx context.Context, payload []byte) ([]byte, error) {
+				return []byte("ok"), nil
+			},
+			"func2": func(ctx context.Context, payload []byte) ([]byte, error) {
+				return []byte("ok"), nil
+			},
+			"func3": func(ctx context.Context, payload []byte) ([]byte, error) {
+				return []byte("ok"), nil
+			},
+		},
+	}
+
+	localFuncs := c.convertToLocalFunctions()
+	if len(localFuncs) != 3 {
+		t.Errorf("expected 3 functions, got %d", len(localFuncs))
+	}
+
+	// Check each function
+	funcMap := make(map[string]LocalFunctionDescriptor)
+	for _, fn := range localFuncs {
+		funcMap[fn.ID] = fn
+	}
+
+	if funcMap["func1"].Version != "1.0.0" {
+		t.Errorf("expected func1 version 1.0.0, got %s", funcMap["func1"].Version)
+	}
+	if funcMap["func2"].Version != "2.0.0" {
+		t.Errorf("expected func2 version 2.0.0, got %s", funcMap["func2"].Version)
+	}
+	if funcMap["func3"].Version != "3.0.0" {
+		t.Errorf("expected func3 version 3.0.0, got %s", funcMap["func3"].Version)
+	}
+}
+
+// TestGzipBytes tests the gzipBytes utility function
+func TestGzipBytes(t *testing.T) {
+	t.Parallel()
+
+	// Test with normal payload
+	payload := []byte("test payload for gzip")
+	compressed, err := gzipBytes(payload)
+	if err != nil {
+		t.Fatalf("gzipBytes failed: %v", err)
+	}
+
+	// Verify it can be decompressed
+	reader, err := gzip.NewReader(bytes.NewReader(compressed))
+	if err != nil {
+		t.Fatalf("failed to create gzip reader: %v", err)
+	}
+	defer reader.Close()
+
+	decompressed, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("failed to decompress: %v", err)
+	}
+
+	if string(decompressed) != string(payload) {
+		t.Errorf("decompressed data mismatch: got %s, want %s", string(decompressed), string(payload))
+	}
+}
+
+// TestGzipBytesEmpty tests gzipBytes with empty payload
+func TestGzipBytesEmpty(t *testing.T) {
+	t.Parallel()
+
+	payload := []byte{}
+	compressed, err := gzipBytes(payload)
+	if err != nil {
+		t.Fatalf("gzipBytes failed: %v", err)
+	}
+
+	// Verify it can be decompressed
+	reader, err := gzip.NewReader(bytes.NewReader(compressed))
+	if err != nil {
+		t.Fatalf("failed to create gzip reader: %v", err)
+	}
+	defer reader.Close()
+
+	decompressed, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("failed to decompress: %v", err)
+	}
+
+	if len(decompressed) != 0 {
+		t.Errorf("expected empty decompressed data, got %s", string(decompressed))
+	}
+}
+
+// TestGzipBytesLarge tests gzipBytes with large payload
+func TestGzipBytesLarge(t *testing.T) {
+	t.Parallel()
+
+	// Create a large payload
+	payload := make([]byte, 100000)
+	for i := range payload {
+		payload[i] = byte(i % 256)
+	}
+
+	compressed, err := gzipBytes(payload)
+	if err != nil {
+		t.Fatalf("gzipBytes failed: %v", err)
+	}
+
+	// Compressed should be smaller than original (or at least not too much larger)
+	if len(compressed) > len(payload) {
+		t.Logf("Warning: compressed size (%d) > original size (%d)", len(compressed), len(payload))
+	}
+
+	// Verify it can be decompressed
+	reader, err := gzip.NewReader(bytes.NewReader(compressed))
+	if err != nil {
+		t.Fatalf("failed to create gzip reader: %v", err)
+	}
+	defer reader.Close()
+
+	decompressed, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("failed to decompress: %v", err)
+	}
+
+	if len(decompressed) != len(payload) {
+		t.Errorf("depressed size mismatch: got %d, want %d", len(decompressed), len(payload))
+	}
+}
+

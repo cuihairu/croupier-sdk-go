@@ -2,6 +2,7 @@ package croupier
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -178,4 +179,119 @@ func TestLogHelpers(t *testing.T) {
 		// Should not panic
 		logInfof("test %s", "info")
 	})
+
+	t.Run("logWarnf", func(t *testing.T) {
+		t.Parallel()
+
+		// Should not panic
+		logWarnf("test %s", "warn")
+	})
+
+	t.Run("logErrorf", func(t *testing.T) {
+		t.Parallel()
+
+		// Should not panic
+		logErrorf("test %s", "error")
+	})
+}
+
+func TestNoOpLogger_AllMethods(t *testing.T) {
+	t.Parallel()
+
+	var logger NoOpLogger
+
+	// Test all methods to ensure they don't panic and are proper no-ops
+	logger.Debugf("debug message %d", 123)
+	logger.Infof("info message %s", "test")
+	logger.Warnf("warn message %v", map[string]string{"key": "value"})
+	logger.Errorf("error message %f", 3.14)
+
+	// If we got here without panicking, the test passes
+}
+
+func TestDefaultLogger_AllLevelsWithoutDebug(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	logger := NewDefaultLogger(false, &buf)
+
+	// Debug messages should not appear when debug is false
+	logger.Debugf("should not appear")
+	if buf.String() != "" {
+		t.Error("expected no output for debug when debug=false")
+	}
+
+	// But other levels should appear
+	logger.Infof("info message")
+	if !strings.Contains(buf.String(), "[INFO]") {
+		t.Error("expected INFO log")
+	}
+
+	logger.Warnf("warn message")
+	if !strings.Contains(buf.String(), "[WARN]") {
+		t.Error("expected WARN log")
+	}
+
+	logger.Errorf("error message")
+	if !strings.Contains(buf.String(), "[ERROR]") {
+		t.Error("expected ERROR log")
+	}
+}
+
+func TestDefaultLogger_FormatString(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	logger := NewDefaultLogger(true, &buf)
+
+	// Test various format strings
+	logger.Debugf("debug: %s %d %v", "test", 42, true)
+	logger.Infof("info: %.2f", 3.14159)
+	logger.Warnf("warn: %#v", map[string]int{"a": 1})
+	logger.Errorf("error: %v", []string{"x", "y"})
+
+	output := buf.String()
+
+	// Verify all log levels are present
+	expectedPrefixes := []string{"[DEBUG]", "[INFO]", "[WARN]", "[ERROR]"}
+	for _, prefix := range expectedPrefixes {
+		if !strings.Contains(output, prefix) {
+			t.Errorf("expected %s prefix in output", prefix)
+		}
+	}
+
+	// Verify formatted content
+	if !strings.Contains(output, "debug: test 42 true") {
+		t.Error("expected debug formatted message")
+	}
+	if !strings.Contains(output, "info: 3.14") {
+		t.Error("expected info formatted message")
+	}
+}
+
+func TestDefaultLogger_MultipleMessages(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	logger := NewDefaultLogger(true, &buf)
+
+	// Write multiple messages
+	for i := 0; i < 5; i++ {
+		logger.Infof("message %d", i)
+	}
+
+	output := buf.String()
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+
+	if len(lines) != 5 {
+		t.Errorf("expected 5 lines, got %d", len(lines))
+	}
+
+	// Verify each message is present
+	for i := 0; i < 5; i++ {
+		expected := fmt.Sprintf("message %d", i)
+		if !strings.Contains(output, expected) {
+			t.Errorf("expected message %q not found", expected)
+		}
+	}
 }
