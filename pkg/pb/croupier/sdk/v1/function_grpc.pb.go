@@ -19,58 +19,58 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	FunctionService_Invoke_FullMethodName    = "/croupier.sdk.v1.FunctionService/Invoke"
-	FunctionService_StartJob_FullMethodName  = "/croupier.sdk.v1.FunctionService/StartJob"
-	FunctionService_StreamJob_FullMethodName = "/croupier.sdk.v1.FunctionService/StreamJob"
-	FunctionService_CancelJob_FullMethodName = "/croupier.sdk.v1.FunctionService/CancelJob"
+	FunctionClientService_Invoke_FullMethodName    = "/croupier.sdk.v1.FunctionClientService/Invoke"
+	FunctionClientService_StartJob_FullMethodName  = "/croupier.sdk.v1.FunctionClientService/StartJob"
+	FunctionClientService_StreamJob_FullMethodName = "/croupier.sdk.v1.FunctionClientService/StreamJob"
+	FunctionClientService_CancelJob_FullMethodName = "/croupier.sdk.v1.FunctionClientService/CancelJob"
 )
 
-// FunctionServiceClient is the client API for FunctionService service.
+// FunctionClientServiceClient is the client API for FunctionClientService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type FunctionServiceClient interface {
+type FunctionClientServiceClient interface {
 	// Synchronous function invocation
 	Invoke(ctx context.Context, in *InvokeRequest, opts ...grpc.CallOption) (*InvokeResponse, error)
 	// Asynchronous job starting
 	StartJob(ctx context.Context, in *InvokeRequest, opts ...grpc.CallOption) (*StartJobResponse, error)
 	// Stream job events for async operations
-	StreamJob(ctx context.Context, in *JobStreamRequest, opts ...grpc.CallOption) (FunctionService_StreamJobClient, error)
+	StreamJob(ctx context.Context, in *JobStreamRequest, opts ...grpc.CallOption) (FunctionClientService_StreamJobClient, error)
 	// Cancel a running job
 	CancelJob(ctx context.Context, in *CancelJobRequest, opts ...grpc.CallOption) (*StartJobResponse, error)
 }
 
-type functionServiceClient struct {
+type functionClientServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewFunctionServiceClient(cc grpc.ClientConnInterface) FunctionServiceClient {
-	return &functionServiceClient{cc}
+func NewFunctionClientServiceClient(cc grpc.ClientConnInterface) FunctionClientServiceClient {
+	return &functionClientServiceClient{cc}
 }
 
-func (c *functionServiceClient) Invoke(ctx context.Context, in *InvokeRequest, opts ...grpc.CallOption) (*InvokeResponse, error) {
+func (c *functionClientServiceClient) Invoke(ctx context.Context, in *InvokeRequest, opts ...grpc.CallOption) (*InvokeResponse, error) {
 	out := new(InvokeResponse)
-	err := c.cc.Invoke(ctx, FunctionService_Invoke_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, FunctionClientService_Invoke_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *functionServiceClient) StartJob(ctx context.Context, in *InvokeRequest, opts ...grpc.CallOption) (*StartJobResponse, error) {
+func (c *functionClientServiceClient) StartJob(ctx context.Context, in *InvokeRequest, opts ...grpc.CallOption) (*StartJobResponse, error) {
 	out := new(StartJobResponse)
-	err := c.cc.Invoke(ctx, FunctionService_StartJob_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, FunctionClientService_StartJob_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *functionServiceClient) StreamJob(ctx context.Context, in *JobStreamRequest, opts ...grpc.CallOption) (FunctionService_StreamJobClient, error) {
-	stream, err := c.cc.NewStream(ctx, &FunctionService_ServiceDesc.Streams[0], FunctionService_StreamJob_FullMethodName, opts...)
+func (c *functionClientServiceClient) StreamJob(ctx context.Context, in *JobStreamRequest, opts ...grpc.CallOption) (FunctionClientService_StreamJobClient, error) {
+	stream, err := c.cc.NewStream(ctx, &FunctionClientService_ServiceDesc.Streams[0], FunctionClientService_StreamJob_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &functionServiceStreamJobClient{stream}
+	x := &functionClientServiceStreamJobClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -80,16 +80,16 @@ func (c *functionServiceClient) StreamJob(ctx context.Context, in *JobStreamRequ
 	return x, nil
 }
 
-type FunctionService_StreamJobClient interface {
+type FunctionClientService_StreamJobClient interface {
 	Recv() (*JobEvent, error)
 	grpc.ClientStream
 }
 
-type functionServiceStreamJobClient struct {
+type functionClientServiceStreamJobClient struct {
 	grpc.ClientStream
 }
 
-func (x *functionServiceStreamJobClient) Recv() (*JobEvent, error) {
+func (x *functionClientServiceStreamJobClient) Recv() (*JobEvent, error) {
 	m := new(JobEvent)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -97,158 +97,158 @@ func (x *functionServiceStreamJobClient) Recv() (*JobEvent, error) {
 	return m, nil
 }
 
-func (c *functionServiceClient) CancelJob(ctx context.Context, in *CancelJobRequest, opts ...grpc.CallOption) (*StartJobResponse, error) {
+func (c *functionClientServiceClient) CancelJob(ctx context.Context, in *CancelJobRequest, opts ...grpc.CallOption) (*StartJobResponse, error) {
 	out := new(StartJobResponse)
-	err := c.cc.Invoke(ctx, FunctionService_CancelJob_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, FunctionClientService_CancelJob_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// FunctionServiceServer is the server API for FunctionService service.
-// All implementations must embed UnimplementedFunctionServiceServer
+// FunctionClientServiceServer is the server API for FunctionClientService service.
+// All implementations must embed UnimplementedFunctionClientServiceServer
 // for forward compatibility
-type FunctionServiceServer interface {
+type FunctionClientServiceServer interface {
 	// Synchronous function invocation
 	Invoke(context.Context, *InvokeRequest) (*InvokeResponse, error)
 	// Asynchronous job starting
 	StartJob(context.Context, *InvokeRequest) (*StartJobResponse, error)
 	// Stream job events for async operations
-	StreamJob(*JobStreamRequest, FunctionService_StreamJobServer) error
+	StreamJob(*JobStreamRequest, FunctionClientService_StreamJobServer) error
 	// Cancel a running job
 	CancelJob(context.Context, *CancelJobRequest) (*StartJobResponse, error)
-	mustEmbedUnimplementedFunctionServiceServer()
+	mustEmbedUnimplementedFunctionClientServiceServer()
 }
 
-// UnimplementedFunctionServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedFunctionServiceServer struct {
+// UnimplementedFunctionClientServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedFunctionClientServiceServer struct {
 }
 
-func (UnimplementedFunctionServiceServer) Invoke(context.Context, *InvokeRequest) (*InvokeResponse, error) {
+func (UnimplementedFunctionClientServiceServer) Invoke(context.Context, *InvokeRequest) (*InvokeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Invoke not implemented")
 }
-func (UnimplementedFunctionServiceServer) StartJob(context.Context, *InvokeRequest) (*StartJobResponse, error) {
+func (UnimplementedFunctionClientServiceServer) StartJob(context.Context, *InvokeRequest) (*StartJobResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StartJob not implemented")
 }
-func (UnimplementedFunctionServiceServer) StreamJob(*JobStreamRequest, FunctionService_StreamJobServer) error {
+func (UnimplementedFunctionClientServiceServer) StreamJob(*JobStreamRequest, FunctionClientService_StreamJobServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamJob not implemented")
 }
-func (UnimplementedFunctionServiceServer) CancelJob(context.Context, *CancelJobRequest) (*StartJobResponse, error) {
+func (UnimplementedFunctionClientServiceServer) CancelJob(context.Context, *CancelJobRequest) (*StartJobResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CancelJob not implemented")
 }
-func (UnimplementedFunctionServiceServer) mustEmbedUnimplementedFunctionServiceServer() {}
+func (UnimplementedFunctionClientServiceServer) mustEmbedUnimplementedFunctionClientServiceServer() {}
 
-// UnsafeFunctionServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to FunctionServiceServer will
+// UnsafeFunctionClientServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to FunctionClientServiceServer will
 // result in compilation errors.
-type UnsafeFunctionServiceServer interface {
-	mustEmbedUnimplementedFunctionServiceServer()
+type UnsafeFunctionClientServiceServer interface {
+	mustEmbedUnimplementedFunctionClientServiceServer()
 }
 
-func RegisterFunctionServiceServer(s grpc.ServiceRegistrar, srv FunctionServiceServer) {
-	s.RegisterService(&FunctionService_ServiceDesc, srv)
+func RegisterFunctionClientServiceServer(s grpc.ServiceRegistrar, srv FunctionClientServiceServer) {
+	s.RegisterService(&FunctionClientService_ServiceDesc, srv)
 }
 
-func _FunctionService_Invoke_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FunctionClientService_Invoke_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(InvokeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FunctionServiceServer).Invoke(ctx, in)
+		return srv.(FunctionClientServiceServer).Invoke(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: FunctionService_Invoke_FullMethodName,
+		FullMethod: FunctionClientService_Invoke_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FunctionServiceServer).Invoke(ctx, req.(*InvokeRequest))
+		return srv.(FunctionClientServiceServer).Invoke(ctx, req.(*InvokeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _FunctionService_StartJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FunctionClientService_StartJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(InvokeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FunctionServiceServer).StartJob(ctx, in)
+		return srv.(FunctionClientServiceServer).StartJob(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: FunctionService_StartJob_FullMethodName,
+		FullMethod: FunctionClientService_StartJob_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FunctionServiceServer).StartJob(ctx, req.(*InvokeRequest))
+		return srv.(FunctionClientServiceServer).StartJob(ctx, req.(*InvokeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _FunctionService_StreamJob_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _FunctionClientService_StreamJob_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(JobStreamRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(FunctionServiceServer).StreamJob(m, &functionServiceStreamJobServer{stream})
+	return srv.(FunctionClientServiceServer).StreamJob(m, &functionClientServiceStreamJobServer{stream})
 }
 
-type FunctionService_StreamJobServer interface {
+type FunctionClientService_StreamJobServer interface {
 	Send(*JobEvent) error
 	grpc.ServerStream
 }
 
-type functionServiceStreamJobServer struct {
+type functionClientServiceStreamJobServer struct {
 	grpc.ServerStream
 }
 
-func (x *functionServiceStreamJobServer) Send(m *JobEvent) error {
+func (x *functionClientServiceStreamJobServer) Send(m *JobEvent) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _FunctionService_CancelJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FunctionClientService_CancelJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CancelJobRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FunctionServiceServer).CancelJob(ctx, in)
+		return srv.(FunctionClientServiceServer).CancelJob(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: FunctionService_CancelJob_FullMethodName,
+		FullMethod: FunctionClientService_CancelJob_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FunctionServiceServer).CancelJob(ctx, req.(*CancelJobRequest))
+		return srv.(FunctionClientServiceServer).CancelJob(ctx, req.(*CancelJobRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// FunctionService_ServiceDesc is the grpc.ServiceDesc for FunctionService service.
+// FunctionClientService_ServiceDesc is the grpc.ServiceDesc for FunctionClientService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var FunctionService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "croupier.sdk.v1.FunctionService",
-	HandlerType: (*FunctionServiceServer)(nil),
+var FunctionClientService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "croupier.sdk.v1.FunctionClientService",
+	HandlerType: (*FunctionClientServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Invoke",
-			Handler:    _FunctionService_Invoke_Handler,
+			Handler:    _FunctionClientService_Invoke_Handler,
 		},
 		{
 			MethodName: "StartJob",
-			Handler:    _FunctionService_StartJob_Handler,
+			Handler:    _FunctionClientService_StartJob_Handler,
 		},
 		{
 			MethodName: "CancelJob",
-			Handler:    _FunctionService_CancelJob_Handler,
+			Handler:    _FunctionClientService_CancelJob_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "StreamJob",
-			Handler:       _FunctionService_StreamJob_Handler,
+			Handler:       _FunctionClientService_StreamJob_Handler,
 			ServerStreams: true,
 		},
 	},
