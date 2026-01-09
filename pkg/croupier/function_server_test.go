@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -379,10 +380,10 @@ func TestFunctionServer_RunJob_ErrorCases(t *testing.T) {
 
 	// Test the runJob error path - when handler returns an error
 	t.Run("handler returns error", func(t *testing.T) {
-		handlerCalled := false
+		handlerCalled := int64(0)
 		handlers := map[string]FunctionHandler{
 			"error_func": func(ctx context.Context, payload []byte) ([]byte, error) {
-				handlerCalled = true
+				atomic.AddInt64(&handlerCalled, 1)
 				return nil, context.Canceled
 			},
 		}
@@ -401,7 +402,7 @@ func TestFunctionServer_RunJob_ErrorCases(t *testing.T) {
 		// Wait for job to complete
 		time.Sleep(50 * time.Millisecond)
 
-		if !handlerCalled {
+		if atomic.LoadInt64(&handlerCalled) == 0 {
 			t.Error("expected handler to be called")
 		}
 
@@ -417,10 +418,10 @@ func TestFunctionServer_RunJob_ErrorCases(t *testing.T) {
 
 	// Test the runJob success path
 	t.Run("handler succeeds", func(t *testing.T) {
-		handlerCalled := false
+		handlerCalled := int64(0)
 		handlers := map[string]FunctionHandler{
 			"success_func": func(ctx context.Context, payload []byte) ([]byte, error) {
-				handlerCalled = true
+				atomic.AddInt64(&handlerCalled, 1)
 				return []byte("result"), nil
 			},
 		}
@@ -439,7 +440,7 @@ func TestFunctionServer_RunJob_ErrorCases(t *testing.T) {
 		// Wait for job to complete
 		time.Sleep(50 * time.Millisecond)
 
-		if !handlerCalled {
+		if atomic.LoadInt64(&handlerCalled) == 0 {
 			t.Error("expected handler to be called")
 		}
 
@@ -598,10 +599,10 @@ func TestFunctionServer_StreamJobWithNilRequestDirect(t *testing.T) {
 func TestFunctionServer_HandlerConcurrency(t *testing.T) {
 	t.Parallel()
 
-	callCount := 0
+	callCount := int64(0)
 	handlers := map[string]FunctionHandler{
 		"concurrent_func": func(ctx context.Context, payload []byte) ([]byte, error) {
-			callCount++
+			atomic.AddInt64(&callCount, 1)
 			return []byte("result"), nil
 		},
 	}
@@ -625,7 +626,7 @@ func TestFunctionServer_HandlerConcurrency(t *testing.T) {
 		<-done
 	}
 
-	if callCount == 0 {
+	if atomic.LoadInt64(&callCount) == 0 {
 		t.Error("expected handler to be called")
 	}
 }
@@ -634,8 +635,15 @@ func TestFunctionServer_HandlerConcurrency(t *testing.T) {
 func TestFunctionServer_StreamJobSuccess(t *testing.T) {
 	t.Parallel()
 
+	// Use a channel to ensure the handler doesn't complete before streaming starts
+	handlerStarted := make(chan struct{})
+	streamReady := make(chan struct{})
+
 	handlers := map[string]FunctionHandler{
 		"quick_func": func(ctx context.Context, payload []byte) ([]byte, error) {
+			close(handlerStarted)
+			// Wait for streaming to be ready
+			<-streamReady
 			return []byte("job completed"), nil
 		},
 	}
@@ -653,6 +661,9 @@ func TestFunctionServer_StreamJobSuccess(t *testing.T) {
 		t.Fatalf("failed to start job: %v", err)
 	}
 
+	// Wait for handler to start
+	<-handlerStarted
+
 	// Create a mock stream to receive events
 	mockStream := &mockStreamServer{t: t}
 
@@ -666,6 +677,10 @@ func TestFunctionServer_StreamJobSuccess(t *testing.T) {
 	go func() {
 		done <- s.StreamJob(streamReq, mockStream)
 	}()
+
+	// Give streaming a moment to start, then signal handler to continue
+	time.Sleep(10 * time.Millisecond)
+	close(streamReady)
 
 	// Wait for streaming to complete
 	timeout := time.After(100 * time.Millisecond)
@@ -702,8 +717,15 @@ func TestFunctionServer_StreamJobSuccess(t *testing.T) {
 func TestFunctionServer_StreamJobWithError(t *testing.T) {
 	t.Parallel()
 
+	// Use a channel to ensure the handler doesn't complete before streaming starts
+	handlerStarted := make(chan struct{})
+	streamReady := make(chan struct{})
+
 	handlers := map[string]FunctionHandler{
 		"error_func": func(ctx context.Context, payload []byte) ([]byte, error) {
+			close(handlerStarted)
+			// Wait for streaming to be ready
+			<-streamReady
 			return nil, fmt.Errorf("handler error")
 		},
 	}
@@ -721,6 +743,9 @@ func TestFunctionServer_StreamJobWithError(t *testing.T) {
 		t.Fatalf("failed to start job: %v", err)
 	}
 
+	// Wait for handler to start
+	<-handlerStarted
+
 	// Create a mock stream
 	mockStream := &mockStreamServer{t: t}
 
@@ -734,6 +759,10 @@ func TestFunctionServer_StreamJobWithError(t *testing.T) {
 	go func() {
 		done <- s.StreamJob(streamReq, mockStream)
 	}()
+
+	// Give streaming a moment to start, then signal handler to continue
+	time.Sleep(10 * time.Millisecond)
+	close(streamReady)
 
 	// Wait for streaming to complete
 	select {
@@ -755,8 +784,15 @@ func TestFunctionServer_StreamJobWithError(t *testing.T) {
 func TestFunctionServer_StreamJobWithCanceledContext(t *testing.T) {
 	t.Parallel()
 
+	// Use a channel to ensure the handler doesn't complete before streaming starts
+	handlerStarted := make(chan struct{})
+	streamReady := make(chan struct{})
+
 	handlers := map[string]FunctionHandler{
 		"canceled_func": func(ctx context.Context, payload []byte) ([]byte, error) {
+			close(handlerStarted)
+			// Wait for streaming to be ready
+			<-streamReady
 			return nil, context.Canceled
 		},
 	}
@@ -774,6 +810,9 @@ func TestFunctionServer_StreamJobWithCanceledContext(t *testing.T) {
 		t.Fatalf("failed to start job: %v", err)
 	}
 
+	// Wait for handler to start
+	<-handlerStarted
+
 	// Create a mock stream
 	mockStream := &mockStreamServer{t: t}
 
@@ -787,6 +826,10 @@ func TestFunctionServer_StreamJobWithCanceledContext(t *testing.T) {
 	go func() {
 		done <- s.StreamJob(streamReq, mockStream)
 	}()
+
+	// Give streaming a moment to start, then signal handler to continue
+	time.Sleep(10 * time.Millisecond)
+	close(streamReady)
 
 	// Wait for streaming to complete
 	select {

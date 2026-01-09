@@ -3310,26 +3310,40 @@ func TestInvoker_CloseCancelsReconnect(t *testing.T) {
 		},
 	}).(*invoker)
 
-	// Trigger reconnect
+	// Trigger reconnect - use proper locking
+	i.mu.Lock()
 	i.reconnectAttempts = 1
+	i.mu.Unlock()
 	i.scheduleReconnectIfNeeded()
 
-	if !i.isReconnecting {
+	// Check reconnect was scheduled - use proper locking
+	i.mu.RLock()
+	isReconnecting := i.isReconnecting
+	cancelCtx := i.reconnectCancelCtx
+	i.mu.RUnlock()
+
+	if !isReconnecting {
 		t.Error("expected isReconnecting to be true")
 	}
 
-	if i.reconnectCancelCtx == nil {
+	if cancelCtx == nil {
 		t.Error("expected reconnectCancelCtx to be set")
 	}
 
 	// Close should cancel the reconnect
 	i.Close()
 
-	if i.isReconnecting {
+	// Check after close - use proper locking
+	i.mu.RLock()
+	isReconnecting = i.isReconnecting
+	cancelCtx = i.reconnectCancelCtx
+	i.mu.RUnlock()
+
+	if isReconnecting {
 		t.Error("expected isReconnecting to be false after Close")
 	}
 
-	if i.reconnectCancelCtx != nil {
+	if cancelCtx != nil {
 		t.Error("expected reconnectCancelCtx to be nil after Close")
 	}
 }
