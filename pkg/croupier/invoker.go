@@ -89,13 +89,28 @@ func (i *invoker) Connect(ctx context.Context) error {
 
 // connect performs the actual connection without triggering reconnection
 func (i *invoker) connect(ctx context.Context) error {
+	// Fast path: read lock to check if already connected
+	i.mu.RLock()
+	if i.connected {
+		i.mu.RUnlock()
+		return nil
+	}
+	i.mu.RUnlock()
+
+	// Slow path: need to connect, acquire write lock
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
+	// Double-check after acquiring write lock
 	if i.connected {
 		return nil
 	}
 
+	return i.connectLocked(ctx)
+}
+
+// connectLocked performs the actual connection. Caller must hold i.mu.
+func (i *invoker) connectLocked(ctx context.Context) error {
 	logInfof("Connecting to server/agent at: %s", i.config.Address)
 
 	// Setup connection options
@@ -134,13 +149,12 @@ func (i *invoker) connect(ctx context.Context) error {
 
 // Invoke implements Invoker.Invoke
 func (i *invoker) Invoke(ctx context.Context, functionID, payload string, options InvokeOptions) (string, error) {
-	if !i.connected {
-		if err := i.connect(ctx); err != nil {
-			if i.isConnectionError(err) {
-				i.scheduleReconnectIfNeeded()
-			}
-			return "", fmt.Errorf("not connected to server: %w", err)
+	// connect() is now thread-safe with double-checked locking
+	if err := i.connect(ctx); err != nil {
+		if i.isConnectionError(err) {
+			i.scheduleReconnectIfNeeded()
 		}
+		return "", fmt.Errorf("not connected to server: %w", err)
 	}
 
 	// Client-side validation
@@ -175,13 +189,12 @@ func (i *invoker) Invoke(ctx context.Context, functionID, payload string, option
 
 // StartJob implements Invoker.StartJob
 func (i *invoker) StartJob(ctx context.Context, functionID, payload string, options InvokeOptions) (string, error) {
-	if !i.connected {
-		if err := i.connect(ctx); err != nil {
-			if i.isConnectionError(err) {
-				i.scheduleReconnectIfNeeded()
-			}
-			return "", fmt.Errorf("not connected to server: %w", err)
+	// connect() is now thread-safe with double-checked locking
+	if err := i.connect(ctx); err != nil {
+		if i.isConnectionError(err) {
+			i.scheduleReconnectIfNeeded()
 		}
+		return "", fmt.Errorf("not connected to server: %w", err)
 	}
 
 	return i.executeWithRetry(ctx, options, func() (string, error) {
@@ -211,14 +224,13 @@ func (i *invoker) StartJob(ctx context.Context, functionID, payload string, opti
 func (i *invoker) StreamJob(ctx context.Context, jobID string) (<-chan JobEvent, error) {
 	eventCh := make(chan JobEvent, 10)
 
-	if !i.connected {
-		if err := i.connect(ctx); err != nil {
-			if i.isConnectionError(err) {
-				i.scheduleReconnectIfNeeded()
-			}
-			close(eventCh)
-			return eventCh, fmt.Errorf("not connected to server: %w", err)
+	// connect() is now thread-safe with double-checked locking
+	if err := i.connect(ctx); err != nil {
+		if i.isConnectionError(err) {
+			i.scheduleReconnectIfNeeded()
 		}
+		close(eventCh)
+		return eventCh, fmt.Errorf("not connected to server: %w", err)
 	}
 
 	req := &functionv1.JobStreamRequest{JobId: jobID}
@@ -274,13 +286,12 @@ func (i *invoker) StreamJob(ctx context.Context, jobID string) (<-chan JobEvent,
 
 // CancelJob implements Invoker.CancelJob
 func (i *invoker) CancelJob(ctx context.Context, jobID string) error {
-	if !i.connected {
-		if err := i.connect(ctx); err != nil {
-			if i.isConnectionError(err) {
-				i.scheduleReconnectIfNeeded()
-			}
-			return fmt.Errorf("not connected to server: %w", err)
+	// connect() is now thread-safe with double-checked locking
+	if err := i.connect(ctx); err != nil {
+		if i.isConnectionError(err) {
+			i.scheduleReconnectIfNeeded()
 		}
+		return fmt.Errorf("not connected to server: %w", err)
 	}
 
 	req := &functionv1.CancelJobRequest{JobId: jobID}
