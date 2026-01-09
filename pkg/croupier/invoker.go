@@ -95,6 +95,13 @@ func (i *invoker) connect(ctx context.Context) error {
 		i.mu.RUnlock()
 		return nil
 	}
+	// Check if reconnection is in progress - if so, wait for it to complete
+	// by checking connection status again after a brief pause
+	if i.isReconnecting {
+		i.mu.RUnlock()
+		// Reconnection is in progress, return an error to trigger retry logic
+		return fmt.Errorf("reconnection in progress")
+	}
 	i.mu.RUnlock()
 
 	// Slow path: need to connect, acquire write lock
@@ -104,6 +111,11 @@ func (i *invoker) connect(ctx context.Context) error {
 	// Double-check after acquiring write lock
 	if i.connected {
 		return nil
+	}
+
+	// Check again if reconnection started while we were waiting for the lock
+	if i.isReconnecting {
+		return fmt.Errorf("reconnection in progress")
 	}
 
 	return i.connectLocked(ctx)
@@ -150,7 +162,19 @@ func (i *invoker) connectLocked(ctx context.Context) error {
 // Invoke implements Invoker.Invoke
 func (i *invoker) Invoke(ctx context.Context, functionID, payload string, options InvokeOptions) (string, error) {
 	// connect() is now thread-safe with double-checked locking
-	if err := i.connect(ctx); err != nil {
+	// If reconnection is in progress, briefly wait and retry
+	var err error
+	for attempts := 0; attempts < 3; attempts++ {
+		err = i.connect(ctx)
+		if err == nil {
+			break
+		}
+		if err.Error() == "reconnection in progress" {
+			// Wait a bit for reconnection to complete
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
+		// For other errors, trigger reconnection if needed
 		if i.isConnectionError(err) {
 			i.scheduleReconnectIfNeeded()
 		}
@@ -164,6 +188,11 @@ func (i *invoker) Invoke(ctx context.Context, functionID, payload string, option
 		}
 	}
 
+	// Capture client reference to avoid race during reconnection
+	i.mu.RLock()
+	client := i.client
+	i.mu.RUnlock()
+
 	return i.executeWithRetry(ctx, options, func() (string, error) {
 		req := &functionv1.InvokeRequest{
 			FunctionId:     functionID,
@@ -178,7 +207,7 @@ func (i *invoker) Invoke(ctx context.Context, functionID, payload string, option
 		callCtx, cancel := i.callContext(ctx, options.Timeout)
 		defer cancel()
 
-		resp, err := i.client.Invoke(callCtx, req)
+		resp, err := client.Invoke(callCtx, req)
 		if err != nil {
 			return "", err
 		}
@@ -190,12 +219,29 @@ func (i *invoker) Invoke(ctx context.Context, functionID, payload string, option
 // StartJob implements Invoker.StartJob
 func (i *invoker) StartJob(ctx context.Context, functionID, payload string, options InvokeOptions) (string, error) {
 	// connect() is now thread-safe with double-checked locking
-	if err := i.connect(ctx); err != nil {
+	// If reconnection is in progress, briefly wait and retry
+	var err error
+	for attempts := 0; attempts < 3; attempts++ {
+		err = i.connect(ctx)
+		if err == nil {
+			break
+		}
+		if err.Error() == "reconnection in progress" {
+			// Wait a bit for reconnection to complete
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
+		// For other errors, trigger reconnection if needed
 		if i.isConnectionError(err) {
 			i.scheduleReconnectIfNeeded()
 		}
 		return "", fmt.Errorf("not connected to server: %w", err)
 	}
+
+	// Capture client reference to avoid race during reconnection
+	i.mu.RLock()
+	client := i.client
+	i.mu.RUnlock()
 
 	return i.executeWithRetry(ctx, options, func() (string, error) {
 		req := &functionv1.InvokeRequest{
@@ -211,7 +257,7 @@ func (i *invoker) StartJob(ctx context.Context, functionID, payload string, opti
 		callCtx, cancel := i.callContext(ctx, options.Timeout)
 		defer cancel()
 
-		resp, err := i.client.StartJob(callCtx, req)
+		resp, err := client.StartJob(callCtx, req)
 		if err != nil {
 			return "", err
 		}
@@ -225,7 +271,19 @@ func (i *invoker) StreamJob(ctx context.Context, jobID string) (<-chan JobEvent,
 	eventCh := make(chan JobEvent, 10)
 
 	// connect() is now thread-safe with double-checked locking
-	if err := i.connect(ctx); err != nil {
+	// If reconnection is in progress, briefly wait and retry
+	var err error
+	for attempts := 0; attempts < 3; attempts++ {
+		err = i.connect(ctx)
+		if err == nil {
+			break
+		}
+		if err.Error() == "reconnection in progress" {
+			// Wait a bit for reconnection to complete
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
+		// For other errors, trigger reconnection if needed
 		if i.isConnectionError(err) {
 			i.scheduleReconnectIfNeeded()
 		}
@@ -233,9 +291,14 @@ func (i *invoker) StreamJob(ctx context.Context, jobID string) (<-chan JobEvent,
 		return eventCh, fmt.Errorf("not connected to server: %w", err)
 	}
 
+	// Capture client reference to avoid race during reconnection
+	i.mu.RLock()
+	client := i.client
+	i.mu.RUnlock()
+
 	req := &functionv1.JobStreamRequest{JobId: jobID}
 
-	stream, err := i.client.StreamJob(ctx, req)
+	stream, err := client.StreamJob(ctx, req)
 	if err != nil {
 		close(eventCh)
 		return eventCh, fmt.Errorf("stream job RPC failed: %w", err)
@@ -476,7 +539,8 @@ func (i *invoker) scheduleReconnectIfNeeded() {
 	i.reconnectAttempts++
 
 	delay := i.calculateReconnectDelay()
-	logInfof("Scheduling reconnection attempt %d in %v", i.reconnectAttempts, delay)
+	attempts := i.reconnectAttempts  // Capture for goroutine
+	logInfof("Scheduling reconnection attempt %d in %v", attempts, delay)
 
 	// Create a cancellable context for the reconnection
 	reconnectCtx, cancel := context.WithCancel(context.Background())
@@ -497,9 +561,9 @@ func (i *invoker) scheduleReconnectIfNeeded() {
 		select {
 		case <-time.After(delay):
 			// Attempt reconnection
-			logInfof("Reconnecting... (attempt %d)", i.reconnectAttempts)
+			logInfof("Reconnecting... (attempt %d)", attempts)
 			if err := i.connect(context.Background()); err != nil {
-				logInfof("Reconnection attempt %d failed: %v", i.reconnectAttempts, err)
+				logInfof("Reconnection attempt %d failed: %v", attempts, err)
 				// Schedule next attempt
 				i.scheduleReconnectIfNeeded()
 			} else {
@@ -570,7 +634,9 @@ func (i *invoker) executeWithRetry(ctx context.Context, options InvokeOptions, f
 
 		// Connection errors should trigger reconnection
 		if i.isConnectionError(err) && i.config.Reconnect.Enabled {
+			i.mu.Lock()
 			i.connected = false
+			i.mu.Unlock()
 			i.scheduleReconnectIfNeeded()
 		}
 
