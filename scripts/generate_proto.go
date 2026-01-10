@@ -31,28 +31,28 @@ func getProtoFiles(branch string) []ProtoFile {
 			URL:  fmt.Sprintf("%s/croupier/agent/local/v1/local.proto", baseURL),
 		},
 		{
-			Path: "croupier/control/v1/control.proto",
-			URL:  fmt.Sprintf("%s/croupier/control/v1/control.proto", baseURL),
+			Path: "croupier/server/v1/server_control.proto",
+			URL:  fmt.Sprintf("%s/croupier/server/v1/server_control.proto", baseURL),
 		},
 		{
-			Path: "croupier/function/v1/function.proto",
-			URL:  fmt.Sprintf("%s/croupier/function/v1/function.proto", baseURL),
+			Path: "croupier/sdk/v1/invoker.proto",
+			URL:  fmt.Sprintf("%s/croupier/sdk/v1/invoker.proto", baseURL),
 		},
 		{
 			Path: "croupier/edge/job/v1/job.proto",
 			URL:  fmt.Sprintf("%s/croupier/edge/job/v1/job.proto", baseURL),
 		},
 		{
-			Path: "croupier/tunnel/v1/tunnel.proto",
-			URL:  fmt.Sprintf("%s/croupier/tunnel/v1/tunnel.proto", baseURL),
+			Path: "croupier/server/v1/server_tunnel.proto",
+			URL:  fmt.Sprintf("%s/croupier/server/v1/server_tunnel.proto", baseURL),
 		},
 		{
-			Path: "croupier/options/v1/ui.proto",
-			URL:  fmt.Sprintf("%s/croupier/options/v1/ui.proto", baseURL),
+			Path: "croupier/options/v1/ui_options.proto",
+			URL:  fmt.Sprintf("%s/croupier/options/v1/ui_options.proto", baseURL),
 		},
 		{
-			Path: "croupier/options/v1/function.proto",
-			URL:  fmt.Sprintf("%s/croupier/options/v1/function.proto", baseURL),
+			Path: "croupier/options/v1/function_options.proto",
+			URL:  fmt.Sprintf("%s/croupier/options/v1/function_options.proto", baseURL),
 		},
 	}
 }
