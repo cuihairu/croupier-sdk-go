@@ -42,9 +42,9 @@ message CancelJobRequest {
   string job_id = 1;
 }
 
-// SDK Function Service - Main interface for invoking functions
+// SDK Invoker Service - Main interface for invoking functions
 // This is what SDK developers will use to call game functions
-service FunctionService {
+service InvokerService {
   // Synchronous function invocation
   rpc Invoke(InvokeRequest) returns (InvokeResponse);
 
