@@ -16,76 +16,37 @@ jobs:
     steps:
     - name: Checkout SDK repository
       uses: actions/checkout@v4
-      with:
-        path: sdk
-
-    - name: Checkout main Croupier repository for proto files
-      uses: actions/checkout@v4
-      with:
-        repository: cuihairu/croupier
-        path: croupier
-        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
         go-version: '1.25'
         cache: true
-        cache-dependency-path: sdk/go.sum
-
-    - name: Install Protocol Buffers
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y protobuf-compiler
-
-        # Install Go protoc plugins
-        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-
-    - name: Generate Proto Code (CI Build)
-      run: |
-        cd sdk
-        export CROUPIER_CI_BUILD=ON
-        export CROUPIER_PROTO_BRANCH=main
-        go run scripts/generate_proto.go
+        cache-dependency-path: go.sum
 
     - name: Download dependencies
       run: |
-        cd sdk
         go mod tidy
         go mod download
 
+    # Proto 代码由 croupier-proto 的 sync-sdks workflow 同步，无需本地生成
     - name: Build SDK
-      run: |
-        cd sdk
-        go build -tags croupier_real_grpc -v ./...
+      run: go build -v ./...
 
     - name: Run tests with coverage
       run: |
-        cd sdk
-        # Run tests for main package only (exclude proto-generated code which drags down coverage)
-        go test -tags croupier_real_grpc -v -race -coverprofile=coverage.out -covermode=atomic ./pkg/croupier
-
-        # Run tests for proto packages without coverage (they are generated code)
-        go test -tags croupier_real_grpc -v -race ./pkg/...
+        # Run tests for main package
+        go test -v -race -coverprofile=coverage.out -covermode=atomic ./pkg/croupier
+        # Run tests for all packages
+        go test -v -race ./pkg/...
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: sdk/coverage.out
+        files: coverage.out
         flags: go-sdk
         fail_ci_if_error: ${{ github.event_name != 'pull_request' }}
 
     - name: Build examples
-      run: |
-        cd sdk
-        go build -tags croupier_real_grpc -v ./examples/...
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: croupier-go-sdk
-        path: |
-          sdk/proto/
-          sdk/examples/
+      run: go build -v ./examples/...
