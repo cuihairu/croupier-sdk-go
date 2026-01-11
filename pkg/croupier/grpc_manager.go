@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	localv1 "github.com/cuihairu/croupier/sdks/go/generated/croupier/agent/local/v1"
-	functionv1 "github.com/cuihairu/croupier/sdks/go/generated/croupier/function/v1"
+	localv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/agent/local/v1"
+	functionv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/function/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"

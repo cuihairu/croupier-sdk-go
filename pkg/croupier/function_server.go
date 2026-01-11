@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	functionv1 "github.com/cuihairu/croupier/sdks/go/generated/croupier/function/v1"
+	functionv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/function/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

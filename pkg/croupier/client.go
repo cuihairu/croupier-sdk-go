@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	controlv1 "github.com/cuihairu/croupier/sdks/go/generated/croupier/control/v1"
+	controlv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/control/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
