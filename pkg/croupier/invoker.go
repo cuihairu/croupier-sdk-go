@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	functionv1 "github.com/cuihairu/croupier/pkg/pb/croupier/function/v1"
+	functionv1 "github.com/cuihairu/croupier/sdks/go/generated/croupier/function/v1"
 	"github.com/xeipuuv/gojsonschema"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
