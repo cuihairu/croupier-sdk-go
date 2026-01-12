@@ -65,7 +65,7 @@ jobs:
           # Build binaries for examples
           mkdir -p bin
           go build -o bin/croupier-example ./examples/basic/
-          go build -o bin/croupier-complete-example ./examples/complete/
+          go build -o bin/croupier-comprehensive-example ./examples/comprehensive/
 
           # Create examples archive
           tar -czf dist/croupier-sdk-go-examples-${{ needs.version.outputs.version }}.tar.gz bin/
