@@ -3,8 +3,12 @@ module github.com/cuihairu/croupier/sdks/go
 go 1.25.0
 
 require (
-	google.golang.org/grpc v1.76.0
-	// 固定 protobuf 版本，与 protobuf 5.29.x (proto 29.x) 兼容
+	// ============================================================================
+	// 版本锁定 - 必须与 croupier-proto/CLAUDE.md 保持一致！
+	// protobuf v1.36.1 对应 protoc-gen-go v1.36.1
+	// grpc v1.69.0 对应 grpc remote plugin v1.69.0
+	// ============================================================================
+	google.golang.org/grpc v1.69.0
 	google.golang.org/protobuf v1.36.10
 )
 
