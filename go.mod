@@ -5,11 +5,11 @@ go 1.25.0
 require (
 	// ============================================================================
 	// 版本锁定 - 必须与 croupier-proto/CLAUDE.md 保持一致！
-	// protobuf v1.36.1 对应 protoc-gen-go v1.36.1
+	// protobuf v1.36.11 对应 protoc-gen-go v1.36.11
 	// grpc v1.69.0 对应 grpc remote plugin v1.69.0
 	// ============================================================================
 	google.golang.org/grpc v1.69.0
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 )
 
 require github.com/xeipuuv/gojsonschema v1.2.0
