@@ -21,10 +21,6 @@ message LocalFunctionDescriptor {
   // OpenAPI 3.0.3 Schema fields (JSON Schema format)
   string input_schema = 8;                // JSON Schema for request body (requestBody.content.application/json.schema)
   string output_schema = 9;               // JSON Schema for response body (responses.200.content.application/json.schema)
-
-  // x-render extension for UI control
-  string x_render_schema = 10;            // XRender form schema (JSON string)
-  string x_render_ui_schema = 11;         // XRender UI schema for widget configuration (JSON string)
 }
 
 message RegisterLocalRequest {

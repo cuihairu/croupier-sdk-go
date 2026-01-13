@@ -41,38 +41,3 @@ message PermissionSpec {
   // Optional zh texts per verb. If absent, UI will fallback to templates.
   map<string, string> i18n_zh = 4;
 }
-
-// XRender widget configuration for a field.
-message XRenderWidget {
-  string widget = 1;              // Widget type: input/textarea/number/select/checkbox/radio/switch/date/time/json-editor/file
-  string label = 2;               // Display label (supports i18n key)
-  string placeholder = 3;         // Placeholder text
-  bool disabled = 4;              // Whether the field is disabled
-  bool read_only = 5;             // Whether the field is read-only
-  bool hidden = 6;                // Whether the field is hidden
-  int32 span = 7;                 // Grid span (1-24)
-  map<string, string> props = 8;  // Additional widget properties
-}
-
-// XRender form configuration.
-message XRenderFormConfig {
-  string layout_type = 1;                     // Layout: default/inline/flex
-  int32 column = 2;                           // Column count for grid layout
-  string label_align = 3;                     // Label alignment: left/right/top
-  int32 label_width = 4;                      // Label width in pixels
-  bool colon = 5;                             // Show colon after label
-  map<string, XRenderWidget> widgets = 6;     // Field-specific widget configs (key: field path)
-  repeated string display_order = 7;          // Field display order
-}
-
-// Route-specific display configuration for functions.
-message RouteDisplayConfig {
-  string route_pattern = 1;           // Route pattern (e.g., "/functions/*", "/quick-actions")
-  XRenderFormConfig form_config = 2;  // Form configuration for this route
-  repeated string hidden_fields = 3;  // Fields to hide in this route
-  repeated string required_fields = 4; // Fields required in this route
-  string submit_button_text = 5;      // Custom submit button text
-  bool compact_mode = 6;              // Use compact display mode
-}
-
-
