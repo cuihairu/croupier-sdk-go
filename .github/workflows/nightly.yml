@@ -28,7 +28,8 @@ jobs:
         DATE=$(date +%Y%m%d)
         COMMIT_SHORT=$(git rev-parse --short HEAD)
         VERSION="${SDK_VERSION_BASE}.0-nightly.${DATE}.${COMMIT_SHORT}"
-        VERSION_TAG="nightly-${DATE}-${COMMIT_SHORT}"
+        # Use fixed tag for replacement instead of dated tag
+        VERSION_TAG="nightly"
 
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
         echo "version_tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
@@ -86,6 +87,15 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Delete existing nightly release and tag
+        run: |
+          # Delete existing release if it exists
+          gh release delete nightly --yes || true
+          # Delete existing tag if it exists
+          git push origin :refs/tags/nightly || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
