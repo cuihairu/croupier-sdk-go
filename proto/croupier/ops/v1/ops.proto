@@ -214,7 +214,7 @@ message ExecuteCommandRequest {
 message ExecuteCommandResponse {
   bool success = 1;
   int32 exit_code = 2;
-  string stdout = 3;
-  string stderr = 4;
+  string std_out = 3;            // Renamed from 'stdout' to avoid Windows CRT macro conflict
+  string std_err = 4;            // Renamed from 'stderr' to avoid Windows CRT macro conflict
   string error = 5;              // Error message if execution failed
 }
