@@ -27,6 +27,18 @@ message FunctionDescriptor {
   repeated string tags = 22;
   croupier.common.v1.Menu menu = 23;
   croupier.common.v1.PermissionSpec permissions = 24;
+
+  // OpenAPI 3.0.3 Schema fields (JSON Schema format)
+  string input_schema = 30;               // JSON Schema for request body
+  string output_schema = 31;              // JSON Schema for response body
+
+  // x-render extension for UI control
+  string x_render_schema = 32;            // XRender form schema (JSON string, for SDK simplicity)
+  string x_render_ui_schema = 33;         // XRender UI schema for widget configuration (JSON string)
+
+  // Route-specific display configurations (structured, for Server processing)
+  croupier.common.v1.XRenderFormConfig default_form_config = 34; // Default form configuration
+  repeated croupier.common.v1.RouteDisplayConfig route_displays = 35; // Route-specific overrides
 }
 
 // Process/service instance registered to an agent (e.g. a game server process).
