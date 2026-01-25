@@ -51,6 +51,12 @@ message RegisterRequest {
   string game_id = 5;               // game scope (required for multi-game)
   string env = 6;                   // environment (optional: prod/stage/test)
   repeated AgentProcess processes = 7; // registered processes (sdk->agent)
+  uint32 ttl_seconds = 8;           // session TTL (default 300s = 5min)
+
+  // 新增：位置和标签信息
+  string region = 10;               // region/zone info (e.g. "us-west-1")
+  string zone = 11;                 // availability zone (e.g. "us-west-1a")
+  map<string, string> labels = 12;  // system metadata labels (os, arch, hostname, etc.)
 }
 
 // Agent Registration Response
