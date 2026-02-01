@@ -513,7 +513,7 @@ func TestFunctionServer_StreamJob(t *testing.T) {
 	}
 }
 
-// mockStreamServer is a mock implementation of FunctionService_StreamJobServer
+// mockStreamServer is a mock implementation of InvokerService_StreamJobServer
 type mockStreamServer struct {
 	t         *testing.T
 	sent      bool

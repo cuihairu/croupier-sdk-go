@@ -6,19 +6,19 @@ import (
 	"sync"
 	"time"
 
-	functionv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/function/v1"
+	sdkv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/sdk/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type jobState struct {
-	events chan *functionv1.JobEvent
+	events chan *sdkv1.JobEvent
 	cancel context.CancelFunc
 }
 
 // functionServer exposes FunctionService over the registered Go handlers.
 type functionServer struct {
-	functionv1.UnimplementedFunctionServiceServer
+	sdkv1.UnimplementedInvokerServiceServer
 
 	handlers map[string]FunctionHandler
 
@@ -40,7 +40,7 @@ func (s *functionServer) handler(id string) (FunctionHandler, bool) {
 	return h, ok
 }
 
-func (s *functionServer) Invoke(ctx context.Context, req *functionv1.InvokeRequest) (*functionv1.InvokeResponse, error) {
+func (s *functionServer) Invoke(ctx context.Context, req *sdkv1.InvokeRequest) (*sdkv1.InvokeResponse, error) {
 	if req == nil || req.GetFunctionId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "function_id is required")
 	}
@@ -52,10 +52,10 @@ func (s *functionServer) Invoke(ctx context.Context, req *functionv1.InvokeReque
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "handler failed: %v", err)
 	}
-	return &functionv1.InvokeResponse{Payload: payload}, nil
+	return &sdkv1.InvokeResponse{Payload: payload}, nil
 }
 
-func (s *functionServer) StartJob(ctx context.Context, req *functionv1.InvokeRequest) (*functionv1.StartJobResponse, error) {
+func (s *functionServer) StartJob(ctx context.Context, req *sdkv1.InvokeRequest) (*sdkv1.StartJobResponse, error) {
 	if req == nil || req.GetFunctionId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "function_id is required")
 	}
@@ -67,7 +67,7 @@ func (s *functionServer) StartJob(ctx context.Context, req *functionv1.InvokeReq
 	jobID := fmt.Sprintf("%s-%d", req.GetFunctionId(), time.Now().UnixNano())
 	jobCtx, cancel := context.WithCancel(context.Background())
 	state := &jobState{
-		events: make(chan *functionv1.JobEvent, 4),
+		events: make(chan *sdkv1.JobEvent, 4),
 		cancel: cancel,
 	}
 
@@ -75,14 +75,14 @@ func (s *functionServer) StartJob(ctx context.Context, req *functionv1.InvokeReq
 	s.jobs[jobID] = state
 	s.mu.Unlock()
 
-	state.events <- &functionv1.JobEvent{Type: "log", Message: "job started"}
+	state.events <- &sdkv1.JobEvent{Type: "log", Message: "job started"}
 
 	go s.runJob(jobID, jobCtx, handler, req.GetPayload(), state.events)
 
-	return &functionv1.StartJobResponse{JobId: jobID}, nil
+	return &sdkv1.StartJobResponse{JobId: jobID}, nil
 }
 
-func (s *functionServer) runJob(jobID string, jobCtx context.Context, handler FunctionHandler, payload []byte, ch chan *functionv1.JobEvent) {
+func (s *functionServer) runJob(jobID string, jobCtx context.Context, handler FunctionHandler, payload []byte, ch chan *sdkv1.JobEvent) {
 	defer func() {
 		close(ch)
 		s.mu.Lock()
@@ -93,12 +93,12 @@ func (s *functionServer) runJob(jobID string, jobCtx context.Context, handler Fu
 	result, err := handler(jobCtx, payload)
 	if err != nil {
 		if jobCtx.Err() != nil {
-			ch <- &functionv1.JobEvent{
+			ch <- &sdkv1.JobEvent{
 				Type:    "canceled",
 				Message: jobCtx.Err().Error(),
 			}
 		} else {
-			ch <- &functionv1.JobEvent{
+			ch <- &sdkv1.JobEvent{
 				Type:    "error",
 				Message: err.Error(),
 			}
@@ -106,14 +106,14 @@ func (s *functionServer) runJob(jobID string, jobCtx context.Context, handler Fu
 		return
 	}
 
-	ch <- &functionv1.JobEvent{
+	ch <- &sdkv1.JobEvent{
 		Type:    "done",
 		Payload: result,
 		Message: "job done",
 	}
 }
 
-func (s *functionServer) StreamJob(req *functionv1.JobStreamRequest, stream functionv1.FunctionService_StreamJobServer) error {
+func (s *functionServer) StreamJob(req *sdkv1.JobStreamRequest, stream sdkv1.InvokerService_StreamJobServer) error {
 	if req == nil || req.GetJobId() == "" {
 		return status.Error(codes.InvalidArgument, "job_id is required")
 	}
@@ -134,7 +134,7 @@ func (s *functionServer) StreamJob(req *functionv1.JobStreamRequest, stream func
 	return nil
 }
 
-func (s *functionServer) CancelJob(ctx context.Context, req *functionv1.CancelJobRequest) (*functionv1.StartJobResponse, error) {
+func (s *functionServer) CancelJob(ctx context.Context, req *sdkv1.CancelJobRequest) (*sdkv1.StartJobResponse, error) {
 	if req == nil || req.GetJobId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "job_id is required")
 	}
@@ -147,5 +147,5 @@ func (s *functionServer) CancelJob(ctx context.Context, req *functionv1.CancelJo
 		state.cancel()
 	}
 
-	return &functionv1.StartJobResponse{JobId: req.GetJobId()}, nil
+	return &sdkv1.StartJobResponse{JobId: req.GetJobId()}, nil
 }

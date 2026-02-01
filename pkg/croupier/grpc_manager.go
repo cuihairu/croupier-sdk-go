@@ -12,7 +12,7 @@ import (
 	"time"
 
 	localv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/agent/local/v1"
-	functionv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/function/v1"
+	sdkv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/sdk/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -220,7 +220,7 @@ func (g *grpcManager) StartServer(ctx context.Context) error {
 	if g.fnServer == nil {
 		g.fnServer = newFunctionServer(g.handlers)
 	}
-	functionv1.RegisterFunctionServiceServer(g.server, g.fnServer)
+	sdkv1.RegisterInvokerServiceServer(g.server, g.fnServer)
 
 	logInfof("Local gRPC server started on: %s", g.localAddr)
 

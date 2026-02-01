@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	functionv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/function/v1"
+	sdkv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/sdk/v1"
 	"github.com/xeipuuv/gojsonschema"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -26,7 +26,7 @@ import (
 type invoker struct {
 	config *InvokerConfig
 	conn   *grpc.ClientConn
-	client functionv1.FunctionServiceClient
+	client sdkv1.InvokerServiceClient
 	mu     sync.RWMutex
 
 	// Function schemas for validation
@@ -148,7 +148,7 @@ func (i *invoker) connectLocked(ctx context.Context) error {
 	}
 
 	i.conn = conn
-	i.client = functionv1.NewFunctionServiceClient(conn)
+	i.client = sdkv1.NewInvokerServiceClient(conn)
 	i.connected = true
 
 	// Reset reconnection attempts on successful connection
@@ -194,7 +194,7 @@ func (i *invoker) Invoke(ctx context.Context, functionID, payload string, option
 	i.mu.RUnlock()
 
 	return i.executeWithRetry(ctx, options, func() (string, error) {
-		req := &functionv1.InvokeRequest{
+		req := &sdkv1.InvokeRequest{
 			FunctionId:     functionID,
 			IdempotencyKey: options.IdempotencyKey,
 			Payload:        []byte(payload),
@@ -244,7 +244,7 @@ func (i *invoker) StartJob(ctx context.Context, functionID, payload string, opti
 	i.mu.RUnlock()
 
 	return i.executeWithRetry(ctx, options, func() (string, error) {
-		req := &functionv1.InvokeRequest{
+		req := &sdkv1.InvokeRequest{
 			FunctionId:     functionID,
 			IdempotencyKey: options.IdempotencyKey,
 			Payload:        []byte(payload),
@@ -296,7 +296,7 @@ func (i *invoker) StreamJob(ctx context.Context, jobID string) (<-chan JobEvent,
 	client := i.client
 	i.mu.RUnlock()
 
-	req := &functionv1.JobStreamRequest{JobId: jobID}
+	req := &sdkv1.JobStreamRequest{JobId: jobID}
 
 	stream, err := client.StreamJob(ctx, req)
 	if err != nil {
@@ -357,7 +357,7 @@ func (i *invoker) CancelJob(ctx context.Context, jobID string) error {
 		return fmt.Errorf("not connected to server: %w", err)
 	}
 
-	req := &functionv1.CancelJobRequest{JobId: jobID}
+	req := &sdkv1.CancelJobRequest{JobId: jobID}
 	callCtx, cancel := i.callContext(ctx, 0)
 	defer cancel()
 
