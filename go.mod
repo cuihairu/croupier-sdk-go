@@ -6,9 +6,9 @@ require (
 	// ============================================================================
 	// 版本锁定 - 必须与 croupier-proto/CLAUDE.md 保持一致！
 	// protobuf v1.36.11 对应 protoc-gen-go v1.36.11
-	// grpc v1.69.0 对应 grpc remote plugin v1.69.0
+	// grpc v1.71.0 对应 grpc remote plugin v1.71.0
 	// ============================================================================
-	google.golang.org/grpc v1.69.0
+	google.golang.org/grpc v1.71.0
 	google.golang.org/protobuf v1.36.11
 )
 
