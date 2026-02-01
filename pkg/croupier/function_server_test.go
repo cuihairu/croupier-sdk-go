@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	functionv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/function/v1"
+	sdkv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/sdk/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -122,9 +122,9 @@ func TestFunctionServer_Invoke(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var req *functionv1.InvokeRequest
+			var req *sdkv1.InvokeRequest
 			if tt.functionID != "" || tt.payload != nil {
-				req = &functionv1.InvokeRequest{
+				req = &sdkv1.InvokeRequest{
 					FunctionId: tt.functionID,
 					Payload:    tt.payload,
 				}
@@ -207,9 +207,9 @@ func TestFunctionServer_StartJob(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var req *functionv1.InvokeRequest
+			var req *sdkv1.InvokeRequest
 			if tt.functionID != "" {
-				req = &functionv1.InvokeRequest{
+				req = &sdkv1.InvokeRequest{
 					FunctionId: tt.functionID,
 					Payload:    []byte("input"),
 				}
@@ -303,9 +303,9 @@ func TestFunctionServer_CancelJob(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var req *functionv1.CancelJobRequest
+			var req *sdkv1.CancelJobRequest
 			if tt.jobID != "" {
-				req = &functionv1.CancelJobRequest{
+				req = &sdkv1.CancelJobRequest{
 					JobId: tt.jobID,
 				}
 			}
@@ -341,7 +341,7 @@ func TestFunctionServer_CancelJob(t *testing.T) {
 
 	// Test canceling a real job
 	t.Run("cancel active job", func(t *testing.T) {
-		req := &functionv1.InvokeRequest{
+		req := &sdkv1.InvokeRequest{
 			FunctionId: "long_func",
 			Payload:    []byte("input"),
 		}
@@ -352,7 +352,7 @@ func TestFunctionServer_CancelJob(t *testing.T) {
 		}
 
 		// Cancel the job
-		cancelReq := &functionv1.CancelJobRequest{
+		cancelReq := &sdkv1.CancelJobRequest{
 			JobId: resp.JobId,
 		}
 
@@ -389,7 +389,7 @@ func TestFunctionServer_RunJob_ErrorCases(t *testing.T) {
 		}
 
 		s := newFunctionServer(handlers)
-		req := &functionv1.InvokeRequest{
+		req := &sdkv1.InvokeRequest{
 			FunctionId: "error_func",
 			Payload:    []byte("input"),
 		}
@@ -427,7 +427,7 @@ func TestFunctionServer_RunJob_ErrorCases(t *testing.T) {
 		}
 
 		s := newFunctionServer(handlers)
-		req := &functionv1.InvokeRequest{
+		req := &sdkv1.InvokeRequest{
 			FunctionId: "success_func",
 			Payload:    []byte("input"),
 		}
@@ -491,9 +491,9 @@ func TestFunctionServer_StreamJob(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var req *functionv1.JobStreamRequest
+			var req *sdkv1.JobStreamRequest
 			if tt.name != "nil request" {
-				req = &functionv1.JobStreamRequest{
+				req = &sdkv1.JobStreamRequest{
 					JobId: tt.jobID,
 				}
 			}
@@ -518,10 +518,10 @@ type mockStreamServer struct {
 	t         *testing.T
 	sent      bool
 	sendError error
-	events    []*functionv1.JobEvent
+	events    []*sdkv1.JobEvent
 }
 
-func (m *mockStreamServer) Send(event *functionv1.JobEvent) error {
+func (m *mockStreamServer) Send(event *sdkv1.JobEvent) error {
 	m.sent = true
 	m.events = append(m.events, event)
 	if m.sendError != nil {
@@ -569,7 +569,7 @@ func TestFunctionServer_StreamJobWithActiveJob(t *testing.T) {
 	mockStream := &mockStreamServer{t: t}
 
 	// Try to stream from a non-existent job
-	req := &functionv1.JobStreamRequest{
+	req := &sdkv1.JobStreamRequest{
 		JobId: "active-job-123",
 	}
 
@@ -651,7 +651,7 @@ func TestFunctionServer_StreamJobSuccess(t *testing.T) {
 	s := newFunctionServer(handlers)
 
 	// Start a job
-	req := &functionv1.InvokeRequest{
+	req := &sdkv1.InvokeRequest{
 		FunctionId: "quick_func",
 		Payload:    []byte("input"),
 	}
@@ -668,7 +668,7 @@ func TestFunctionServer_StreamJobSuccess(t *testing.T) {
 	mockStream := &mockStreamServer{t: t}
 
 	// Stream the job
-	streamReq := &functionv1.JobStreamRequest{
+	streamReq := &sdkv1.JobStreamRequest{
 		JobId: resp.JobId,
 	}
 
@@ -733,7 +733,7 @@ func TestFunctionServer_StreamJobWithError(t *testing.T) {
 	s := newFunctionServer(handlers)
 
 	// Start a job
-	req := &functionv1.InvokeRequest{
+	req := &sdkv1.InvokeRequest{
 		FunctionId: "error_func",
 		Payload:    []byte("input"),
 	}
@@ -750,7 +750,7 @@ func TestFunctionServer_StreamJobWithError(t *testing.T) {
 	mockStream := &mockStreamServer{t: t}
 
 	// Stream the job
-	streamReq := &functionv1.JobStreamRequest{
+	streamReq := &sdkv1.JobStreamRequest{
 		JobId: resp.JobId,
 	}
 
@@ -800,7 +800,7 @@ func TestFunctionServer_StreamJobWithCanceledContext(t *testing.T) {
 	s := newFunctionServer(handlers)
 
 	// Start a job
-	req := &functionv1.InvokeRequest{
+	req := &sdkv1.InvokeRequest{
 		FunctionId: "canceled_func",
 		Payload:    []byte("input"),
 	}
@@ -817,7 +817,7 @@ func TestFunctionServer_StreamJobWithCanceledContext(t *testing.T) {
 	mockStream := &mockStreamServer{t: t}
 
 	// Stream the job
-	streamReq := &functionv1.JobStreamRequest{
+	streamReq := &sdkv1.JobStreamRequest{
 		JobId: resp.JobId,
 	}
 
@@ -866,7 +866,7 @@ func TestFunctionServer_StreamJobSendError(t *testing.T) {
 	s := newFunctionServer(handlers)
 
 	// Start a job
-	req := &functionv1.InvokeRequest{
+	req := &sdkv1.InvokeRequest{
 		FunctionId: "func",
 		Payload:    []byte("input"),
 	}
@@ -882,7 +882,7 @@ func TestFunctionServer_StreamJobSendError(t *testing.T) {
 		sendError: fmt.Errorf("stream send error"),
 	}
 
-	streamReq := &functionv1.JobStreamRequest{
+	streamReq := &sdkv1.JobStreamRequest{
 		JobId: resp.JobId,
 	}
 
@@ -914,7 +914,7 @@ func TestFunctionServer_StreamJobMultipleJobs(t *testing.T) {
 	// Start multiple jobs
 	jobIDs := []string{}
 	for i := 0; i < 3; i++ {
-		req := &functionv1.InvokeRequest{
+		req := &sdkv1.InvokeRequest{
 			FunctionId: "func",
 			Payload:    []byte(fmt.Sprintf("input-%d", i)),
 		}
@@ -929,7 +929,7 @@ func TestFunctionServer_StreamJobMultipleJobs(t *testing.T) {
 	// Stream each job
 	for _, jobID := range jobIDs {
 		mockStream := &mockStreamServer{t: t}
-		streamReq := &functionv1.JobStreamRequest{
+		streamReq := &sdkv1.JobStreamRequest{
 			JobId: jobID,
 		}
 
