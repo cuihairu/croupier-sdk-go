@@ -231,16 +231,16 @@ func demonstrateClientLifecycle(client croupier.Client) error {
 }
 
 func demonstrateInvokerInterface(ctx context.Context) error {
-	fmt.Println("\n=== 📞 调用器接口演示 ===")
+	fmt.Println("\n=== 📞 调用器接口演示 (HTTP REST API) ===")
 
-	// 创建调用器配置
+	// 创建HTTP调用器配置
 	invokerConfig := &croupier.InvokerConfig{
-		Address:        "localhost:8080",
+		Address:        "localhost:18780", // HTTP REST API端口
 		TimeoutSeconds: 30,
 		Insecure:       true,
 	}
 
-	invoker := croupier.NewInvoker(invokerConfig)
+	invoker := croupier.NewHTTPInvoker(invokerConfig)
 	defer invoker.Close()
 
 	// 1. 连接
