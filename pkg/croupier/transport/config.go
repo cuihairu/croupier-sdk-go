@@ -18,11 +18,11 @@ type Config struct {
 	Address string
 
 	// TLS configuration
-	Insecure    bool
-	CAFile      string
-	CertFile    string
-	KeyFile     string
-	ServerName  string
+	Insecure   bool
+	CAFile     string
+	CertFile   string
+	KeyFile    string
+	ServerName string
 
 	// Timeouts
 	RecvTimeout time.Duration

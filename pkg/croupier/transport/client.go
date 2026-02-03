@@ -20,13 +20,13 @@ import (
 // Client represents a NNG transport client.
 // It uses the Req/Rep protocol for request/response communication.
 type Client struct {
-	sock     mangos.Socket
-	config   *Config
-	mu       sync.RWMutex
-	pending  map[uint32]chan *mangos.Message
+	sock      mangos.Socket
+	config    *Config
+	mu        sync.RWMutex
+	pending   map[uint32]chan *mangos.Message
 	nextReqID uint32
-	closing  chan struct{}
-	once     sync.Once
+	closing   chan struct{}
+	once      sync.Once
 }
 
 // NewClient creates a new NNG client with the given configuration.
@@ -65,11 +65,11 @@ func NewClient(config *Config) (*Client, error) {
 	}
 
 	client := &Client{
-		sock:     sock,
-		config:   config,
-		pending:  make(map[uint32]chan *mangos.Message),
+		sock:      sock,
+		config:    config,
+		pending:   make(map[uint32]chan *mangos.Message),
 		nextReqID: 1,
-		closing:  make(chan struct{}),
+		closing:   make(chan struct{}),
 	}
 
 	// Start receive loop

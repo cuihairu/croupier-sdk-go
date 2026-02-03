@@ -40,7 +40,7 @@ type NNGManager struct {
 	// Transport layer
 	client   *transport.Client
 	server   *transport.Server
-	serverMu  sync.Mutex
+	serverMu sync.Mutex
 
 	// Connection state
 	mu        sync.RWMutex

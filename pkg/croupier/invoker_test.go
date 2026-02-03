@@ -321,9 +321,9 @@ func TestInvoker_calculateReconnectDelay(t *testing.T) {
 		maxExpectedMs int
 	}{
 		{"first attempt", 1, 800, 1200},   // ~1s with jitter
-		{"second attempt", 2, 1600, 2400},  // ~2s with jitter
-		{"third attempt", 3, 3200, 4800},   // ~4s with jitter
-		{"large attempt", 10, 0, 30000},    // capped at max
+		{"second attempt", 2, 1600, 2400}, // ~2s with jitter
+		{"third attempt", 3, 3200, 4800},  // ~4s with jitter
+		{"large attempt", 10, 0, 30000},   // capped at max
 	}
 
 	for _, tc := range testCases {
@@ -361,10 +361,10 @@ func TestInvoker_calculateRetryDelay(t *testing.T) {
 		minExpectedMs int
 		maxExpectedMs int
 	}{
-		{"first retry", 0, 90, 110},    // ~100ms with jitter
-		{"second retry", 1, 180, 220},  // ~200ms with jitter
-		{"third retry", 2, 360, 440},   // ~400ms with jitter
-		{"large retry", 10, 0, 5000},   // capped at max
+		{"first retry", 0, 90, 110},   // ~100ms with jitter
+		{"second retry", 1, 180, 220}, // ~200ms with jitter
+		{"third retry", 2, 360, 440},  // ~400ms with jitter
+		{"large retry", 10, 0, 5000},  // capped at max
 	}
 
 	for _, tc := range testCases {
@@ -454,8 +454,8 @@ func TestInvoker_scheduleReconnectIfNeeded(t *testing.T) {
 		config := &InvokerConfig{
 			Address: "127.0.0.1:19090",
 			Reconnect: &ReconnectConfig{
-				Enabled:       true,
-				MaxAttempts:   3,
+				Enabled:        true,
+				MaxAttempts:    3,
 				InitialDelayMs: 50, // Short delay for testing
 			},
 		}
