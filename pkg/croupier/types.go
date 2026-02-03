@@ -106,7 +106,7 @@ type RetryConfig struct {
 	MaxDelayMs           int     `json:"max_delay_ms"`           // maximum retry delay in milliseconds
 	BackoffMultiplier    float64 `json:"backoff_multiplier"`     // exponential backoff multiplier
 	JitterFactor         float64 `json:"jitter_factor"`          // jitter factor (0-1) to add randomness
-	RetryableStatusCodes []int32 `json:"retryable_status_codes"` // gRPC status codes that trigger retry
+	RetryableStatusCodes []int32 `json:"retryable_status_codes"` // HTTP status codes that trigger retry
 }
 
 // DefaultRetryConfig returns a default retry configuration
@@ -132,7 +132,7 @@ func DefaultRetryConfig() *RetryConfig {
 type InvokerConfig struct {
 	Address        string           `json:"address"`         // server/agent address
 	TimeoutSeconds int              `json:"timeout_seconds"` // request timeout in seconds
-	Insecure       bool             `json:"insecure"`        // use insecure gRPC
+	Insecure       bool             `json:"insecure"`        // use insecure connection (skip TLS verification)
 	CAFile         string           `json:"ca_file"`         // CA certificate file
 	CertFile       string           `json:"cert_file"`       // client certificate file
 	KeyFile        string           `json:"key_file"`        // client private key file

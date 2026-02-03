@@ -283,13 +283,13 @@ func (i *httpInvoker) StartJob(ctx context.Context, functionID, payload string, 
 // StreamJob implements Invoker.StreamJob
 // Note: Not supported for HTTP REST API
 func (i *httpInvoker) StreamJob(ctx context.Context, jobID string) (<-chan JobEvent, error) {
-	return nil, fmt.Errorf("StreamJob is not supported for HTTP invoker (use gRPC invoker instead)")
+	return nil, fmt.Errorf("StreamJob is not supported for HTTP invoker")
 }
 
 // CancelJob implements Invoker.CancelJob
 // Note: Not supported for HTTP REST API
 func (i *httpInvoker) CancelJob(ctx context.Context, jobID string) error {
-	return fmt.Errorf("CancelJob is not supported for HTTP invoker (use gRPC invoker instead)")
+	return fmt.Errorf("CancelJob is not supported for HTTP invoker")
 }
 
 // SetSchema implements Invoker.SetSchema
