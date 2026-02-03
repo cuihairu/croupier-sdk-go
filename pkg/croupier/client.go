@@ -1,25 +1,12 @@
+// Package croupier provides a Go SDK for Croupier game function registration and execution.
 package croupier
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"encoding/json"
 	"fmt"
-	"net"
 	"os"
 	"sync"
-	"time"
-
-	controlv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/control/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 )
-
-// NewGRPCManager is provided in this package (moved from internal)
 
 // Client represents a Croupier client for function registration and execution
 type Client interface {
@@ -29,7 +16,7 @@ type Client interface {
 	// Connect establishes connection to the agent
 	Connect(ctx context.Context) error
 
-	// Serve starts the local gRPC server and maintains the connection
+	// Serve starts the local server and maintains the connection
 	Serve(ctx context.Context) error
 
 	// Stop gracefully stops the client
@@ -73,10 +60,10 @@ type client struct {
 	descriptors map[string]FunctionDescriptor
 	mu          sync.RWMutex
 
-	// gRPC related fields
-	grpcManager GRPCManager
-	sessionID   string
-	localAddr   string
+	// Manager (NNG-based)
+	manager   Manager
+	sessionID string
+	localAddr string
 
 	// State management
 	connected bool
@@ -94,11 +81,11 @@ func NewClient(config *ClientConfig) Client {
 	}
 
 	// Set up logger based on config
-	var logger Logger
+	var l Logger
 	if config.DisableLogging {
-		logger = &NoOpLogger{}
+		l = &NoOpLogger{}
 	} else {
-		logger = NewDefaultLogger(config.DebugLogging, os.Stdout)
+		l = NewDefaultLogger(config.DebugLogging, os.Stdout)
 	}
 
 	return &client{
@@ -106,7 +93,7 @@ func NewClient(config *ClientConfig) Client {
 		handlers:    make(map[string]FunctionHandler),
 		descriptors: make(map[string]FunctionDescriptor),
 		stopCh:      make(chan struct{}),
-		logger:      logger,
+		logger:      l,
 	}
 }
 
@@ -144,8 +131,8 @@ func (c *client) Connect(ctx context.Context) error {
 
 	c.logger.Infof("Connecting to Croupier Agent: %s", c.config.AgentAddr)
 
-	// Initialize gRPC manager
-	grpcConfig := GRPCConfig{
+	// Create NNG manager
+	managerConfig := ManagerConfig{
 		AgentAddr:          c.config.AgentAddr,
 		LocalListen:        c.config.LocalListen,
 		TimeoutSeconds:     c.config.TimeoutSeconds,
@@ -158,41 +145,37 @@ func (c *client) Connect(ctx context.Context) error {
 	}
 
 	var err error
-	c.grpcManager, err = NewGRPCManager(grpcConfig, c.handlers)
+	c.manager, err = NewManager(managerConfig, c.handlers)
 	if err != nil {
-		return fmt.Errorf("failed to create gRPC manager: %w", err)
+		return fmt.Errorf("failed to create manager: %w", err)
 	}
 
 	// Connect to agent
-	if err := c.grpcManager.Connect(ctx); err != nil {
+	if err := c.manager.Connect(ctx); err != nil {
 		return fmt.Errorf("failed to connect to agent: %w", err)
 	}
 
 	// Ensure local server is running before registration
-	if err := c.grpcManager.StartServer(ctx); err != nil {
-		c.grpcManager.Disconnect()
+	if err := c.manager.StartServer(ctx); err != nil {
+		c.manager.Disconnect()
 		return fmt.Errorf("failed to start local server: %w", err)
 	}
 
 	// Register functions with agent
 	localFunctions := c.convertToLocalFunctions()
-	sessionID, err := c.grpcManager.RegisterWithAgent(ctx, c.config.ServiceID, c.config.ServiceVersion, localFunctions)
+	sessionID, err := c.manager.RegisterWithAgent(ctx, c.config.ServiceID, c.config.ServiceVersion, localFunctions)
 	if err != nil {
-		c.grpcManager.Disconnect()
+		c.manager.Disconnect()
 		return fmt.Errorf("failed to register with agent: %w", err)
 	}
 
 	c.sessionID = sessionID
-	c.localAddr = c.grpcManager.GetLocalAddress()
+	c.localAddr = c.manager.GetLocalAddress()
 	c.connected = true
 
 	c.logger.Infof("Successfully connected and registered with Agent")
 	c.logger.Infof("Local service address: %s", c.localAddr)
 	c.logger.Infof("Session ID: %s", c.sessionID)
-
-	if err := c.registerCapabilities(ctx); err != nil {
-		c.logger.Warnf("Failed to register capabilities: %v", err)
-	}
 
 	return nil
 }
@@ -211,11 +194,6 @@ func (c *client) Serve(ctx context.Context) error {
 	c.logger.Infof("Registered functions: %d", len(c.handlers))
 	c.logger.Infof("Use Stop() to stop the service")
 	c.logger.Infof("===============================================")
-
-	// Start local gRPC server
-	if err := c.grpcManager.StartServer(ctx); err != nil {
-		return fmt.Errorf("failed to start local server: %w", err)
-	}
 
 	// Wait for stop signal or context cancellation
 	select {
@@ -237,8 +215,8 @@ func (c *client) Stop() error {
 
 	c.logger.Infof("Stopping Croupier client...")
 
-	if c.grpcManager != nil {
-		c.grpcManager.Disconnect()
+	if c.manager != nil {
+		c.manager.Disconnect()
 	}
 
 	close(c.stopCh)
@@ -277,195 +255,4 @@ func (c *client) convertToLocalFunctions() []LocalFunctionDescriptor {
 		})
 	}
 	return localFuncs
-}
-
-func (c *client) registerCapabilities(ctx context.Context) error {
-	if c.config.ControlAddr == "" {
-		return nil
-	}
-
-	manifestBytes, err := c.buildManifest()
-	if err != nil {
-		return fmt.Errorf("build manifest: %w", err)
-	}
-	compressed, err := gzipBytes(manifestBytes)
-	if err != nil {
-		return fmt.Errorf("compress manifest: %w", err)
-	}
-
-	conn, err := c.dialControl(ctx)
-	if err != nil {
-		return fmt.Errorf("connect to control service: %w", err)
-	}
-	defer conn.Close()
-
-	client := controlv1.NewControlServiceClient(conn)
-	request := &controlv1.RegisterCapabilitiesRequest{
-		Provider: &controlv1.ProviderMeta{
-			Id:      c.config.ServiceID,
-			Version: c.config.ServiceVersion,
-			Lang:    c.config.ProviderLang,
-			Sdk:     c.config.ProviderSDK,
-		},
-		ManifestJsonGz: compressed,
-	}
-
-	callCtx := ctx
-	var cancel context.CancelFunc
-	if c.config.TimeoutSeconds > 0 {
-		timeout := time.Duration(c.config.TimeoutSeconds) * time.Second
-		callCtx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
-	}
-
-	if _, err := client.RegisterCapabilities(callCtx, request); err != nil {
-		return err
-	}
-
-	c.logger.Infof("Uploaded provider capabilities manifest")
-	return nil
-}
-
-func (c *client) dialControl(ctx context.Context) (*grpc.ClientConn, error) {
-	if c.config.ControlAddr == "" {
-		return nil, fmt.Errorf("control address not configured")
-	}
-
-	dialCtx := ctx
-	var cancel context.CancelFunc
-	if c.config.TimeoutSeconds > 0 {
-		timeout := time.Duration(c.config.TimeoutSeconds) * time.Second
-		dialCtx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
-	}
-
-	var opts []grpc.DialOption
-	if c.config.Insecure {
-		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	} else {
-		creds, err := c.controlCredentials()
-		if err != nil {
-			return nil, err
-		}
-		opts = append(opts, grpc.WithTransportCredentials(creds))
-	}
-
-	conn, err := grpc.DialContext(dialCtx, c.config.ControlAddr, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return conn, nil
-}
-
-func (c *client) controlCredentials() (credentials.TransportCredentials, error) {
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
-
-	// Load CA certificate
-	if c.config.CAFile != "" {
-		pemBytes, err := os.ReadFile(c.config.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("read CA file: %w", err)
-		}
-		pool := x509.NewCertPool()
-		if !pool.AppendCertsFromPEM(pemBytes) {
-			return nil, fmt.Errorf("failed to append CA certificate")
-		}
-		tlsConfig.RootCAs = pool
-	} else {
-		// Use system root CAs
-		systemCAs, err := x509.SystemCertPool()
-		if err != nil {
-			// Fallback to empty pool if system CAs unavailable
-			systemCAs = x509.NewCertPool()
-		}
-		tlsConfig.RootCAs = systemCAs
-	}
-
-	// Load client certificate for mTLS
-	if c.config.CertFile != "" && c.config.KeyFile != "" {
-		cert, err := tls.LoadX509KeyPair(c.config.CertFile, c.config.KeyFile)
-		if err != nil {
-			return nil, fmt.Errorf("load client certificate: %w", err)
-		}
-		tlsConfig.Certificates = []tls.Certificate{cert}
-	}
-
-	// Configure server name verification
-	if c.config.ServerName != "" {
-		tlsConfig.ServerName = c.config.ServerName
-	} else if !c.config.InsecureSkipVerify {
-		// Extract server name from address
-		host, _, err := net.SplitHostPort(c.config.ControlAddr)
-		if err == nil && host != "" {
-			tlsConfig.ServerName = host
-		}
-	}
-
-	// Skip verification if explicitly requested
-	if c.config.InsecureSkipVerify {
-		tlsConfig.InsecureSkipVerify = true
-	}
-
-	return credentials.NewTLS(tlsConfig), nil
-}
-
-func (c *client) buildManifest() ([]byte, error) {
-	type manifestFunction struct {
-		ID        string `json:"id"`
-		Version   string `json:"version"`
-		Category  string `json:"category,omitempty"`
-		Risk      string `json:"risk,omitempty"`
-		Entity    string `json:"entity,omitempty"`
-		Operation string `json:"operation,omitempty"`
-		Enabled   bool   `json:"enabled,omitempty"`
-	}
-	type manifest struct {
-		Provider struct {
-			ID      string `json:"id"`
-			Version string `json:"version"`
-			Lang    string `json:"lang"`
-			SDK     string `json:"sdk"`
-		} `json:"provider"`
-		Functions []manifestFunction `json:"functions,omitempty"`
-	}
-
-	out := manifest{}
-	out.Provider.ID = c.config.ServiceID
-	out.Provider.Version = c.config.ServiceVersion
-	out.Provider.Lang = c.config.ProviderLang
-	out.Provider.SDK = c.config.ProviderSDK
-
-	c.mu.RLock()
-	for _, desc := range c.descriptors {
-		version := desc.Version
-		if version == "" {
-			version = "1.0.0"
-		}
-		out.Functions = append(out.Functions, manifestFunction{
-			ID:        desc.ID,
-			Version:   version,
-			Category:  desc.Category,
-			Risk:      desc.Risk,
-			Entity:    desc.Entity,
-			Operation: desc.Operation,
-			Enabled:   desc.Enabled,
-		})
-	}
-	c.mu.RUnlock()
-
-	return json.Marshal(out)
-}
-
-func gzipBytes(payload []byte) ([]byte, error) {
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-	if _, err := gz.Write(payload); err != nil {
-		return nil, err
-	}
-	if err := gz.Close(); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
 }
