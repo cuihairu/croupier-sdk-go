@@ -31,7 +31,8 @@ type FunctionHandler func(ctx context.Context, payload []byte) ([]byte, error)
 // ClientConfig holds configuration for the Croupier client
 type ClientConfig struct {
 	// Agent connection settings
-	AgentAddr string `json:"agent_addr"` // Agent address, e.g. "localhost:19090"
+	AgentAddr    string `json:"agent_addr"`     // Agent address, e.g. "localhost:19090" or "ipc://croupier-agent,localhost:19090"
+	AgentIPCAddr string `json:"agent_ipc_addr"` // IPC address for local high-performance connection (e.g., "ipc://croupier-agent")
 
 	// Service identification (multi-tenant support)
 	GameID         string `json:"game_id"`         // game identifier for tenant isolation

@@ -36,13 +36,13 @@ func (f HandlerFunc) Handle(ctx context.Context, msgID uint32, reqID uint32, bod
 // Server represents a NNG transport server.
 // It uses the Rep protocol for handling request/response communication.
 type Server struct {
-	sock     mangos.Socket
-	config   *Config
-	handler  Handler
-	mu       sync.RWMutex
-	closing  chan struct{}
-	ready    chan struct{} // Closed when server is ready to accept connections
-	once     sync.Once
+	sock    mangos.Socket
+	config  *Config
+	handler Handler
+	mu      sync.RWMutex
+	closing chan struct{}
+	ready   chan struct{} // Closed when server is ready to accept connections
+	once    sync.Once
 }
 
 // NewServer creates a new NNG server with the given configuration.

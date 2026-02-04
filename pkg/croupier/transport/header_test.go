@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.nanomsg.org/mangos/v3"
 	"go.nanomsg.org/mangos/v3/protocol/rep"
-	_ "go.nanomsg.org/mangos/v3/transport/tcp"
 	"go.nanomsg.org/mangos/v3/protocol/req"
+	_ "go.nanomsg.org/mangos/v3/transport/tcp"
 )
 
 // TestMangos_RepProtocol_HeaderPreservation 测试 REP 协议是否保留 Header

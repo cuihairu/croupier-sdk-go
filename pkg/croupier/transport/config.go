@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -15,14 +16,23 @@ import (
 // Config holds the configuration for the transport layer.
 type Config struct {
 	// Address is the server address to connect to.
+	// Can be a single address or comma-separated multiple addresses.
+	// Examples: "127.0.0.1:19090" or "ipc://croupier-server,127.0.0.1:19090"
 	Address string
 
+	// Addresses is a list of addresses to try (optional, takes precedence over Address)
+	Addresses []string
+
+	// IPCAddress is the IPC address to try first (optional)
+	// If set, this will be tried before the TCP address
+	IPCAddress string
+
 	// TLS configuration
-	Insecure    bool
-	CAFile      string
-	CertFile    string
-	KeyFile     string
-	ServerName  string
+	Insecure   bool
+	CAFile     string
+	CertFile   string
+	KeyFile    string
+	ServerName string
 
 	// Timeouts
 	RecvTimeout time.Duration
@@ -86,18 +96,82 @@ func createTLSConfig(cfg *Config) (*tls.Config, error) {
 }
 
 // dialAddr returns the appropriate address string for dialing.
+// Deprecated: Use buildDialAddrs instead for multi-address support.
 func dialAddr(cfg *Config) string {
-	// If address already has a scheme prefix, use it as-is
-	if strings.HasPrefix(cfg.Address, "inproc://") ||
-		strings.HasPrefix(cfg.Address, "ipc:") ||
-		strings.HasPrefix(cfg.Address, "tcp:") ||
-		strings.HasPrefix(cfg.Address, "tls+tcp:") ||
-		strings.HasPrefix(cfg.Address, "ws:") {
-		return cfg.Address
+	addrs := buildDialAddrs(cfg)
+	if len(addrs) > 0 {
+		return addrs[0]
+	}
+	return "tcp://127.0.0.1:19090"
+}
+
+// buildDialAddrs builds a list of addresses to try for dialing.
+// It prioritizes IPC for local connections.
+func buildDialAddrs(cfg *Config) []string {
+	var addrs []string
+
+	// If Addresses is explicitly set, use it
+	if len(cfg.Addresses) > 0 {
+		for _, addr := range cfg.Addresses {
+			if addr = strings.TrimSpace(addr); addr != "" {
+				addrs = append(addrs, normalizeAddress(addr, cfg.Insecure))
+			}
+		}
+		return addrs
 	}
 
-	if !cfg.Insecure {
-		return "tls+tcp://" + cfg.Address
+	// Try IPC address first if specified
+	if cfg.IPCAddress != "" && isIPCSupported() {
+		ipcAddr := strings.TrimSpace(cfg.IPCAddress)
+		if !strings.HasPrefix(ipcAddr, "ipc://") {
+			ipcAddr = "ipc://" + ipcAddr
+		}
+		addrs = append(addrs, ipcAddr)
 	}
-	return "tcp://" + cfg.Address
+
+	// Parse main address for additional addresses
+	if cfg.Address != "" {
+		parts := strings.Split(cfg.Address, ",")
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				// Skip if it's the same as IPCAddress
+				if cfg.IPCAddress != "" && part == cfg.IPCAddress {
+					continue
+				}
+				addrs = append(addrs, normalizeAddress(part, cfg.Insecure))
+			}
+		}
+	}
+
+	// Default if no addresses specified
+	if len(addrs) == 0 {
+		addrs = []string{"tcp://127.0.0.1:19090"}
+	}
+
+	return addrs
+}
+
+// normalizeAddress ensures an address has the appropriate scheme prefix.
+func normalizeAddress(addr string, insecure bool) string {
+	// If already has a scheme, use as-is
+	if strings.HasPrefix(addr, "inproc://") ||
+		strings.HasPrefix(addr, "ipc://") ||
+		strings.HasPrefix(addr, "tcp://") ||
+		strings.HasPrefix(addr, "tls+tcp://") ||
+		strings.HasPrefix(addr, "ws://") ||
+		strings.HasPrefix(addr, "wss://") {
+		return addr
+	}
+
+	// Add scheme based on security setting
+	if !insecure {
+		return "tls+tcp://" + addr
+	}
+	return "tcp://" + addr
+}
+
+// isIPCSupported checks if IPC transport is supported on this platform.
+func isIPCSupported() bool {
+	return runtime.GOOS == "windows" || runtime.GOOS == "linux" || runtime.GOOS == "darwin" || runtime.GOOS == "freebsd"
 }

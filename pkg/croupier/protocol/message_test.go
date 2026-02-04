@@ -94,7 +94,7 @@ func TestParseMessageInvalid(t *testing.T) {
 
 func TestIsRequest(t *testing.T) {
 	tests := []struct {
-		msgID  uint32
+		msgID uint32
 		isReq bool
 	}{
 		{MsgRegisterRequest, true},
@@ -130,8 +130,8 @@ func TestIsResponse(t *testing.T) {
 
 func TestGetResponseMsgID(t *testing.T) {
 	tests := []struct {
-		reqMsgID    uint32
-		respMsgID   uint32
+		reqMsgID  uint32
+		respMsgID uint32
 	}{
 		{MsgRegisterRequest, MsgRegisterResponse},
 		{MsgInvokeRequest, MsgInvokeResponse},

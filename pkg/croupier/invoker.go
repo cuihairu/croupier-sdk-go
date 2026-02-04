@@ -25,9 +25,9 @@ import (
 
 // nngInvoker implements Invoker using NNG transport
 type nngInvoker struct {
-	config   *InvokerConfig
-	client   *transport.Client
-	mu       sync.RWMutex
+	config *InvokerConfig
+	client *transport.Client
+	mu     sync.RWMutex
 
 	// Function schemas for validation
 	schemas map[string]map[string]interface{}

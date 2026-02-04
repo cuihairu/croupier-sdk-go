@@ -10,7 +10,8 @@ require (
 	google.golang.org/protobuf v1.36.11
 )
 
-// Local replace for main croupier module
+// Local replace for main croupier module (for development)
+// CI will check out croupier repo alongside
 replace github.com/cuihairu/croupier => ../croupier
 
 require (
@@ -21,6 +22,7 @@ require (
 )
 
 require (
+	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect

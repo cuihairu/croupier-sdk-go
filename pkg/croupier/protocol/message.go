@@ -33,11 +33,11 @@ const (
 // Message type constants (24 bits).
 const (
 	// ControlService (0x01xx)
-	MsgRegisterRequest         = 0x010101
-	MsgRegisterResponse        = 0x010102
-	MsgHeartbeatRequest        = 0x010103
-	MsgHeartbeatResponse       = 0x010104
-	MsgRegisterCapabilitiesReq = 0x010105
+	MsgRegisterRequest          = 0x010101
+	MsgRegisterResponse         = 0x010102
+	MsgHeartbeatRequest         = 0x010103
+	MsgHeartbeatResponse        = 0x010104
+	MsgRegisterCapabilitiesReq  = 0x010105
 	MsgRegisterCapabilitiesResp = 0x010106
 
 	// ClientService (0x02xx)

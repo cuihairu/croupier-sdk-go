@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.nanomsg.org/mangos/v3"
 	"go.nanomsg.org/mangos/v3/protocol/rep"
-	_ "go.nanomsg.org/mangos/v3/transport/tcp"
 	"go.nanomsg.org/mangos/v3/protocol/req"
+	_ "go.nanomsg.org/mangos/v3/transport/tcp"
 
 	"github.com/cuihairu/croupier/sdks/go/pkg/croupier/protocol"
 )
@@ -96,9 +96,9 @@ func TestProtocol_ParseMessage_Valid(t *testing.T) {
 
 type mockHandler struct {
 	called bool
-	msgID   uint32
-	reqID   uint32
-	body    []byte
+	msgID  uint32
+	reqID  uint32
+	body   []byte
 }
 
 func (h *mockHandler) Handle(ctx context.Context, msgID uint32, reqID uint32, body []byte) ([]byte, error) {
