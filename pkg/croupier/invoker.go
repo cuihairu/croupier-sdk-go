@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	sdkv1 "github.com/cuihairu/croupier/pkg/pb/croupier/sdk/v1"
+	sdkv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/sdk/v1"
 	"github.com/xeipuuv/gojsonschema"
 	"google.golang.org/protobuf/proto"
 

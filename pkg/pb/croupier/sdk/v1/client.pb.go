@@ -634,7 +634,7 @@ const file_croupier_sdk_v1_client_proto_rawDesc = "" +
 	"\tHeartbeat\x12!.croupier.sdk.v1.HeartbeatRequest\x1a\".croupier.sdk.v1.HeartbeatResponse\x12X\n" +
 	"\vListClients\x12#.croupier.sdk.v1.ListClientsRequest\x1a$.croupier.sdk.v1.ListClientsResponse\x12[\n" +
 	"\fGetJobResult\x12$.croupier.sdk.v1.GetJobResultRequest\x1a%.croupier.sdk.v1.GetJobResultResponseBa\n" +
-	"\"io.github.cuihairu.croupier.sdk.v1P\x01Z9github.com/cuihairu/croupier/pkg/pb/croupier/sdk/v1;sdkv1b\x06proto3"
+	"\"io.github.cuihairu.croupier.sdk.v1P\x01Z9github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/sdk/v1;sdkv1b\x06proto3"
 
 var (
 	file_croupier_sdk_v1_client_proto_rawDescOnce sync.Once

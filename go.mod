@@ -8,14 +8,8 @@ require (
 
 	// Protobuf for message serialization
 	google.golang.org/protobuf v1.36.11
-)
 
-// Local replace for main croupier module (for development)
-// CI will check out croupier repo alongside
-replace github.com/cuihairu/croupier => ../croupier
-
-require (
-	github.com/cuihairu/croupier v0.0.0-00010101000000-000000000000
+	// Testing
 	github.com/stretchr/testify v1.11.1
 	github.com/xeipuuv/gojsonschema v1.2.0
 	google.golang.org/grpc v1.78.0
