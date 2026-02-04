@@ -507,9 +507,9 @@ func (i *nngInvoker) scheduleReconnectIfNeeded() {
 
 	i.isReconnecting = true
 	i.reconnectAttempts++
-
-	delay := i.calculateReconnectDelay()
 	attempts := i.reconnectAttempts
+
+	delay := i.calculateReconnectDelay(attempts)
 	logInfof("Scheduling reconnection attempt %d in %v", attempts, delay)
 
 	// Create a cancellable context for the reconnection
@@ -544,12 +544,12 @@ func (i *nngInvoker) scheduleReconnectIfNeeded() {
 }
 
 // calculateReconnectDelay calculates the delay before next reconnection attempt
-func (i *nngInvoker) calculateReconnectDelay() time.Duration {
+func (i *nngInvoker) calculateReconnectDelay(attempts int) time.Duration {
 	cfg := i.config.Reconnect
 
 	// Calculate base delay using exponential backoff
 	baseDelay := time.Duration(cfg.InitialDelayMs) * time.Millisecond
-	exponentialDelay := baseDelay * time.Duration(math.Pow(float64(cfg.BackoffMultiplier), float64(i.reconnectAttempts-1)))
+	exponentialDelay := baseDelay * time.Duration(math.Pow(float64(cfg.BackoffMultiplier), float64(attempts-1)))
 
 	// Cap at max delay
 	maxDelay := time.Duration(cfg.MaxDelayMs) * time.Millisecond
@@ -562,8 +562,12 @@ func (i *nngInvoker) calculateReconnectDelay() time.Duration {
 	randomJitter := time.Duration(float64(jitter) * (2*rand.Float64() - 1))
 
 	finalDelay := exponentialDelay + randomJitter
+	// Ensure final delay is within bounds
 	if finalDelay < 0 {
 		finalDelay = 0
+	}
+	if finalDelay > maxDelay {
+		finalDelay = maxDelay
 	}
 
 	return finalDelay
@@ -665,8 +669,12 @@ func (i *nngInvoker) calculateRetryDelay(attempt int, cfg *RetryConfig) time.Dur
 	randomJitter := time.Duration(float64(jitter) * (2*rand.Float64() - 1))
 
 	finalDelay := exponentialDelay + randomJitter
+	// Ensure final delay is within bounds
 	if finalDelay < 0 {
 		finalDelay = 0
+	}
+	if finalDelay > maxDelay {
+		finalDelay = maxDelay
 	}
 
 	return finalDelay
