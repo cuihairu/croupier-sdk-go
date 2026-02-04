@@ -39,3 +39,6 @@ buf.lock
 
 # Proto downloads
 downloaded_proto/
+
+# macOS
+.DS_Store
