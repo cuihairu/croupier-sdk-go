@@ -10,7 +10,8 @@ require (
 	google.golang.org/protobuf v1.36.11
 )
 
-// Local replace for main croupier module
+// Local replace for main croupier module (for development)
+// CI will check out croupier repo alongside
 replace github.com/cuihairu/croupier => ../croupier
 
 require (

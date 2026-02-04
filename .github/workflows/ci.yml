@@ -16,6 +16,52 @@ jobs:
     steps:
     - name: Checkout SDK repository
       uses: actions/checkout@v4
+      with:
+        path: sdk
+
+    - name: Checkout Croupier main repository
+      uses: actions/checkout@v4
+      with:
+        repository: cuihairu/croupier
+        path: croupier
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+        cache: true
+        cache-dependency-path: sdk/go.sum
+
+    - name: Download dependencies
+      working-directory: ./sdk
+      run: |
+        go mod tidy
+        go mod download
+
+    # Proto 代码由 croupier-proto 的 sync-sdks workflow 同步，无需本地生成
+    - name: Build SDK
+      working-directory: ./sdk
+      run: go build -v ./...
+
+    - name: Run tests with coverage
+      working-directory: ./sdk
+      run: |
+        # Run tests for main package
+        go test -v -race -coverprofile=coverage.out -covermode=atomic ./pkg/croupier
+        # Run tests for all packages
+        go test -v -race ./pkg/...
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: sdk/coverage.out
+        flags: go-sdk
+        fail_ci_if_error: ${{ github.event_name != 'pull_request' }}
+
+    - name: Build examples
+      working-directory: ./sdk
+      run: go build -v ./examples/...
 
     - name: Setup Go
       uses: actions/setup-go@v5
