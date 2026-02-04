@@ -119,16 +119,22 @@ func (s *Server) Serve(ctx context.Context) error {
 
 		// Parse request - protocol header is in Body prefix
 		_, msgID, reqID, body, err := protocol.ParseMessageFromBody(msg.Body)
-		msg.Free()
 
 		if err != nil {
+			msg.Free()
 			s.sendError(0, protocol.GetResponseMsgID(msgID), err)
 			continue
 		}
 
+		// Make a copy of the body before freeing the message to avoid race condition
+		// with transport layer reusing the buffer
+		bodyCopy := make([]byte, len(body))
+		copy(bodyCopy, body)
+		msg.Free()
+
 		// Handle request synchronously (Rep protocol requires response in same goroutine)
 		ctx := context.Background()
-		respBody, err := s.handler.Handle(ctx, msgID, reqID, body)
+		respBody, err := s.handler.Handle(ctx, msgID, reqID, bodyCopy)
 
 		// Create response body with protocol header in Body (mangos REP doesn't preserve custom Header)
 		respMsgID := protocol.GetResponseMsgID(msgID)
