@@ -331,8 +331,7 @@ func TestInvoker_calculateReconnectDelay(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			i.reconnectAttempts = tc.attempt
-			delay := i.calculateReconnectDelay()
+			delay := i.calculateReconnectDelay(tc.attempt)
 
 			delayMs := int(delay.Milliseconds())
 			if delayMs < tc.minExpectedMs || delayMs > tc.maxExpectedMs {
