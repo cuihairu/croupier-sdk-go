@@ -5,12 +5,14 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"go.nanomsg.org/mangos/v3"
 	"go.nanomsg.org/mangos/v3/protocol/req"
 	_ "go.nanomsg.org/mangos/v3/transport/inproc"
+	_ "go.nanomsg.org/mangos/v3/transport/ipc"
 	_ "go.nanomsg.org/mangos/v3/transport/tcp"
 	_ "go.nanomsg.org/mangos/v3/transport/tlstcp"
 
@@ -22,6 +24,7 @@ import (
 type Client struct {
 	sock      mangos.Socket
 	config    *Config
+	addrs     []string // Addresses to try (in order)
 	mu        sync.RWMutex
 	pending   map[uint32]chan *mangos.Message
 	nextReqID uint32
@@ -30,52 +33,78 @@ type Client struct {
 }
 
 // NewClient creates a new NNG client with the given configuration.
+// It will try to connect to each address in order until one succeeds.
 func NewClient(config *Config) (*Client, error) {
-	sock, err := req.NewSocket()
-	if err != nil {
-		return nil, fmt.Errorf("create req socket: %w", err)
-	}
+	// Build list of addresses to try
+	addrs := buildDialAddrs(config)
 
-	// Apply TLS configuration
-	if !config.Insecure {
-		tlsConfig, err := createTLSConfig(config)
+	var lastErr error
+	var sock mangos.Socket
+	var err error
+
+	for _, addr := range addrs {
+		// Create new socket for each attempt
+		sock, err = req.NewSocket()
 		if err != nil {
-			sock.Close()
-			return nil, fmt.Errorf("create tls config: %w", err)
+			lastErr = fmt.Errorf("create req socket: %w", err)
+			continue
 		}
-		if err := sock.SetOption(mangos.OptionTLSConfig, tlsConfig); err != nil {
-			sock.Close()
-			return nil, fmt.Errorf("set tls config: %w", err)
+
+		// Apply TLS configuration
+		if !config.Insecure {
+			tlsConfig, err := createTLSConfig(config)
+			if err != nil {
+				sock.Close()
+				lastErr = fmt.Errorf("create tls config: %w", err)
+				continue
+			}
+			if err := sock.SetOption(mangos.OptionTLSConfig, tlsConfig); err != nil {
+				sock.Close()
+				// TLS might not be supported for IPC, skip to next address
+				if strings.HasPrefix(addr, "ipc://") {
+					lastErr = fmt.Errorf("set tls config: %w", err)
+					continue
+				}
+				lastErr = fmt.Errorf("set tls config: %w", err)
+				sock.Close()
+				continue
+			}
 		}
-	}
 
-	// Configure send timeout
-	if config.SendTimeout > 0 {
-		if err := sock.SetOption(mangos.OptionSendDeadline, config.SendTimeout); err != nil {
-			sock.Close()
-			return nil, fmt.Errorf("set send deadline: %w", err)
+		// Configure send timeout
+		if config.SendTimeout > 0 {
+			if err := sock.SetOption(mangos.OptionSendDeadline, config.SendTimeout); err != nil {
+				sock.Close()
+				lastErr = fmt.Errorf("set send deadline: %w", err)
+				continue
+			}
 		}
+
+		// Try to connect
+		if err := sock.Dial(addr); err != nil {
+			sock.Close()
+			lastErr = fmt.Errorf("dial %s: %w", addr, err)
+			continue
+		}
+
+		// Successfully connected
+		client := &Client{
+			sock:      sock,
+			config:    config,
+			addrs:     addrs,
+			pending:   make(map[uint32]chan *mangos.Message),
+			nextReqID: 1,
+			closing:   make(chan struct{}),
+		}
+
+		// Start receive loop
+		go client.receiveLoop()
+
+		return client, nil
 	}
 
-	// Connect to server
-	addr := dialAddr(config)
-	if err := sock.Dial(addr); err != nil {
-		sock.Close()
-		return nil, fmt.Errorf("dial %s: %w", addr, err)
-	}
-
-	client := &Client{
-		sock:      sock,
-		config:    config,
-		pending:   make(map[uint32]chan *mangos.Message),
-		nextReqID: 1,
-		closing:   make(chan struct{}),
-	}
-
-	// Start receive loop
-	go client.receiveLoop()
-
-	return client, nil
+	// All addresses failed
+	return nil, fmt.Errorf("failed to connect to any address (last error: %w)", lastErr)
 }
 
 // Call sends a request and waits for the response.

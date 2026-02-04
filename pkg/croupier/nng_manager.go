@@ -22,6 +22,7 @@ import (
 // nngManagerConfig holds configuration for NNGManager
 type nngManagerConfig struct {
 	AgentAddr          string
+	AgentIPCAddr       string
 	LocalListen        string
 	TimeoutSeconds     int
 	Insecure           bool
@@ -68,6 +69,7 @@ func NewNNGManager(config ClientConfig, handlers map[string]FunctionHandler) (Ma
 	n := &NNGManager{
 		config: nngManagerConfig{
 			AgentAddr:          config.AgentAddr,
+			AgentIPCAddr:       config.AgentIPCAddr,
 			LocalListen:        config.LocalListen,
 			TimeoutSeconds:     config.TimeoutSeconds,
 			Insecure:           config.Insecure,
@@ -111,9 +113,10 @@ func (n *NNGManager) Connect(ctx context.Context) error {
 
 	logInfof("Connecting to Croupier Agent: %s", n.config.AgentAddr)
 
-	// Create client connection to agent
+	// Create client connection to agent with IPC support
 	transportCfg := &transport.Config{
 		Address:     n.config.AgentAddr,
+		IPCAddress:  n.config.AgentIPCAddr,
 		Insecure:    n.config.Insecure,
 		CAFile:      n.config.CAFile,
 		CertFile:    n.config.CertFile,
