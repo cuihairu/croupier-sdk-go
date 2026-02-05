@@ -9,7 +9,7 @@ option csharp_namespace = "Croupier.Ops.V1";
 
 import "google/protobuf/timestamp.proto";
 
-// Ops message types for Agent â†’ Server operations communication.
+// Ops message types for Agent â†?Server operations communication.
 
 // MetricsReport contains system metrics from an agent.
 message MetricsReport {

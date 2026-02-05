@@ -21,7 +21,7 @@ message Menu {
   int32  order   = 4;  // Ordering weight (ascending)
   string icon    = 5;  // Icon id (frontend mapping)
   string badge   = 6;  // "beta" | "new" | custom
-  bool   hidden  = 7;  // true â†’ do not show in menu
+  bool   hidden  = 7;  // true â†?do not show in menu
 }
 
 // Role binding: which roles should be granted which verbs by default.
@@ -36,7 +36,7 @@ message PermissionSpec {
   repeated string verbs = 1;
   // Scopes supported for ABAC policies: e.g. game/env/function_id
   repeated string scopes = 2;
-  // Default role â†’ verbs bindings (suggested grants).
+  // Default role â†?verbs bindings (suggested grants).
   repeated RoleBinding defaults = 3;
   // Optional zh texts per verb. If absent, UI will fallback to templates.
   map<string, string> i18n_zh = 4;

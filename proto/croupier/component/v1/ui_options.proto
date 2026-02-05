@@ -7,19 +7,19 @@ import "google/protobuf/descriptor.proto";
 
 option go_package = "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/component/v1;componentv1";
 
-// 字段级 UI 元信息（可选）。插件未识别时仅用于 UI，协议不受影响。
+// 字段�?UI 元信息（可选）。插件未识别时仅用于 UI，协议不受影响�?
 message UIFieldOptions {
   // 组件：input/textarea/number/select/checkbox/radio/switch/date/time/json-editor/file
   string widget = 1;
   // 标签文本/i18n key
   string label = 2;
-  // 占位符
+  // 占位�?
   string placeholder = 3;
   // 敏感字段（审计脱敏）
   bool sensitive = 4;
   // 静态枚举：value→label
   map<string,string> enum_map = 5;
-  // 显隐/必填（表达式，CEL 语义，基于请求体字段）
+  // 显隐/必填（表达式，CEL 语义，基于请求体字段�?
   string show_if = 6;
   string required_if = 7;
 }

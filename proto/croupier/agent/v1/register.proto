@@ -71,7 +71,7 @@ message HeartbeatRequest {
 // Agent Heartbeat Response
 message HeartbeatResponse {}
 
-// Provider capabilities (manifest) â€” language-agnostic declaration
+// Provider capabilities (manifest) â€?language-agnostic declaration
 message ProviderMeta {
   string id = 1;
   string version = 2;
