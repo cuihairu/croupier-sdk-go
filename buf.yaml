@@ -1,5 +1,4 @@
-version: v1
+version: v2
 deps:
-  - buf.build/googleapis/googleapis
-directories:
-  - proto
+  - buf.build/protocolbuffers/wellknowntypes:v25.1
+

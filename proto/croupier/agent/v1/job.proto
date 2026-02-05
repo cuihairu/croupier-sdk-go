@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package croupier.sdk.v1;
-option java_package = "io.github.cuihairu.croupier.sdk.v1";
+package croupier.agent.v1;
+option java_package = "io.github.cuihairu.croupier.agent.v1";
 option java_multiple_files = true;
 
-option go_package = "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/sdk/v1;sdkv1";
+option go_package = "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/agent/v1;agentv1";
 
 // Function Descriptor - Complete definition for a function
 message FunctionDefinition {

@@ -10,7 +10,7 @@ option go_package = "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/sdk/v1
 message InvokeRequest {
   string function_id = 1;           // e.g. "player.ban"
   string idempotency_key = 2;       // client-supplied idempotency key
-  bytes payload = 3;                // serialized request (JSON/Proto), agreed by descriptor
+  bytes payload = 3;                // serialized request (JSON/Proto)
   map<string, string> metadata = 4; // optional k/v metadata
 }
 
@@ -40,20 +40,4 @@ message JobEvent {
 // SDK Job Cancellation Request
 message CancelJobRequest {
   string job_id = 1;
-}
-
-// SDK Invoker Service - Main interface for invoking functions
-// This is what SDK developers will use to call game functions
-service InvokerService {
-  // Synchronous function invocation
-  rpc Invoke(InvokeRequest) returns (InvokeResponse);
-
-  // Asynchronous job starting
-  rpc StartJob(InvokeRequest) returns (StartJobResponse);
-
-  // Stream job events for async operations
-  rpc StreamJob(JobStreamRequest) returns (stream JobEvent);
-
-  // Cancel a running job
-  rpc CancelJob(CancelJobRequest) returns (StartJobResponse);
 }

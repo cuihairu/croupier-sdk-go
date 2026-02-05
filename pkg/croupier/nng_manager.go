@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	localv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/agent/local/v1"
 	sdkv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/sdk/v1"
 	"google.golang.org/protobuf/proto"
 
@@ -185,7 +184,7 @@ func (n *NNGManager) RegisterWithAgent(ctx context.Context, serviceID, serviceVe
 	n.mu.Unlock()
 
 	// Build RegisterClientRequest
-	req := &localv1.RegisterLocalRequest{
+	req := &sdkv1.RegisterLocalRequest{
 		ServiceId: serviceID,
 		Version:   serviceVersion,
 		RpcAddr:   n.localAddr,
@@ -205,7 +204,7 @@ func (n *NNGManager) RegisterWithAgent(ctx context.Context, serviceID, serviceVe
 	}
 
 	// Parse response
-	resp := &localv1.RegisterLocalResponse{}
+	resp := &sdkv1.RegisterLocalResponse{}
 	if err := proto.Unmarshal(respBody, resp); err != nil {
 		return "", fmt.Errorf("unmarshal response: %w", err)
 	}
@@ -301,7 +300,7 @@ func (n *NNGManager) startHeartbeat() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				req := &localv1.HeartbeatRequest{
+				req := &sdkv1.HeartbeatRequest{
 					ServiceId: serviceID,
 					SessionId: sessionID,
 				}
@@ -402,10 +401,10 @@ func (h *rpcHandler) streamJob(ctx context.Context, reqID uint32, body []byte) (
 }
 
 // convertToProtoFunctions converts LocalFunctionDescriptor to protobuf
-func convertToProtoFunctions(funcs []LocalFunctionDescriptor) []*localv1.LocalFunctionDescriptor {
-	result := make([]*localv1.LocalFunctionDescriptor, len(funcs))
+func convertToProtoFunctions(funcs []LocalFunctionDescriptor) []*sdkv1.LocalFunctionDescriptor {
+	result := make([]*sdkv1.LocalFunctionDescriptor, len(funcs))
 	for i, f := range funcs {
-		result[i] = &localv1.LocalFunctionDescriptor{
+		result[i] = &sdkv1.LocalFunctionDescriptor{
 			Id:      f.ID,
 			Version: f.Version,
 		}
