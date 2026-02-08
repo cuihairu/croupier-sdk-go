@@ -37,9 +37,9 @@ type LocalFunctionDescriptor struct {
 	OutputSchema string `json:"output_schema"` // JSON Schema for response body validation
 
 	// OpenAPI 3.0.3 Extension fields (x-* prefix)
-	Category string `json:"category"` // x-category: function category (e.g., "game", "system", "player", "monitoring")
-	Risk     string `json:"risk"`     // x-risk: risk level ("safe", "warning", "danger")
-	Entity   string `json:"entity"`   // x-entity: associated entity type (e.g., "Player", "Item", "Guild")
+	Category  string `json:"category"`  // x-category: function category (e.g., "game", "system", "player", "monitoring")
+	Risk      string `json:"risk"`      // x-risk: risk level ("safe", "warning", "danger")
+	Entity    string `json:"entity"`    // x-entity: associated entity type (e.g., "Player", "Item", "Guild")
 	Operation string `json:"operation"` // x-operation: CRUD operation type ("create", "read", "update", "delete", "custom")
 }
 

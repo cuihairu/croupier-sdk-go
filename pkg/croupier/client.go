@@ -252,16 +252,16 @@ func (c *client) convertToLocalFunctions() []LocalFunctionDescriptor {
 
 		// Convert FunctionDescriptor to LocalFunctionDescriptor with OpenAPI 3.0.3 fields
 		localDesc := LocalFunctionDescriptor{
-			ID:       funcID,
-			Version:  version,
-			Category: desc.Category,
-			Risk:     desc.Risk,
-			Entity:   desc.Entity,
+			ID:        funcID,
+			Version:   version,
+			Category:  desc.Category,
+			Risk:      desc.Risk,
+			Entity:    desc.Entity,
 			Operation: desc.Operation,
 			// Generate basic JSON Schemas (can be overridden by users via custom descriptors)
-			Tags:        []string{desc.Category},
-			Summary:     funcID,
-			Description: fmt.Sprintf("Function: %s", funcID),
+			Tags:         []string{desc.Category},
+			Summary:      funcID,
+			Description:  fmt.Sprintf("Function: %s", funcID),
 			InputSchema:  generateBasicInputSchema(),
 			OutputSchema: generateBasicOutputSchema(),
 		}

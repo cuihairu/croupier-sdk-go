@@ -20,10 +20,10 @@ import (
 // httpInvoker implements Invoker interface using HTTP REST API
 // Note: Async job operations (StartJob, StreamJob, CancelJob) are not fully supported
 type httpInvoker struct {
-	config      *InvokerConfig
-	httpClient  *http.Client
-	baseURL     *url.URL
-	mu          sync.RWMutex
+	config     *InvokerConfig
+	httpClient *http.Client
+	baseURL    *url.URL
+	mu         sync.RWMutex
 
 	// Function schemas for validation
 	schemas map[string]map[string]interface{}
