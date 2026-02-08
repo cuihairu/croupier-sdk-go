@@ -2,3 +2,8 @@ version: v2
 deps:
   - buf.build/protocolbuffers/wellknowntypes:v25.1
 
+# Specify where to find proto files
+modules:
+  - path: proto/croupier
+    name: buf.build/cuihairu/croupier
+

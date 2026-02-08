@@ -405,8 +405,19 @@ func convertToProtoFunctions(funcs []LocalFunctionDescriptor) []*sdkv1.LocalFunc
 	result := make([]*sdkv1.LocalFunctionDescriptor, len(funcs))
 	for i, f := range funcs {
 		result[i] = &sdkv1.LocalFunctionDescriptor{
-			Id:      f.ID,
-			Version: f.Version,
+			Id:           f.ID,
+			Version:      f.Version,
+			Tags:         f.Tags,
+			Summary:      f.Summary,
+			Description:  f.Description,
+			OperationId:  f.OperationID,
+			Deprecated:   f.Deprecated,
+			InputSchema:  f.InputSchema,
+			OutputSchema: f.OutputSchema,
+			Category:     f.Category,
+			Risk:         f.Risk,
+			Entity:       f.Entity,
+			Operation:    f.Operation,
 		}
 	}
 	return result
