@@ -3,16 +3,15 @@ module github.com/cuihairu/croupier/sdks/go
 go 1.25.6
 
 require (
-	// NNG/mangos for transport layer
-	go.nanomsg.org/mangos/v3 v3.4.2
-
-	// Protobuf for message serialization
-	google.golang.org/protobuf v1.36.11
-
 	// Testing
 	github.com/stretchr/testify v1.11.1
 	github.com/xeipuuv/gojsonschema v1.2.0
+	// NNG/mangos for transport layer
+	go.nanomsg.org/mangos/v3 v3.4.2
 	google.golang.org/grpc v1.78.0
+
+	// Protobuf for message serialization
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
