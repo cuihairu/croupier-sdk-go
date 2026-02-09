@@ -249,10 +249,44 @@ func (c *client) convertToLocalFunctions() []LocalFunctionDescriptor {
 		if version == "" {
 			version = "1.0.0"
 		}
-		localFuncs = append(localFuncs, LocalFunctionDescriptor{
-			ID:      funcID,
-			Version: version,
-		})
+
+		// Convert FunctionDescriptor to LocalFunctionDescriptor with OpenAPI 3.0.3 fields
+		localDesc := LocalFunctionDescriptor{
+			ID:        funcID,
+			Version:   version,
+			Category:  desc.Category,
+			Risk:      desc.Risk,
+			Entity:    desc.Entity,
+			Operation: desc.Operation,
+			// Generate basic JSON Schemas (can be overridden by users via custom descriptors)
+			Tags:         []string{desc.Category},
+			Summary:      funcID,
+			Description:  fmt.Sprintf("Function: %s", funcID),
+			InputSchema:  generateBasicInputSchema(),
+			OutputSchema: generateBasicOutputSchema(),
+		}
+
+		localFuncs = append(localFuncs, localDesc)
 	}
 	return localFuncs
+}
+
+// generateBasicInputSchema creates a basic JSON Schema for request validation
+func generateBasicInputSchema() string {
+	return `{
+		"type": "object",
+		"properties": {
+			"data": {"type": "string"}
+		}
+	}`
+}
+
+// generateBasicOutputSchema creates a basic JSON Schema for response validation
+func generateBasicOutputSchema() string {
+	return `{
+		"type": "object",
+		"properties": {
+			"result": {"type": "string"}
+		}
+	}`
 }

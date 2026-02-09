@@ -18,10 +18,29 @@ type FunctionDescriptor struct {
 }
 
 // LocalFunctionDescriptor defines a local function descriptor for SDK->Agent registration
-// Aligned with agent/local/v1/local.proto
+// Aligned with OpenAPI 3.0.3 Operation Object specification
+// See: proto/croupier/sdk/v1/provider.proto
 type LocalFunctionDescriptor struct {
-	ID      string `json:"id"`      // function id
-	Version string `json:"version"` // function version
+	// Core identity fields
+	ID      string `json:"id"`      // Unique function identifier (e.g., "player.ban")
+	Version string `json:"version"` // Function version (semver, e.g., "1.0.0")
+
+	// OpenAPI 3.0.3 Operation Object fields
+	Tags        []string `json:"tags"`         // Tags for grouping operations
+	Summary     string   `json:"summary"`      // Short summary (1-2 sentences)
+	Description string   `json:"description"`  // Detailed description (supports markdown)
+	OperationID string   `json:"operation_id"` // Unique operation ID for OpenAPI docs
+	Deprecated  bool     `json:"deprecated"`   // Whether this function is deprecated
+
+	// OpenAPI 3.0.3 Schema fields (JSON Schema format)
+	InputSchema  string `json:"input_schema"`  // JSON Schema for request body validation
+	OutputSchema string `json:"output_schema"` // JSON Schema for response body validation
+
+	// OpenAPI 3.0.3 Extension fields (x-* prefix)
+	Category  string `json:"category"`  // x-category: function category (e.g., "game", "system", "player", "monitoring")
+	Risk      string `json:"risk"`      // x-risk: risk level ("safe", "warning", "danger")
+	Entity    string `json:"entity"`    // x-entity: associated entity type (e.g., "Player", "Item", "Guild")
+	Operation string `json:"operation"` // x-operation: CRUD operation type ("create", "read", "update", "delete", "custom")
 }
 
 // FunctionHandler defines the signature for game function handlers
