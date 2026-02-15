@@ -28,8 +28,8 @@ go.work
 /bin/
 /build/
 
-# Protobuf generated files
-*.pb.go
+# Protobuf generated files (commented out - pb.go files are needed for SDK)
+# *.pb.go
 
 # Buf configuration files (generated dynamically)
 proto/buf.yaml
