@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package croupier.external.v1;
 
-option go_package = "github.com/cuihairu/croupier/pkg/pb/croupier/external/v1;externalv1";
+option go_package = "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/external/v1;externalv1";
 option java_package = "io.github.cuihairu.croupier.external.v1";
 option java_multiple_files = true;
 option csharp_namespace = "Croupier.External.V1";
