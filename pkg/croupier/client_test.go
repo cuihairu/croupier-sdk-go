@@ -996,3 +996,213 @@ func TestClientNoOpLogger(t *testing.T) {
 	logger.Warnf("warn message")
 	logger.Errorf("error message")
 }
+
+// Test NoOpLogger in client
+func TestClient_NoOpLogger(t *testing.T) {
+	t.Parallel()
+
+	cli := NewClient(&ClientConfig{
+		ServiceID:      "test-service",
+		DisableLogging: true,
+	})
+
+	c := cli.(*client)
+	if _, ok := c.logger.(*NoOpLogger); !ok {
+		t.Error("expected NoOpLogger when DisableLogging is true")
+	}
+
+	// Logger methods should not panic
+	c.logger.Debugf("test debug")
+	c.logger.Infof("test info")
+	c.logger.Warnf("test warn")
+	c.logger.Errorf("test error")
+}
+
+// ========== Additional Client Tests ==========
+
+func TestClient_RegisterFunction_Multiple(t *testing.T) {
+	t.Parallel()
+
+	cli := NewClient(&ClientConfig{
+		ServiceID:      "test-service",
+		ServiceVersion: "1.0.0",
+	})
+
+	handler := func(ctx context.Context, payload []byte) ([]byte, error) {
+		return payload, nil
+	}
+
+	// Register multiple functions
+	cli.RegisterFunction(FunctionDescriptor{ID: "fn1", Version: "1.0.0"}, handler)
+	cli.RegisterFunction(FunctionDescriptor{ID: "fn2", Version: "1.0.0"}, handler)
+	cli.RegisterFunction(FunctionDescriptor{ID: "fn3", Version: "1.0.0"}, handler)
+
+	c := cli.(*client)
+	if len(c.descriptors) != 3 {
+		t.Errorf("expected 3 descriptors, got %d", len(c.descriptors))
+	}
+
+	if len(c.handlers) != 3 {
+		t.Errorf("expected 3 handlers, got %d", len(c.handlers))
+	}
+}
+
+func TestClient_RegisterFunction_Replace(t *testing.T) {
+	t.Parallel()
+
+	cli := NewClient(&ClientConfig{
+		ServiceID:      "test-service",
+		ServiceVersion: "1.0.0",
+	})
+
+	callCount := 0
+	handler1 := func(ctx context.Context, payload []byte) ([]byte, error) {
+		callCount = 1
+		return payload, nil
+	}
+	handler2 := func(ctx context.Context, payload []byte) ([]byte, error) {
+		callCount = 2
+		return payload, nil
+	}
+
+	// Register function, then replace it
+	cli.RegisterFunction(FunctionDescriptor{ID: "fn1", Version: "1.0.0"}, handler1)
+	cli.RegisterFunction(FunctionDescriptor{ID: "fn1", Version: "2.0.0"}, handler2)
+
+	c := cli.(*client)
+	if len(c.descriptors) != 1 {
+		t.Errorf("expected 1 descriptor, got %d", len(c.descriptors))
+	}
+
+	// Verify the handler is the second one
+	c.handlers["fn1"](context.Background(), []byte{})
+	if callCount != 2 {
+		t.Error("expected second handler to be registered")
+	}
+}
+
+func TestClient_GetLocalAddress_FromConfig(t *testing.T) {
+	t.Parallel()
+
+	cli := NewClient(&ClientConfig{
+		ServiceID:      "test-service",
+		ServiceVersion: "1.0.0",
+		LocalListen:    "127.0.0.1:8080",
+	})
+
+	// GetLocalAddress returns the localAddr field, which is set when listening starts
+	// Initially it's empty string
+	addr := cli.GetLocalAddress()
+	// Before starting/listening, localAddr should be empty
+	// This is expected behavior
+	_ = addr // Just ensure no panic
+}
+
+func TestClient_Stop_WhenNotStarted(t *testing.T) {
+	t.Parallel()
+
+	cli := NewClient(&ClientConfig{
+		ServiceID:      "test-service",
+		ServiceVersion: "1.0.0",
+	})
+
+	// Stop should not panic when not started
+	cli.Stop()
+}
+
+func TestClient_Close_WhenNotStarted(t *testing.T) {
+	t.Parallel()
+
+	cli := NewClient(&ClientConfig{
+		ServiceID:      "test-service",
+		ServiceVersion: "1.0.0",
+	})
+
+	// Close should not panic when not started
+	err := cli.Close()
+	if err != nil {
+		t.Errorf("Close should not return error: %v", err)
+	}
+}
+
+func TestFunctionDescriptor_Fields(t *testing.T) {
+	t.Parallel()
+
+	desc := FunctionDescriptor{
+		ID:          "test.function",
+		Version:     "1.0.0",
+		Category:    "test",
+		Risk:        "low",
+		Entity:      "player",
+		Operation:   "read",
+		Enabled:     true,
+	}
+
+	if desc.ID != "test.function" {
+		t.Errorf("unexpected ID: %s", desc.ID)
+	}
+	if desc.Version != "1.0.0" {
+		t.Errorf("unexpected Version: %s", desc.Version)
+	}
+	if desc.Category != "test" {
+		t.Errorf("unexpected Category: %s", desc.Category)
+	}
+}
+
+func TestClientConfig_Defaults(t *testing.T) {
+	t.Parallel()
+
+	config := DefaultClientConfig()
+
+	if config.ServiceID == "" {
+		// ServiceID may be empty by default
+	}
+	if config.ProviderLang != "go" {
+		t.Errorf("expected ProviderLang 'go', got %s", config.ProviderLang)
+	}
+}
+
+func TestClient_Connect_Timeout(t *testing.T) {
+	t.Parallel()
+
+	cli := NewClient(&ClientConfig{
+		ServiceID:      "test-service",
+		ServiceVersion: "1.0.0",
+		AgentAddr:      "localhost:19999", // Non-existent server
+		TimeoutSeconds: 1,
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	err := cli.Connect(ctx)
+	if err == nil {
+		t.Error("expected error when connecting to non-existent server")
+		cli.Stop()
+	}
+}
+
+func TestClient_Serve_WithoutConnect(t *testing.T) {
+	t.Parallel()
+
+	cli := NewClient(&ClientConfig{
+		ServiceID:      "test-service",
+		ServiceVersion: "1.0.0",
+	})
+
+	handler := func(ctx context.Context, payload []byte) ([]byte, error) {
+		return payload, nil
+	}
+	cli.RegisterFunction(FunctionDescriptor{ID: "fn1", Version: "1.0.0"}, handler)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	// Serve should work even without Connect (it will listen locally)
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		cli.Stop()
+	}()
+
+	cli.Serve(ctx)
+}

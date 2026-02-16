@@ -225,3 +225,175 @@ func TestRegistryMustRegister(t *testing.T) {
 		reg.MustRegister(MsgInvokeRequest, factory)
 	})
 }
+
+func TestDebugStringWithBody(t *testing.T) {
+	t.Run("with nil message", func(t *testing.T) {
+		str := DebugStringWithBody(nil, nil)
+		assert.Equal(t, "<nil>", str)
+	})
+
+	t.Run("with valid message and body", func(t *testing.T) {
+		body := &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "test"}}
+		msg, err := NewRequestMessage(MsgInvokeRequest, 12345, body)
+		assert.NoError(t, err)
+		defer msg.Free()
+
+		str := DebugStringWithBody(msg, body)
+		assert.Contains(t, str, "Ver=1")
+		assert.Contains(t, str, "InvokeRequest")
+	})
+
+	t.Run("with valid message but nil body", func(t *testing.T) {
+		body := &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "test"}}
+		msg, err := NewRequestMessage(MsgInvokeRequest, 12345, body)
+		assert.NoError(t, err)
+		defer msg.Free()
+
+		str := DebugStringWithBody(msg, nil)
+		assert.Contains(t, str, "Ver=1")
+		// Should show hex dump of body
+	})
+}
+
+func TestFormatHeader(t *testing.T) {
+	t.Run("with valid header", func(t *testing.T) {
+		body := &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "test"}}
+		msg, err := NewRequestMessage(MsgInvokeRequest, 12345, body)
+		assert.NoError(t, err)
+		defer msg.Free()
+
+		str := FormatHeader(msg.Header)
+		assert.Contains(t, str, "Ver=1")
+		assert.Contains(t, str, "InvokeRequest")
+		assert.Contains(t, str, "ReqID=12345")
+	})
+
+	t.Run("with short header", func(t *testing.T) {
+		shortHeader := make([]byte, 4)
+		str := FormatHeader(shortHeader)
+		assert.Contains(t, str, "invalid header")
+	})
+}
+
+func TestParseMessageInfo(t *testing.T) {
+	t.Run("with valid message", func(t *testing.T) {
+		body := &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "test"}}
+		msg, err := NewRequestMessage(MsgInvokeRequest, 12345, body)
+		assert.NoError(t, err)
+		defer msg.Free()
+
+		info, err := ParseMessageInfo(msg)
+		assert.NoError(t, err)
+		assert.NotNil(t, info)
+		assert.Equal(t, uint8(Version1), info.Version)
+		assert.Equal(t, uint32(MsgInvokeRequest), info.MsgID)
+		assert.Equal(t, uint32(12345), info.ReqID)
+		assert.True(t, info.IsReq)
+		assert.False(t, info.IsResp)
+	})
+
+	t.Run("with invalid message", func(t *testing.T) {
+		msg := mangos.NewMessage(0)
+		msg.Header = make([]byte, 4) // Too short
+
+		_, err := ParseMessageInfo(msg)
+		assert.Error(t, err)
+		msg.Free()
+	})
+}
+
+func TestMessageInfoString(t *testing.T) {
+	info := &MessageInfo{
+		Version: 1,
+		MsgID:   MsgInvokeRequest,
+		ReqID:   12345,
+		BodyLen: 100,
+		IsReq:   true,
+		IsResp:  false,
+	}
+
+	str := info.String()
+	assert.Contains(t, str, "Ver=1")
+	assert.Contains(t, str, "InvokeRequest")
+	assert.Contains(t, str, "ReqID=12345")
+	assert.Contains(t, str, "BodyLen=100")
+	assert.Contains(t, str, "IsReq=true")
+	assert.Contains(t, str, "IsResp=false")
+}
+
+func TestRegistryRegisterBatch(t *testing.T) {
+	reg := NewRegistry()
+
+	factories := map[uint32]func() proto.Message{
+		MsgInvokeRequest: func() proto.Message { return &structpb.Value{} },
+		MsgInvokeResponse: func() proto.Message { return &structpb.Value{} },
+	}
+
+	reg.RegisterBatch(factories)
+
+	// Verify registration
+	_, err := reg.Create(MsgInvokeRequest)
+	assert.NoError(t, err)
+
+	_, err = reg.Create(MsgInvokeResponse)
+	assert.NoError(t, err)
+}
+
+func TestParseMessageFromBody(t *testing.T) {
+	t.Run("with valid body", func(t *testing.T) {
+		// Create a complete message body (header + data)
+		data := []byte("test data")
+		fullBody := NewMessageBody(MsgInvokeRequest, 12345, data)
+
+		version, msgID, reqID, bodyBytes, err := ParseMessageFromBody(fullBody)
+		assert.NoError(t, err)
+		assert.Equal(t, uint8(Version1), version)
+		assert.Equal(t, uint32(MsgInvokeRequest), msgID)
+		assert.Equal(t, uint32(12345), reqID)
+		assert.NotNil(t, bodyBytes)
+	})
+
+	t.Run("with empty body", func(t *testing.T) {
+		_, _, _, _, err := ParseMessageFromBody([]byte{})
+		assert.Error(t, err)
+	})
+
+	t.Run("with short body", func(t *testing.T) {
+		_, _, _, _, err := ParseMessageFromBody([]byte{1, 2, 3})
+		assert.Error(t, err)
+	})
+}
+
+func TestNewStreamMessage(t *testing.T) {
+	body := &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "event"}}
+
+	msg, err := NewStreamMessage(MsgJobEvent, 12345, body)
+	assert.NoError(t, err)
+	assert.NotNil(t, msg)
+	assert.NotNil(t, msg.Header)
+	assert.NotNil(t, msg.Body)
+	assert.Equal(t, HeaderSize, len(msg.Header))
+
+	// Verify header
+	assert.Equal(t, byte(Version1), msg.Header[0])
+	assert.Equal(t, uint32(MsgJobEvent), GetMsgID(msg.Header[1:4]))
+	assert.Equal(t, uint32(12345), binary.BigEndian.Uint32(msg.Header[4:8]))
+
+	msg.Free()
+}
+
+func TestNewMessageBody(t *testing.T) {
+	t.Run("with data", func(t *testing.T) {
+		data := []byte("test data")
+		bodyBytes := NewMessageBody(MsgInvokeRequest, 12345, data)
+		assert.NotNil(t, bodyBytes)
+		assert.True(t, len(bodyBytes) >= HeaderSize)
+		assert.Equal(t, uint8(Version1), bodyBytes[0])
+	})
+
+	t.Run("with empty data", func(t *testing.T) {
+		bodyBytes := NewMessageBody(MsgInvokeRequest, 12345, []byte{})
+		assert.NotNil(t, bodyBytes)
+		assert.Equal(t, HeaderSize, len(bodyBytes))
+	})
+}

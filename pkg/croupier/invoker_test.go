@@ -583,3 +583,377 @@ func TestInvoker_ConfigDefaults(t *testing.T) {
 		t.Errorf("expected DefaultTimeout 30s, got %v", i.config.DefaultTimeout)
 	}
 }
+
+// ========== Additional Invoker Tests ==========
+
+func TestInvoker_SetSchema_Multiple(t *testing.T) {
+	t.Parallel()
+
+	invoker := NewInvoker(&InvokerConfig{
+		Address:  "localhost:19090",
+		Insecure: true,
+	})
+
+	// SetSchema should work even when not connected
+	schema := map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"name": map[string]string{"type": "string"},
+		},
+	}
+	invoker.SetSchema("test.function", schema)
+
+	// Verify schema was set
+	impl := invoker.(*nngInvoker)
+	if impl.schemas["test.function"] == nil {
+		t.Error("schema was not set")
+	}
+}
+
+func TestInvoker_CheckConnectionState(t *testing.T) {
+	t.Parallel()
+
+	invoker := NewInvoker(&InvokerConfig{
+		Address:  "localhost:19090",
+		Insecure: true,
+	})
+
+	impl := invoker.(*nngInvoker)
+	// Should not be connected initially
+	if impl.connected {
+		t.Error("should not be connected initially")
+	}
+}
+
+func TestInvoker_ConfigAddress(t *testing.T) {
+	t.Parallel()
+
+	config := &InvokerConfig{
+		Address:  "localhost:19999",
+		Insecure: true,
+	}
+	invoker := NewInvoker(config)
+
+	impl := invoker.(*nngInvoker)
+	if impl.config.Address != "localhost:19999" {
+		t.Errorf("expected address localhost:19999, got %s", impl.config.Address)
+	}
+}
+
+func TestInvokerConfigDefaults(t *testing.T) {
+	t.Parallel()
+
+	// Create invoker with nil config to test defaults
+	invoker := NewInvoker(nil)
+	impl := invoker.(*nngInvoker)
+
+	if impl.config.Address != "localhost:19090" {
+		t.Errorf("expected default address, got %s", impl.config.Address)
+	}
+
+	if !impl.config.Insecure {
+		t.Error("expected Insecure to be true by default")
+	}
+
+	if impl.config.TimeoutSeconds != 30 {
+		t.Errorf("expected TimeoutSeconds 30, got %d", impl.config.TimeoutSeconds)
+	}
+}
+
+func TestInvoker_Close_WhenNotConnected(t *testing.T) {
+	t.Parallel()
+
+	invoker := NewInvoker(&InvokerConfig{
+		Address:  "localhost:19090",
+		Insecure: true,
+	})
+
+	// Close should not panic when not connected
+	err := invoker.Close()
+	if err != nil {
+		t.Errorf("Close should not return error when not connected: %v", err)
+	}
+}
+
+func TestInvoker_Invoke_WhenNotConnected(t *testing.T) {
+	t.Parallel()
+
+	invoker := NewInvoker(&InvokerConfig{
+		Address:  "localhost:19090",
+		Insecure: true,
+	})
+
+	// Invoke should try to connect and fail
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	_, err := invoker.Invoke(ctx, "test.function", "{}", InvokeOptions{})
+	if err == nil {
+		t.Error("expected error when invoking without server")
+	}
+}
+
+func TestInvoker_StartJob_WhenNotConnected(t *testing.T) {
+	t.Parallel()
+
+	invoker := NewInvoker(&InvokerConfig{
+		Address:  "localhost:19090",
+		Insecure: true,
+	})
+
+	// StartJob should try to connect and fail
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	_, err := invoker.StartJob(ctx, "test.function", "{}", InvokeOptions{})
+	if err == nil {
+		t.Error("expected error when starting job without server")
+	}
+}
+
+func TestInvoker_CancelJob_WhenNotConnected(t *testing.T) {
+	t.Parallel()
+
+	invoker := NewInvoker(&InvokerConfig{
+		Address:  "localhost:19090",
+		Insecure: true,
+	})
+
+	// CancelJob should try to connect and fail
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	err := invoker.CancelJob(ctx, "job-id")
+	if err == nil {
+		t.Error("expected error when canceling job without server")
+	}
+}
+
+func TestInvoker_Connect_ContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	invoker := NewInvoker(&InvokerConfig{
+		Address:  "localhost:19090",
+		Insecure: true,
+	})
+
+	// Create a context that's already cancelled
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := invoker.Connect(ctx)
+	if err == nil {
+		t.Error("expected error with cancelled context")
+	}
+}
+
+// ========== RetryConfig Tests ==========
+
+func TestRetryConfigDefaults(t *testing.T) {
+	t.Parallel()
+
+	config := DefaultRetryConfig()
+
+	if !config.Enabled {
+		t.Error("expected Enabled to be true")
+	}
+
+	if config.MaxAttempts != 3 {
+		t.Errorf("expected MaxAttempts 3, got %d", config.MaxAttempts)
+	}
+
+	if config.InitialDelayMs != 100 {
+		t.Errorf("expected InitialDelayMs 100, got %d", config.InitialDelayMs)
+	}
+}
+
+// ========== ReconnectConfig Tests ==========
+
+func TestReconnectConfigDefaults(t *testing.T) {
+	t.Parallel()
+
+	config := DefaultReconnectConfig()
+
+	if !config.Enabled {
+		t.Error("expected Enabled to be true")
+	}
+
+	if config.MaxAttempts != 0 {
+		t.Errorf("expected MaxAttempts 0 (infinite), got %d", config.MaxAttempts)
+	}
+
+	if config.InitialDelayMs != 1000 {
+		t.Errorf("expected InitialDelayMs 1000, got %d", config.InitialDelayMs)
+	}
+}
+
+// ========== InvokeOptions Tests ==========
+
+func TestInvokeOptionsDefaults(t *testing.T) {
+	t.Parallel()
+
+	opts := InvokeOptions{}
+
+	// InvokeOptions is a struct, check zero values
+	if opts.Timeout != 0 {
+		t.Errorf("expected default Timeout 0, got %v", opts.Timeout)
+	}
+}
+
+// ========== nngInvoker Internal Tests ==========
+
+func TestNNGInvoker_ValidatePayload_EdgeCases(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(&InvokerConfig{
+		Address:  "127.0.0.1:19090",
+		Insecure: true,
+	}).(*nngInvoker)
+
+	t.Run("empty payload with non-empty schema", func(t *testing.T) {
+		schema := map[string]interface{}{
+			"type": "object",
+		}
+		err := i.validatePayload("", schema)
+		if err == nil {
+			t.Error("expected error for empty payload")
+		}
+	})
+
+	t.Run("valid JSON with empty schema", func(t *testing.T) {
+		schema := map[string]interface{}{}
+		err := i.validatePayload(`{}`, schema)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("complex nested schema", func(t *testing.T) {
+		schema := map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"user": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"name": map[string]interface{}{"type": "string"},
+						"age":  map[string]interface{}{"type": "integer"},
+					},
+					"required": []interface{}{"name"},
+				},
+			},
+		}
+
+		// Valid payload
+		err := i.validatePayload(`{"user":{"name":"John","age":30}}`, schema)
+		if err != nil {
+			t.Errorf("unexpected error for valid payload: %v", err)
+		}
+
+		// Invalid - missing nested required field
+		err = i.validatePayload(`{"user":{"age":30}}`, schema)
+		if err == nil {
+			t.Error("expected error for missing required nested field")
+		}
+	})
+}
+
+func TestNNGInvoker_ScheduleReconnect_MaxAttempts(t *testing.T) {
+	t.Parallel()
+
+	config := &InvokerConfig{
+		Address: "127.0.0.1:19090",
+		Reconnect: &ReconnectConfig{
+			Enabled:        true,
+			MaxAttempts:    1, // Only 1 attempt
+			InitialDelayMs: 10,
+		},
+	}
+
+	i := NewInvoker(config).(*nngInvoker)
+
+	// First reconnect should be scheduled
+	i.scheduleReconnectIfNeeded()
+
+	// Clean up immediately
+	if i.reconnectCancelCtx != nil {
+		i.reconnectCancelCtx()
+	}
+}
+
+func TestNNGInvoker_CalculateReconnectDelay_EdgeCases(t *testing.T) {
+	t.Parallel()
+
+	t.Run("zero backoff multiplier", func(t *testing.T) {
+		config := &InvokerConfig{
+			Reconnect: &ReconnectConfig{
+				Enabled:           true,
+				InitialDelayMs:    1000,
+				MaxDelayMs:        30000,
+				BackoffMultiplier: 0, // Zero multiplier
+				JitterFactor:      0,
+			},
+		}
+		i := NewInvoker(config).(*nngInvoker)
+
+		delay := i.calculateReconnectDelay(5)
+		// With zero multiplier, delay should be capped at max
+		if delay > 30*time.Second {
+			t.Errorf("delay should be capped at max: %v", delay)
+		}
+	})
+
+	t.Run("very high attempt number", func(t *testing.T) {
+		config := &InvokerConfig{
+			Reconnect: &ReconnectConfig{
+				Enabled:           true,
+				InitialDelayMs:    1000,
+				MaxDelayMs:        5000, // Low max
+				BackoffMultiplier: 2.0,
+				JitterFactor:      0,
+			},
+		}
+		i := NewInvoker(config).(*nngInvoker)
+
+		delay := i.calculateReconnectDelay(100)
+		// Should be capped at max
+		if delay > 5*time.Second {
+			t.Errorf("delay should be capped at max 5s: %v", delay)
+		}
+	})
+}
+
+func TestNNGInvoker_CalculateRetryDelay_EdgeCases(t *testing.T) {
+	t.Parallel()
+
+	t.Run("zero backoff multiplier", func(t *testing.T) {
+		config := &RetryConfig{
+			Enabled:           true,
+			InitialDelayMs:    100,
+			MaxDelayMs:        5000,
+			BackoffMultiplier: 0,
+			JitterFactor:      0,
+		}
+		i := NewInvoker(&InvokerConfig{Retry: config}).(*nngInvoker)
+
+		delay := i.calculateRetryDelay(5, config)
+		if delay < 0 {
+			t.Errorf("delay should not be negative: %v", delay)
+		}
+	})
+
+	t.Run("very high attempt number", func(t *testing.T) {
+		config := &RetryConfig{
+			Enabled:           true,
+			InitialDelayMs:    100,
+			MaxDelayMs:        1000, // Low max
+			BackoffMultiplier: 2.0,
+			JitterFactor:      0,
+		}
+		i := NewInvoker(&InvokerConfig{Retry: config}).(*nngInvoker)
+
+		delay := i.calculateRetryDelay(100, config)
+		if delay > 1*time.Second {
+			t.Errorf("delay should be capped at max 1s: %v", delay)
+		}
+	})
+}
