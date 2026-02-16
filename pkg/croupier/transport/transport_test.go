@@ -489,13 +489,7 @@ func TestIntegration_OurClient_OurServer(t *testing.T) {
 }
 
 // TestIntegration_MultipleRequests 测试多个连续请求
-// Note: This test is skipped when race detector is enabled due to a known race condition
-// in the mangos library (go.nanomsg.org/mangos/v3) that is outside our control.
 func TestIntegration_MultipleRequests(t *testing.T) {
-	// Skip if race detector is enabled - mangos has internal race conditions
-	if isRaceEnabled() {
-		t.Skip("Skipping due to race condition in mangos library")
-	}
 	handler := &echoHandler{}
 
 	serverCfg := &Config{

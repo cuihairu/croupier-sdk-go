@@ -138,6 +138,10 @@ func (c *Client) Call(ctx context.Context, msgID uint32, reqBody []byte) (respMs
 	select {
 	case resp := <-respCh:
 		_, respMsgID, respReqID, respData, err := protocol.ParseMessageFromBody(resp.Body)
+		// Copy the data before freeing the message to avoid race condition
+		// (respData is a slice of resp.Body, which will be reused after Free())
+		dataCopy := make([]byte, len(respData))
+		copy(dataCopy, respData)
 		resp.Free()
 		if err != nil {
 			return 0, nil, fmt.Errorf("parse response: %w", err)
@@ -145,7 +149,7 @@ func (c *Client) Call(ctx context.Context, msgID uint32, reqBody []byte) (respMs
 		if respReqID != reqID {
 			return 0, nil, fmt.Errorf("request ID mismatch: expected %d, got %d", reqID, respReqID)
 		}
-		return respMsgID, respData, nil
+		return respMsgID, dataCopy, nil
 	case <-ctx.Done():
 		return 0, nil, ctx.Err()
 	case <-c.closing:
