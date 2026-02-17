@@ -3,6 +3,8 @@ package croupier
 
 import (
 	"context"
+	"crypto/rand"
+	"fmt"
 	"time"
 )
 
@@ -83,9 +85,17 @@ type ClientConfig struct {
 	DebugLogging   bool `json:"debug_logging"`   // Enable debug logging
 }
 
+// generateUUID generates a random UUID-like string using crypto/rand
+func generateUUID() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+}
+
 // DefaultClientConfig returns a default client configuration
 func DefaultClientConfig() *ClientConfig {
 	return &ClientConfig{
+		ServiceID:      fmt.Sprintf("go-sdk-%s", generateUUID()),
 		AgentAddr:      "localhost:19090",
 		Env:            "development",
 		ServiceVersion: "1.0.0",

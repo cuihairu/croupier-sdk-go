@@ -957,3 +957,72 @@ func TestNNGInvoker_CalculateRetryDelay_EdgeCases(t *testing.T) {
 		}
 	})
 }
+
+func TestNNGInvoker_IsConnectionError(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(nil).(*nngInvoker)
+
+	tests := []struct {
+		name string
+		err  error
+	}{
+		{"nil error", nil},
+		{"context canceled", context.Canceled},
+		{"context deadline exceeded", context.DeadlineExceeded},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Just verify no panic
+			_ = i.isConnectionError(tt.err)
+		})
+	}
+}
+
+func TestNNGInvoker_IsRetryableError(t *testing.T) {
+	t.Parallel()
+
+	i := NewInvoker(nil).(*nngInvoker)
+
+	// Test with nil error
+	if i.isRetryableError(nil) {
+		t.Error("nil error should not be retryable")
+	}
+}
+
+func TestNNGInvoker_ScheduleReconnectIfDisabled(t *testing.T) {
+	t.Parallel()
+
+	config := &InvokerConfig{
+		Address: "127.0.0.1:19090",
+		Reconnect: &ReconnectConfig{
+			Enabled: false,
+		},
+	}
+
+	i := NewInvoker(config).(*nngInvoker)
+
+	// Should not panic when reconnect is disabled
+	i.scheduleReconnectIfNeeded()
+}
+
+func TestNNGInvoker_CalculateDelay_FirstAttempt(t *testing.T) {
+	t.Parallel()
+
+	config := &InvokerConfig{
+		Reconnect: &ReconnectConfig{
+			Enabled:        true,
+			InitialDelayMs: 1000,
+			MaxDelayMs:     30000,
+			JitterFactor:   0,
+		},
+	}
+	i := NewInvoker(config).(*nngInvoker)
+
+	// First attempt should return initial delay
+	delay := i.calculateReconnectDelay(1)
+	if delay < time.Millisecond || delay > 2*time.Second {
+		t.Errorf("unexpected delay for first attempt: %v", delay)
+	}
+}

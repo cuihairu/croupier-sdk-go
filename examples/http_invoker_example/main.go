@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Croupier Go SDK - HTTP Invoker Example ===\n")
+	fmt.Println("=== Croupier Go SDK - HTTP Invoker Example ===")
 
 	// Create HTTP invoker configuration
 	invokerConfig := &croupier.InvokerConfig{
