@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"sync/atomic"
 )
 
 // Client represents a Croupier client for function registration and execution
@@ -65,9 +66,9 @@ type client struct {
 	sessionID string
 	localAddr string
 
-	// State management
-	connected bool
-	running   bool
+	// State management (using atomic.Bool for concurrent access)
+	connected atomic.Bool
+	running   atomic.Bool
 	stopCh    chan struct{}
 
 	// Logging
@@ -102,7 +103,7 @@ func (c *client) RegisterFunction(desc FunctionDescriptor, handler FunctionHandl
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if c.running {
+	if c.running.Load() {
 		return fmt.Errorf("cannot register functions while client is running")
 	}
 
@@ -125,7 +126,7 @@ func (c *client) Connect(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if c.connected {
+	if c.connected.Load() {
 		return nil
 	}
 
@@ -171,7 +172,7 @@ func (c *client) Connect(ctx context.Context) error {
 
 	c.sessionID = sessionID
 	c.localAddr = c.manager.GetLocalAddress()
-	c.connected = true
+	c.connected.Store(true)
 
 	c.logger.Infof("Successfully connected and registered with Agent")
 	c.logger.Infof("Local service address: %s", c.localAddr)
@@ -182,13 +183,13 @@ func (c *client) Connect(ctx context.Context) error {
 
 // Serve implements Client.Serve
 func (c *client) Serve(ctx context.Context) error {
-	if !c.connected {
+	if !c.connected.Load() {
 		if err := c.Connect(ctx); err != nil {
 			return fmt.Errorf("connection failed, cannot start service: %w", err)
 		}
 	}
 
-	c.running = true
+	c.running.Store(true)
 	c.logger.Infof("Croupier client service started")
 	c.logger.Infof("Local service address: %s", c.localAddr)
 	c.logger.Infof("Registered functions: %d", len(c.handlers))
@@ -203,15 +204,15 @@ func (c *client) Serve(ctx context.Context) error {
 		c.logger.Infof("Service stopped by context cancellation")
 	}
 
-	c.running = false
+	c.running.Store(false)
 	c.logger.Infof("Service has stopped")
 	return nil
 }
 
 // Stop implements Client.Stop
 func (c *client) Stop() error {
-	c.running = false
-	c.connected = false
+	c.running.Store(false)
+	c.connected.Store(false)
 
 	c.logger.Infof("Stopping Croupier client...")
 

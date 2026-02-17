@@ -168,7 +168,7 @@ func TestClient_RegisterFunction(t *testing.T) {
 
 		newCli := NewClient(config)
 		nc := newCli.(*client)
-		nc.running = true
+		nc.running.Store(true)
 
 		desc := FunctionDescriptor{
 			ID:      "test.running",
@@ -194,19 +194,19 @@ func TestClient_Stop(t *testing.T) {
 	c := cli.(*client)
 
 	// Set running state
-	c.running = true
-	c.connected = true
+	c.running.Store(true)
+	c.connected.Store(true)
 
 	err := cli.Stop()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if c.running {
+	if c.running.Load() {
 		t.Error("expected running to be false after Stop")
 	}
 
-	if c.connected {
+	if c.connected.Load() {
 		t.Error("expected connected to be false after Stop")
 	}
 }
@@ -541,9 +541,9 @@ func TestClient_ConnectIdempotent(t *testing.T) {
 		handlers:    map[string]FunctionHandler{},
 		descriptors: map[string]FunctionDescriptor{},
 		stopCh:      make(chan struct{}),
-		connected:   true, // Already connected
 		logger:      &NoOpLogger{},
 	}
+	c.connected.Store(true) // Already connected
 
 	// Should return nil without trying to connect again
 	err := c.Connect(context.Background())
@@ -864,10 +864,10 @@ func TestClient_StopNotRunning(t *testing.T) {
 
 	c := &client{
 		config:  &ClientConfig{},
-		running: false,
 		stopCh:  make(chan struct{}),
 		logger:  &NoOpLogger{},
 	}
+	c.running.Store(false)
 
 	// Should not panic or error
 	c.Stop()
@@ -879,15 +879,15 @@ func TestClient_StopWhileRunning(t *testing.T) {
 
 	c := &client{
 		config:  &ClientConfig{},
-		running: true,
 		stopCh:  make(chan struct{}),
 		logger:  &NoOpLogger{},
 	}
+	c.running.Store(true)
 
 	// Stop should close the stopCh and set running to false
 	c.Stop()
 
-	if c.running {
+	if c.running.Load() {
 		t.Error("expected running to be false after Stop")
 	}
 
