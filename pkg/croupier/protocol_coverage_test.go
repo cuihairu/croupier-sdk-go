@@ -1,0 +1,353 @@
+// Copyright 2025 Croupier Authors
+// Licensed under the Apache License, Version 2.0
+
+package croupier
+
+import (
+	"testing"
+
+	"github.com/cuihairu/croupier/sdks/go/pkg/croupier/protocol"
+)
+
+// TestProtocol_messageOperations tests protocol message operations
+func TestProtocol_messageOperations(t *testing.T) {
+	t.Run("message ID operations", func(t *testing.T) {
+		t.Run("PutMsgID and GetMsgID with request", func(t *testing.T) {
+			msg := protocol.NewRequestMessage(1, 2, nil)
+
+			protocol.PutMsgID(msg, 12345)
+			msgID := protocol.GetMsgID(msg)
+
+			if msgID != 12345 {
+				t.Errorf("GetMsgID = %d, want 12345", msgID)
+			}
+		})
+
+		t.Run("PutMsgID with different values", func(t *testing.T) {
+			testIDs := []uint32{0, 1, 100, 1000, 65535, 4294967295}
+
+			for _, testID := range testIDs {
+				msg := protocol.NewRequestMessage(testID, testID+1, nil)
+				protocol.PutMsgID(msg, testID)
+
+				retrievedID := protocol.GetMsgID(msg)
+				if retrievedID != testID {
+					t.Errorf("PutMsgID(%d) -> GetMsgID = %d, want %d", testID, retrievedID, testID)
+				}
+			}
+		})
+	})
+
+	t.Run("message type checking", func(t *testing.T) {
+		t.Run("IsRequest with request message", func(t *testing.T) {
+			msg := protocol.NewRequestMessage(1, 2, nil)
+
+			if !protocol.IsRequest(msg) {
+				t.Error("NewRequestMessage should be identified as request")
+			}
+		})
+
+		t.Run("IsResponse with response message", func(t *testing.T) {
+			msg := protocol.NewResponseMessage(1, 2, nil)
+
+			if !protocol.IsResponse(msg) {
+				t.Error("NewResponseMessage should be identified as response")
+			}
+		})
+
+		t.Run("IsRequest with response message", func(t *testing.T) {
+			msg := protocol.NewResponseMessage(1, 2, nil)
+
+			if protocol.IsRequest(msg) {
+				t.Error("NewResponseMessage should not be identified as request")
+			}
+		})
+
+		t.Run("IsResponse with request message", func(t *testing.T) {
+			msg := protocol.NewRequestMessage(1, 2, nil)
+
+			if protocol.IsResponse(msg) {
+				t.Error("NewRequestMessage should not be identified as response")
+			}
+		})
+	})
+
+	t.Run("response message ID", func(t *testing.T) {
+		t.Run("GetResponseMsgID", func(t *testing.T) {
+			requestID := uint32(9999)
+
+			reqMsg := protocol.NewRequestMessage(1, 2, nil)
+			protocol.PutMsgID(reqMsg, requestID)
+
+			respMsg := protocol.NewResponseMessage(1, 2, nil)
+			protocol.PutMsgID(respMsg, requestID)
+
+			responseID := protocol.GetResponseMsgID(respMsg)
+			if responseID != requestID {
+				t.Errorf("GetResponseMsgID = %d, want %d", responseID, requestID)
+			}
+		})
+	})
+
+	t.Run("message ID string", func(t *testing.T) {
+		t.Run("MsgIDString with valid message", func(t *testing.T) {
+			msg := protocol.NewRequestMessage(1, 2, nil)
+			protocol.PutMsgID(msg, 42)
+
+			idStr := protocol.MsgIDString(msg)
+			if idStr == "" {
+				t.Error("MsgIDString should not be empty")
+			}
+
+			t.Logf("MsgIDString: %s", idStr)
+		})
+
+		t.Run("MsgIDString with different IDs", func(t *testing.T) {
+			testIDs := []uint32{0, 1, 42, 100, 1000}
+
+			for _, testID := range testIDs {
+				msg := protocol.NewRequestMessage(1, 2, nil)
+				protocol.PutMsgID(msg, testID)
+
+				idStr := protocol.MsgIDString(msg)
+				t.Logf("MsgIDString(%d) = %s", testID, idStr)
+			}
+		})
+	})
+}
+
+// TestProtocol_messageParsing tests protocol message parsing
+func TestProtocol_messageParsing(t *testing.T) {
+	t.Run("ParseMessage with invalid inputs", func(t *testing.T) {
+		t.Run("ParseMessage with nil data", func(t *testing.T) {
+			msg, err := protocol.ParseMessage(nil)
+
+			if err == nil {
+				t.Error("ParseMessage with nil should return error")
+			}
+			if msg != nil {
+				t.Error("ParseMessage with nil should return nil message")
+			}
+
+			t.Logf("ParseMessage(nil) error: %v", err)
+		})
+
+		t.Run("ParseMessage with empty data", func(t *testing.T) {
+			msg, err := protocol.ParseMessage([]byte{})
+
+			if err == nil {
+				t.Error("ParseMessage with empty should return error")
+			}
+
+			t.Logf("ParseMessage([]) error: %v", err)
+		})
+
+		t.Run("ParseMessage with short data", func(t *testing.T) {
+			shortData := []byte{0x01, 0x02}
+			msg, err := protocol.ParseMessage(shortData)
+
+			t.Logf("ParseMessage(short) error: %v, msg: %+v", err, msg)
+		})
+
+		t.Run("ParseMessage with invalid data", func(t *testing.T) {
+			invalidData := []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+			msg, err := protocol.ParseMessage(invalidData)
+
+			t.Logf("ParseMessage(invalid) error: %v, msg: %+v", err, msg)
+		})
+	})
+
+	t.Run("ParseMessageFromBody with invalid inputs", func(t *testing.T) {
+		t.Run("ParseMessageFromBody with nil data", func(t *testing.T) {
+			msg, err := protocol.ParseMessageFromBody(nil)
+
+			if err == nil {
+				t.Error("ParseMessageFromBody with nil should return error")
+			}
+			if msg != nil {
+				t.Error("ParseMessageFromBody with nil should return nil message")
+			}
+
+			t.Logf("ParseMessageFromBody(nil) error: %v", err)
+		})
+
+		t.Run("ParseMessageFromBody with empty data", func(t *testing.T) {
+			msg, err := protocol.ParseMessageFromBody([]byte{})
+
+			if err == nil {
+				t.Error("ParseMessageFromBody with empty should return error")
+			}
+
+			t.Logf("ParseMessageFromBody([]) error: %v", err)
+		})
+	})
+}
+
+// TestProtocol_debugFunctions tests protocol debug functions
+func TestProtocol_debugFunctions(t *testing.T) {
+	t.Run("DebugString with various messages", func(t *testing.T) {
+		t.Run("DebugString with nil message", func(t *testing.T) {
+			str := protocol.DebugString(nil)
+			t.Logf("DebugString(nil): %s", str)
+		})
+
+		t.Run("DebugString with request message", func(t *testing.T) {
+			msg := protocol.NewRequestMessage(1, 2, nil)
+			str := protocol.DebugString(msg)
+			t.Logf("DebugString(request): %s", str)
+		})
+
+		t.Run("DebugString with response message", func(t *testing.T) {
+			msg := protocol.NewResponseMessage(1, 2, nil)
+			str := protocol.DebugString(msg)
+			t.Logf("DebugString(response): %s", str)
+		})
+	})
+
+	t.Run("DebugStringWithBody with various messages", func(t *testing.T) {
+		t.Run("DebugStringWithBody with nil message", func(t *testing.T) {
+			str := protocol.DebugStringWithBody(nil, false)
+			t.Logf("DebugStringWithBody(nil, false): %s", str)
+		})
+
+		t.Run("DebugStringWithBody with request message", func(t *testing.T) {
+			msg := protocol.NewRequestMessage(1, 2, nil)
+			str := protocol.DebugStringWithBody(msg, false)
+			t.Logf("DebugStringWithBody(request, false): %s", str)
+		})
+
+		t.Run("DebugStringWithBody with response and body", func(t *testing.T) {
+			msg := protocol.NewResponseMessage(1, 2, nil)
+			str := protocol.DebugStringWithBody(msg, true)
+			t.Logf("DebugStringWithBody(response, true): %s", str)
+		})
+	})
+
+	t.Run("FormatHeader with various messages", func(t *testing.T) {
+		t.Run("FormatHeader with nil message", func(t *testing.T) {
+			str := protocol.FormatHeader(nil)
+			t.Logf("FormatHeader(nil): %s", str)
+		})
+
+		t.Run("FormatHeader with valid message", func(t *testing.T) {
+			msg := protocol.NewRequestMessage(1, 2, nil)
+			str := protocol.FormatHeader(msg)
+			t.Logf("FormatHeader(valid): %s", str)
+		})
+	})
+
+	t.Run("ParseMessageInfo with various inputs", func(t *testing.T) {
+		t.Run("ParseMessageInfo with nil data", func(t *testing.T) {
+			info := protocol.ParseMessageInfo(nil)
+			t.Logf("ParseMessageInfo(nil): %+v", info)
+		})
+
+		t.Run("ParseMessageInfo with empty data", func(t *testing.T) {
+			info := protocol.ParseMessageInfo([]byte{})
+			t.Logf("ParseMessageInfo([]): %+v", info)
+		})
+
+		t.Run("ParseMessageInfo with short data", func(t *testing.T) {
+			shortData := []byte{0x01, 0x02}
+			info := protocol.ParseMessageInfo(shortData)
+			t.Logf("ParseMessageInfo(short): %+v", info)
+		})
+	})
+
+	t.Run("MessageInfo String method", func(t *testing.T) {
+		info := &protocol.MessageInfo{}
+		str := info.String()
+		t.Logf("MessageInfo.String(): %s", str)
+	})
+}
+
+// TestProtocol_messageBodyOperations tests message body operations
+func TestProtocol_messageBodyOperations(t *testing.T) {
+	t.Run("NewMessageBody with various inputs", func(t *testing.T) {
+		t.Run("NewMessageBody with valid params", func(t *testing.T) {
+			body := protocol.NewMessageBody(1, 2, []byte("test"))
+			if body == nil {
+				t.Error("NewMessageBody should not return nil")
+			}
+			t.Logf("NewMessageBody: %+v", body)
+		})
+
+		t.Run("NewMessageBody with nil data", func(t *testing.T) {
+			body := protocol.NewMessageBody(1, 2, nil)
+			if body == nil {
+				t.Error("NewMessageBody with nil data should not return nil")
+			}
+			t.Logf("NewMessageBody(nil data): %+v", body)
+		})
+
+		t.Run("NewMessageBody with empty data", func(t *testing.T) {
+			body := protocol.NewMessageBody(1, 2, []byte{})
+			if body == nil {
+				t.Error("NewMessageBody with empty data should not return nil")
+			}
+			t.Logf("NewMessageBody(empty data): %+v", body)
+		})
+	})
+}
+
+// TestProtocol_streamMessage tests stream message operations
+func TestProtocol_streamMessage(t *testing.T) {
+	t.Run("NewStreamMessage", func(t *testing.T) {
+		msg := protocol.NewStreamMessage(1, 2, nil)
+		if msg == nil {
+			t.Error("NewStreamMessage should not return nil")
+		}
+		t.Logf("NewStreamMessage: %+v", msg)
+	})
+}
+
+// TestProtocol_messageCombinations tests message combinations
+func TestProtocol_messageCombinations(t *testing.T) {
+	t.Run("multiple request messages with same ID", func(t *testing.T) {
+		msgID := uint32(42)
+
+		for i := 0; i < 5; i++ {
+			msg := protocol.NewRequestMessage(uint32(i), uint32(i+1), nil)
+			protocol.PutMsgID(msg, msgID)
+
+			retrievedID := protocol.GetMsgID(msg)
+			if retrievedID != msgID {
+				t.Errorf("Iteration %d: GetMsgID = %d, want %d", i, retrievedID, msgID)
+			}
+
+			if !protocol.IsRequest(msg) {
+				t.Errorf("Iteration %d: message should be identified as request", i)
+			}
+		}
+	})
+
+	t.Run("request-response message pairs", func(t *testing.T) {
+		pairs := []struct{ reqID, respID uint32 }{
+			{1, 1},
+			{100, 100},
+			{1000, 1000},
+			{65535, 65535},
+		}
+
+		for i, pair := range pairs {
+			reqMsg := protocol.NewRequestMessage(1, 2, nil)
+			protocol.PutMsgID(reqMsg, pair.reqID)
+
+			respMsg := protocol.NewResponseMessage(1, 2, nil)
+			protocol.PutMsgID(respMsg, pair.respID)
+
+			if !protocol.IsRequest(reqMsg) {
+				t.Errorf("Pair %d: request not identified", i)
+			}
+
+			if !protocol.IsResponse(respMsg) {
+				t.Errorf("Pair %d: response not identified", i)
+			}
+
+			responseID := protocol.GetResponseMsgID(respMsg)
+			if responseID != pair.respID {
+				t.Errorf("Pair %d: GetResponseMsgID = %d, want %d", i, responseID, pair.respID)
+			}
+		}
+	})
+}
