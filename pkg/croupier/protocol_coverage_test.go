@@ -291,7 +291,7 @@ func TestProtocol_messageBodyOperations(t *testing.T) {
 // TestProtocol_streamMessage tests stream message operations
 func TestProtocol_streamMessage(t *testing.T) {
 	t.Run("NewStreamMessage", func(t *testing.T) {
-		msg := protocol.NewStreamMessage(1, 2, nil)
+		msg, _ := protocol.NewStreamMessage(1, 2, nil)
 		if msg == nil {
 			t.Error("NewStreamMessage should not return nil")
 		}
@@ -342,7 +342,7 @@ func TestProtocol_messageCombinations(t *testing.T) {
 				t.Errorf("Pair %d: response not identified", i)
 			}
 
-			responseID := protocol.GetResponseMsgID(respMsg)
+			responseID := protocol.GetResponseMsgID(protocol.GetMsgID(respMsg.Header))
 			if responseID != pair.respID {
 				t.Errorf("Pair %d: GetResponseMsgID = %d, want %d", i, responseID, pair.respID)
 			}
