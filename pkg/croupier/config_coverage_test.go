@@ -373,8 +373,8 @@ func TestDefaultConfigurations(t *testing.T) {
 			t.Error("Reconnect should be enabled by default")
 		}
 
-		if config.MaxAttempts <= 0 {
-			t.Error("MaxAttempts should be positive")
+		if config.MaxAttempts < 0 {
+			t.Error("MaxAttempts should be non-negative (0 = infinite retries)")
 		}
 
 		if config.InitialDelayMs <= 0 {
