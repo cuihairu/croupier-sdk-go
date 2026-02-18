@@ -5,6 +5,7 @@ package croupier
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -23,7 +24,12 @@ func TestDispatcher_enqueueWithData(t *testing.T) {
 			Value: 42,
 		}
 
-		dispatcher.EnqueueWithData("test", data)
+		EnqueueWithData(dispatcher, func(d struct {
+			Name  string
+			Value int
+		}) {
+			// Callback for enqueued data
+		}, data)
 		dispatcher.Clear()
 	})
 
@@ -40,7 +46,12 @@ func TestDispatcher_enqueueWithData(t *testing.T) {
 		}
 
 		for _, item := range items {
-			dispatcher.EnqueueWithData("test", item)
+			EnqueueWithData(dispatcher, func(item struct {
+				ID    int
+				Name  string
+			}) {
+				// Callback for enqueued item
+			}, item)
 		}
 
 		count := dispatcher.GetPendingCount()
@@ -53,13 +64,27 @@ func TestDispatcher_enqueueWithData(t *testing.T) {
 		dispatcher := GetDispatcher()
 
 		// Enqueue different data types
-		dispatcher.EnqueueWithData("string", "test string")
-		dispatcher.EnqueueWithData("int", 42)
-		dispatcher.EnqueueWithData("float", 3.14)
-		dispatcher.EnqueueWithData("bool", true)
-		dispatcher.EnqueueWithData("nil", nil)
-		dispatcher.EnqueueWithData("slice", []int{1, 2, 3})
-		dispatcher.EnqueueWithData("map", map[string]int{"key": 42})
+		EnqueueWithData(dispatcher, func(s string) {
+			// Callback for string
+		}, "test string")
+		EnqueueWithData(dispatcher, func(i int) {
+			// Callback for int
+		}, 42)
+		EnqueueWithData(dispatcher, func(f float64) {
+			// Callback for float
+		}, 3.14)
+		EnqueueWithData(dispatcher, func(b bool) {
+			// Callback for bool
+		}, true)
+		EnqueueWithData(dispatcher, func(v any) {
+			// Callback for nil
+		}, nil)
+		EnqueueWithData(dispatcher, func(s []int) {
+			// Callback for slice
+		}, []int{1, 2, 3})
+		EnqueueWithData(dispatcher, func(m map[string]int) {
+			// Callback for map
+		}, map[string]int{"key": 42})
 
 		count := dispatcher.GetPendingCount()
 		t.Logf("Enqueued 7 different data types, pending count: %d", count)
@@ -80,7 +105,9 @@ func TestDispatcher_enqueueWithData(t *testing.T) {
 			Field2: 123,
 		}
 
-		dispatcher.EnqueueWithData("pointer", data)
+		EnqueueWithData(dispatcher, func(d *TestData) {
+			// Callback for struct pointer
+		}, data)
 
 		count := dispatcher.GetPendingCount()
 		t.Logf("Enqueued struct pointer, pending count: %d", count)
@@ -110,7 +137,12 @@ func TestDispatcher_concurrentEnqueueData(t *testing.T) {
 					Value: fmt.Sprintf("value-%d", idx),
 				}
 
-				dispatcher.EnqueueWithData("concurrent", data)
+				EnqueueWithData(dispatcher, func(d struct {
+					Index int
+					Value string
+				}) {
+					// Callback for concurrent data
+				}, data)
 			}(i)
 		}
 
@@ -136,7 +168,9 @@ func TestDispatcher_concurrentEnqueueData(t *testing.T) {
 				if idx%2 == 0 {
 					dispatcher.Enqueue(func() {})
 				} else {
-					dispatcher.EnqueueWithData("test", idx)
+					EnqueueWithData(dispatcher, func(i int) {
+						// Callback for concurrent data
+					}, idx)
 				}
 			}(i)
 		}
@@ -400,7 +434,9 @@ func TestDispatcher_performanceTests(t *testing.T) {
 		start := time.Now()
 
 		for i := 0; i < iterations; i++ {
-			dispatcher.EnqueueWithData("test", i)
+			EnqueueWithData(dispatcher, func(val int) {
+				// Callback for rapid enqueues
+			}, i)
 		}
 
 		elapsed := time.Since(start)
@@ -424,52 +460,6 @@ func TestDispatcher_performanceTests(t *testing.T) {
 
 		t.Logf("Processed %d items in %v (%.2f µs per item)",
 			processed, elapsed, float64(elapsed.Microseconds())/float64(processed))
-	})
-}
-
-// TestSetDefaultGameEnv tests SetDefaultGameEnv function
-func TestSetDefaultGameEnv(t *testing.T) {
-	t.Run("SetDefaultGameEnv with various environments", func(t *testing.T) {
-		envs := []string{
-			"dev",
-			"development",
-			"prod",
-			"production",
-			"staging",
-			"test",
-			"custom",
-			"",
-		}
-
-		for _, env := range envs {
-			err := SetDefaultGameEnv(env)
-			t.Logf("SetDefaultGameEnv('%s') error: %v", env, err)
-		}
-	})
-
-	t.Run("SetDefaultGameEnv with special characters", func(t *testing.T) {
-		specialEnvs := []string{
-			"env-with-dash",
-			"env_with_underscore",
-			"env.with.dots",
-			"ENV_WITH_UPPERCASE",
-			"env with spaces",
-			"env\nwith\nnewlines",
-		}
-
-		for _, env := range specialEnvs {
-			err := SetDefaultGameEnv(env)
-			t.Logf("SetDefaultGameEnv('%s') error: %v", env, err)
-		}
-	})
-
-	t.Run("SetDefaultGameEnv multiple times", func(t *testing.T) {
-		envs := []string{"dev", "prod", "test"}
-
-		for _, env := range envs {
-			err := SetDefaultGameEnv(env)
-			t.Logf("SetDefaultGameEnv to '%s' error: %v", env, err)
-		}
 	})
 }
 

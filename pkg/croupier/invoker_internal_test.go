@@ -47,12 +47,10 @@ func TestInvoker_tlsConfigTests(t *testing.T) {
 
 	t.Run("buildTLSConfig with all TLS files", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address:            "localhost:8080",
-			CAFile:             "/path/to/ca.crt",
-			CertFile:           "/path/to/cert.pem",
-			KeyFile:            "/path/to/key.pem",
-			ServerName:         "example.com",
-			InsecureSkipVerify: false,
+			Address:  "localhost:8080",
+			CAFile:   "/path/to/ca.crt",
+			CertFile: "/path/to/cert.pem",
+			KeyFile:  "/path/to/key.pem",
 		})
 
 		ctx := context.Background()
@@ -60,35 +58,34 @@ func TestInvoker_tlsConfigTests(t *testing.T) {
 		t.Logf("Connect with all TLS config error: %v", err)
 	})
 
-	t.Run("buildTLSConfig with insecure skip verify", func(t *testing.T) {
+	t.Run("buildTLSConfig with insecure", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address:            "localhost:8080",
-			InsecureSkipVerify: true,
+			Address:  "localhost:8080",
+			Insecure: true,
 		})
 
 		ctx := context.Background()
 		err := invoker.Connect(ctx)
-		t.Logf("Connect with insecure skip verify error: %v", err)
+		t.Logf("Connect with insecure error: %v", err)
 	})
 
-	t.Run("buildTLSConfig with various server names", func(t *testing.T) {
-		serverNames := []string{
-			"localhost",
-			"example.com",
-			"test.example.org",
-			"192.168.1.1",
-			"[::1]",
+	t.Run("buildTLSConfig with various addresses", func(t *testing.T) {
+		addresses := []string{
+			"localhost:8080",
+			"example.com:8080",
+			"test.example.org:8080",
+			"192.168.1.1:8080",
+			"[::1]:8080",
 		}
 
-		for _, serverName := range serverNames {
+		for _, address := range addresses {
 			invoker := NewInvoker(&InvokerConfig{
-				Address:    "localhost:8080",
-				ServerName: serverName,
+				Address: address,
 			})
 
 			ctx := context.Background()
 			err := invoker.Connect(ctx)
-			t.Logf("Connect with ServerName='%s' error: %v", serverName, err)
+			t.Logf("Connect with Address='%s' error: %v", address, err)
 		}
 	})
 }

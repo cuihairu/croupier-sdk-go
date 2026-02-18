@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 )
 
 // TestNNGManager_configurationTests tests NNG manager configuration
@@ -505,7 +506,7 @@ func TestNNGManager_multipleManagers(t *testing.T) {
 		time.Sleep(500 * time.Millisecond)
 
 		errorCount := 0
-		for i, err := range errors {
+		for _, err := range errors {
 			if err != nil {
 				errorCount++
 			}

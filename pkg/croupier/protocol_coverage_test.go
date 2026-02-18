@@ -13,10 +13,10 @@ import (
 func TestProtocol_messageOperations(t *testing.T) {
 	t.Run("message ID operations", func(t *testing.T) {
 		t.Run("PutMsgID and GetMsgID with request", func(t *testing.T) {
-			msg := protocol.NewRequestMessage(1, 2, nil)
+			msg, _ := protocol.NewRequestMessage(1, 2, nil)
 
-			protocol.PutMsgID(msg, 12345)
-			msgID := protocol.GetMsgID(msg)
+			protocol.PutMsgID(msg.Header, 12345)
+			msgID := protocol.GetMsgID(msg.Header)
 
 			if msgID != 12345 {
 				t.Errorf("GetMsgID = %d, want 12345", msgID)
@@ -27,10 +27,10 @@ func TestProtocol_messageOperations(t *testing.T) {
 			testIDs := []uint32{0, 1, 100, 1000, 65535, 4294967295}
 
 			for _, testID := range testIDs {
-				msg := protocol.NewRequestMessage(testID, testID+1, nil)
-				protocol.PutMsgID(msg, testID)
+				msg, _ := protocol.NewRequestMessage(testID, testID+1, nil)
+				protocol.PutMsgID(msg.Header, testID)
 
-				retrievedID := protocol.GetMsgID(msg)
+				retrievedID := protocol.GetMsgID(msg.Header)
 				if retrievedID != testID {
 					t.Errorf("PutMsgID(%d) -> GetMsgID = %d, want %d", testID, retrievedID, testID)
 				}
@@ -40,33 +40,33 @@ func TestProtocol_messageOperations(t *testing.T) {
 
 	t.Run("message type checking", func(t *testing.T) {
 		t.Run("IsRequest with request message", func(t *testing.T) {
-			msg := protocol.NewRequestMessage(1, 2, nil)
+			msg, _ := protocol.NewRequestMessage(1, 2, nil)
 
-			if !protocol.IsRequest(msg) {
+			if !protocol.IsRequest(protocol.GetMsgID(msg.Header)) {
 				t.Error("NewRequestMessage should be identified as request")
 			}
 		})
 
 		t.Run("IsResponse with response message", func(t *testing.T) {
-			msg := protocol.NewResponseMessage(1, 2, nil)
+			msg, _ := protocol.NewResponseMessage(1, 2, nil)
 
-			if !protocol.IsResponse(msg) {
+			if !protocol.IsResponse(protocol.GetMsgID(msg.Header)) {
 				t.Error("NewResponseMessage should be identified as response")
 			}
 		})
 
 		t.Run("IsRequest with response message", func(t *testing.T) {
-			msg := protocol.NewResponseMessage(1, 2, nil)
+			msg, _ := protocol.NewResponseMessage(1, 2, nil)
 
-			if protocol.IsRequest(msg) {
+			if protocol.IsRequest(protocol.GetMsgID(msg.Header)) {
 				t.Error("NewResponseMessage should not be identified as request")
 			}
 		})
 
 		t.Run("IsResponse with request message", func(t *testing.T) {
-			msg := protocol.NewRequestMessage(1, 2, nil)
+			msg, _ := protocol.NewRequestMessage(1, 2, nil)
 
-			if protocol.IsResponse(msg) {
+			if protocol.IsResponse(protocol.GetMsgID(msg.Header)) {
 				t.Error("NewRequestMessage should not be identified as response")
 			}
 		})
@@ -76,11 +76,11 @@ func TestProtocol_messageOperations(t *testing.T) {
 		t.Run("GetResponseMsgID", func(t *testing.T) {
 			requestID := uint32(9999)
 
-			reqMsg := protocol.NewRequestMessage(1, 2, nil)
-			protocol.PutMsgID(reqMsg, requestID)
+			reqMsg, _ := protocol.NewRequestMessage(1, 2, nil)
+			protocol.PutMsgID(reqMsg.Header, requestID)
 
-			respMsg := protocol.NewResponseMessage(1, 2, nil)
-			protocol.PutMsgID(respMsg, requestID)
+			respMsg, _ := protocol.NewResponseMessage(1, 2, nil)
+			protocol.PutMsgID(respMsg.Header, requestID)
 
 			responseID := protocol.GetResponseMsgID(respMsg)
 			if responseID != requestID {
@@ -91,8 +91,8 @@ func TestProtocol_messageOperations(t *testing.T) {
 
 	t.Run("message ID string", func(t *testing.T) {
 		t.Run("MsgIDString with valid message", func(t *testing.T) {
-			msg := protocol.NewRequestMessage(1, 2, nil)
-			protocol.PutMsgID(msg, 42)
+			msg, _ := protocol.NewRequestMessage(1, 2, nil)
+			protocol.PutMsgID(msg.Header, 42)
 
 			idStr := protocol.MsgIDString(msg)
 			if idStr == "" {
@@ -106,8 +106,8 @@ func TestProtocol_messageOperations(t *testing.T) {
 			testIDs := []uint32{0, 1, 42, 100, 1000}
 
 			for _, testID := range testIDs {
-				msg := protocol.NewRequestMessage(1, 2, nil)
-				protocol.PutMsgID(msg, testID)
+				msg, _ := protocol.NewRequestMessage(1, 2, nil)
+				protocol.PutMsgID(msg.Header, testID)
 
 				idStr := protocol.MsgIDString(msg)
 				t.Logf("MsgIDString(%d) = %s", testID, idStr)
@@ -192,13 +192,13 @@ func TestProtocol_debugFunctions(t *testing.T) {
 		})
 
 		t.Run("DebugString with request message", func(t *testing.T) {
-			msg := protocol.NewRequestMessage(1, 2, nil)
+			msg, _ := protocol.NewRequestMessage(1, 2, nil)
 			str := protocol.DebugString(msg)
 			t.Logf("DebugString(request): %s", str)
 		})
 
 		t.Run("DebugString with response message", func(t *testing.T) {
-			msg := protocol.NewResponseMessage(1, 2, nil)
+			msg, _ := protocol.NewResponseMessage(1, 2, nil)
 			str := protocol.DebugString(msg)
 			t.Logf("DebugString(response): %s", str)
 		})
@@ -211,13 +211,13 @@ func TestProtocol_debugFunctions(t *testing.T) {
 		})
 
 		t.Run("DebugStringWithBody with request message", func(t *testing.T) {
-			msg := protocol.NewRequestMessage(1, 2, nil)
+			msg, _ := protocol.NewRequestMessage(1, 2, nil)
 			str := protocol.DebugStringWithBody(msg, false)
 			t.Logf("DebugStringWithBody(request, false): %s", str)
 		})
 
 		t.Run("DebugStringWithBody with response and body", func(t *testing.T) {
-			msg := protocol.NewResponseMessage(1, 2, nil)
+			msg, _ := protocol.NewResponseMessage(1, 2, nil)
 			str := protocol.DebugStringWithBody(msg, true)
 			t.Logf("DebugStringWithBody(response, true): %s", str)
 		})
@@ -230,7 +230,7 @@ func TestProtocol_debugFunctions(t *testing.T) {
 		})
 
 		t.Run("FormatHeader with valid message", func(t *testing.T) {
-			msg := protocol.NewRequestMessage(1, 2, nil)
+			msg, _ := protocol.NewRequestMessage(1, 2, nil)
 			str := protocol.FormatHeader(msg)
 			t.Logf("FormatHeader(valid): %s", str)
 		})
@@ -307,15 +307,15 @@ func TestProtocol_messageCombinations(t *testing.T) {
 		msgID := uint32(42)
 
 		for i := 0; i < 5; i++ {
-			msg := protocol.NewRequestMessage(uint32(i), uint32(i+1), nil)
-			protocol.PutMsgID(msg, msgID)
+			msg, _ := protocol.NewRequestMessage(uint32(i), uint32(i+1), nil)
+			protocol.PutMsgID(msg.Header, msgID)
 
-			retrievedID := protocol.GetMsgID(msg)
+			retrievedID := protocol.GetMsgID(msg.Header)
 			if retrievedID != msgID {
 				t.Errorf("Iteration %d: GetMsgID = %d, want %d", i, retrievedID, msgID)
 			}
 
-			if !protocol.IsRequest(msg) {
+			if !protocol.IsRequest(protocol.GetMsgID(msg.Header)) {
 				t.Errorf("Iteration %d: message should be identified as request", i)
 			}
 		}
@@ -330,17 +330,17 @@ func TestProtocol_messageCombinations(t *testing.T) {
 		}
 
 		for i, pair := range pairs {
-			reqMsg := protocol.NewRequestMessage(1, 2, nil)
-			protocol.PutMsgID(reqMsg, pair.reqID)
+			reqMsg, _ := protocol.NewRequestMessage(1, 2, nil)
+			protocol.PutMsgID(reqMsg.Header, pair.reqID)
 
-			respMsg := protocol.NewResponseMessage(1, 2, nil)
-			protocol.PutMsgID(respMsg, pair.respID)
+			respMsg, _ := protocol.NewResponseMessage(1, 2, nil)
+			protocol.PutMsgID(respMsg.Header, pair.respID)
 
-			if !protocol.IsRequest(reqMsg) {
+			if !protocol.IsRequest(protocol.GetMsgID(reqMsg.Header)) {
 				t.Errorf("Pair %d: request not identified", i)
 			}
 
-			if !protocol.IsResponse(respMsg) {
+			if !protocol.IsResponse(protocol.GetMsgID(respMsg.Header)) {
 				t.Errorf("Pair %d: response not identified", i)
 			}
 

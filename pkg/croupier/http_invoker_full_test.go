@@ -450,8 +450,8 @@ func TestHTTPInvoker_retryCombinations(t *testing.T) {
 	})
 }
 
-// TestHTTPInvoker_concurrentOperations tests concurrent operations
-func TestHTTPInvoker_concurrentOperations(t *testing.T) {
+// TestHTTPInvoker_concurrentInvokes tests concurrent Invoke operations
+func TestHTTPInvoker_concurrentInvokes(t *testing.T) {
 	t.Run("concurrent Invoke with same invoker", func(t *testing.T) {
 		invoker := NewHTTPInvoker(&InvokerConfig{
 			Address: "http://localhost:8080",
@@ -471,7 +471,7 @@ func TestHTTPInvoker_concurrentOperations(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		errorCount := 0
-		for i, err := range errors {
+		for _, err := range errors {
 			if err != nil {
 				errorCount++
 			}
@@ -501,7 +501,7 @@ func TestHTTPInvoker_concurrentOperations(t *testing.T) {
 		time.Sleep(500 * time.Millisecond)
 
 		errorCount := 0
-		for i, err := range errors {
+		for _, err := range errors {
 			if err != nil {
 				errorCount++
 			}
@@ -559,14 +559,12 @@ func TestHTTPInvoker_addressVariations(t *testing.T) {
 func TestHTTPInvoker_configurationCombinations(t *testing.T) {
 	t.Run("Invoker with all configuration options", func(t *testing.T) {
 		invoker := NewHTTPInvoker(&InvokerConfig{
-			Address:            "http://localhost:8080",
-			TimeoutSeconds:     30,
-			Insecure:           true,
-			CAFile:             "/path/to/ca.crt",
-			CertFile:           "/path/to/cert.pem",
-			KeyFile:            "/path/to/key.pem",
-			ServerName:         "example.com",
-			InsecureSkipVerify: false,
+			Address:        "http://localhost:8080",
+			TimeoutSeconds: 30,
+			Insecure:       true,
+			CAFile:         "/path/to/ca.crt",
+			CertFile:       "/path/to/cert.pem",
+			KeyFile:        "/path/to/key.pem",
 			Retry: &RetryConfig{
 				Enabled:           true,
 				MaxAttempts:       5,
