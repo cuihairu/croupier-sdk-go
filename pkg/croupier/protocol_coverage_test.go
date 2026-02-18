@@ -132,7 +132,6 @@ func TestProtocol_messageParsing(t *testing.T) {
 
 		t.Run("ParseMessage with message with empty header", func(t *testing.T) {
 			msg := mangos.NewMessage(0)
-			defer msg.Close()
 
 			_, _, _, _, err := protocol.ParseMessage(msg)
 
@@ -145,7 +144,6 @@ func TestProtocol_messageParsing(t *testing.T) {
 
 		t.Run("ParseMessage with message with short header", func(t *testing.T) {
 			msg := mangos.NewMessage(0)
-			defer msg.Close()
 			msg.Header = []byte{0x01, 0x02}
 
 			version, msgID, reqID, body, err := protocol.ParseMessage(msg)
@@ -204,20 +202,20 @@ func TestProtocol_debugFunctions(t *testing.T) {
 
 	t.Run("DebugStringWithBody with various messages", func(t *testing.T) {
 		t.Run("DebugStringWithBody with nil message", func(t *testing.T) {
-			str := protocol.DebugStringWithBody(nil, false)
-			t.Logf("DebugStringWithBody(nil, false): %s", str)
+			str := protocol.DebugStringWithBody(nil, nil)
+			t.Logf("DebugStringWithBody(nil, nil): %s", str)
 		})
 
 		t.Run("DebugStringWithBody with request message", func(t *testing.T) {
 			msg, _ := protocol.NewRequestMessage(1, 2, nil)
-			str := protocol.DebugStringWithBody(msg, false)
-			t.Logf("DebugStringWithBody(request, false): %s", str)
+			str := protocol.DebugStringWithBody(msg, nil)
+			t.Logf("DebugStringWithBody(request, nil): %s", str)
 		})
 
 		t.Run("DebugStringWithBody with response and body", func(t *testing.T) {
 			msg, _ := protocol.NewResponseMessage(1, 2, nil)
-			str := protocol.DebugStringWithBody(msg, true)
-			t.Logf("DebugStringWithBody(response, true): %s", str)
+			str := protocol.DebugStringWithBody(msg, nil)
+			t.Logf("DebugStringWithBody(response, nil): %s", str)
 		})
 	})
 
@@ -229,26 +227,28 @@ func TestProtocol_debugFunctions(t *testing.T) {
 
 		t.Run("FormatHeader with valid message", func(t *testing.T) {
 			msg, _ := protocol.NewRequestMessage(1, 2, nil)
-			str := protocol.FormatHeader(msg)
+			str := protocol.FormatHeader(msg.Header)
 			t.Logf("FormatHeader(valid): %s", str)
 		})
 	})
 
 	t.Run("ParseMessageInfo with various inputs", func(t *testing.T) {
-		t.Run("ParseMessageInfo with nil data", func(t *testing.T) {
-			info := protocol.ParseMessageInfo(nil)
-			t.Logf("ParseMessageInfo(nil): %+v", info)
+		t.Run("ParseMessageInfo with nil message", func(t *testing.T) {
+			info, err := protocol.ParseMessageInfo(nil)
+			t.Logf("ParseMessageInfo(nil): %+v, error: %v", info, err)
 		})
 
-		t.Run("ParseMessageInfo with empty data", func(t *testing.T) {
-			info := protocol.ParseMessageInfo([]byte{})
-			t.Logf("ParseMessageInfo([]): %+v", info)
+		t.Run("ParseMessageInfo with empty message", func(t *testing.T) {
+			msg := mangos.NewMessage(0)
+			info, err := protocol.ParseMessageInfo(msg)
+			t.Logf("ParseMessageInfo(empty): %+v, error: %v", info, err)
 		})
 
-		t.Run("ParseMessageInfo with short data", func(t *testing.T) {
-			shortData := []byte{0x01, 0x02}
-			info := protocol.ParseMessageInfo(shortData)
-			t.Logf("ParseMessageInfo(short): %+v", info)
+		t.Run("ParseMessageInfo with short header", func(t *testing.T) {
+			msg := mangos.NewMessage(0)
+			msg.Header = []byte{0x01, 0x02}
+			info, err := protocol.ParseMessageInfo(msg)
+			t.Logf("ParseMessageInfo(short): %+v, error: %v", info, err)
 		})
 	})
 
