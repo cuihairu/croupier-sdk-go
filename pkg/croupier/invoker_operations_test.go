@@ -80,7 +80,12 @@ func TestInvoker_errorScenarios(t *testing.T) {
 		ctx := context.Background()
 		for _, payload := range specialPayloads {
 			_, err := invoker.Invoke(ctx, "test.func", payload, InvokeOptions{})
-			t.Logf("Invoke with payload '%s' error: %v", payload[:20], err)
+			// Safely truncate payload for logging
+			displayPayload := payload
+			if len(displayPayload) > 20 {
+				displayPayload = displayPayload[:20] + "..."
+			}
+			t.Logf("Invoke with payload '%s' error: %v", displayPayload, err)
 		}
 	})
 }
