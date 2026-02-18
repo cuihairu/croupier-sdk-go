@@ -179,9 +179,14 @@ func (n *NNGManager) StartServer(ctx context.Context) error {
 // RegisterWithAgent implements Manager.RegisterWithAgent
 func (n *NNGManager) RegisterWithAgent(ctx context.Context, serviceID, serviceVersion string, functions []LocalFunctionDescriptor) (string, error) {
 	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	if n.client == nil {
+		return "", fmt.Errorf("not connected to agent. Call Connect() first")
+	}
+
 	n.serviceID = serviceID
 	n.serviceVersion = serviceVersion
-	n.mu.Unlock()
 
 	// Build RegisterClientRequest
 	req := &sdkv1.RegisterLocalRequest{

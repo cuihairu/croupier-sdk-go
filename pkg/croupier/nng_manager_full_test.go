@@ -294,8 +294,13 @@ func TestNNGManager_registrationOperations(t *testing.T) {
 			},
 		}
 
+		// Should fail because we haven't connected to the agent yet
 		addr, err := manager.RegisterWithAgent(ctx, serviceID, serviceVersion, functions)
-		t.Logf("RegisterWithAgent error: %v, addr: %s", err, addr)
+		if err == nil {
+			t.Errorf("Expected error when calling RegisterWithAgent without connection, got addr: %s", addr)
+		} else {
+			t.Logf("RegisterWithAgent correctly failed without connection: %v", err)
+		}
 	})
 
 	t.Run("RegisterWithAgent with empty functions", func(t *testing.T) {
