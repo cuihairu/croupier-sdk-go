@@ -115,6 +115,11 @@ func (c *client) RegisterFunction(desc FunctionDescriptor, handler FunctionHandl
 		desc.Version = "1.0.0"
 	}
 
+	// Check if client has been closed
+	if c.handlers == nil {
+		return fmt.Errorf("client has been closed")
+	}
+
 	c.handlers[desc.ID] = handler
 	c.descriptors[desc.ID] = desc
 	c.logger.Infof("Registered function: %s (version: %s)", desc.ID, desc.Version)
@@ -220,7 +225,14 @@ func (c *client) Stop() error {
 		c.manager.Disconnect()
 	}
 
-	close(c.stopCh)
+	// Safely close stopCh (only close if not already closed)
+	select {
+	case <-c.stopCh:
+		// Channel already closed
+	default:
+		close(c.stopCh)
+	}
+
 	c.logger.Infof("Client stopped successfully")
 	return nil
 }

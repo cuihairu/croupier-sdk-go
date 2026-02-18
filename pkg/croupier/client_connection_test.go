@@ -468,9 +468,9 @@ func TestClient_errorHandling(t *testing.T) {
 			ID:      "test.afterclose",
 			Version: "1.0.0",
 		}
-		handler := func(ctx context.Context, payload []byte) ([]byte, error) {
+		handler := FunctionHandler(func(ctx context.Context, payload []byte) ([]byte, error) {
 			return []byte(`{"result":"ok"}`), nil
-		}
+		})
 
 		err = client.RegisterFunction(desc, handler)
 		t.Logf("RegisterFunction after Close error: %v", err)
