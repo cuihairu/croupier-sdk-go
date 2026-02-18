@@ -459,16 +459,24 @@ func TestHTTPInvoker_concurrentInvokes(t *testing.T) {
 
 		const numGoroutines = 50
 		errors := make([]error, numGoroutines)
+		var wg sync.WaitGroup
+		var mu sync.Mutex
 
 		for i := 0; i < numGoroutines; i++ {
+			wg.Add(1)
 			go func(idx int) {
+				defer wg.Done()
 				ctx := context.Background()
-				_, errors[idx] = invoker.Invoke(ctx, "test.func", "{}", InvokeOptions{})
+				_, err := invoker.Invoke(ctx, "test.func", "{}", InvokeOptions{})
+
+				mu.Lock()
+				errors[idx] = err
+				mu.Unlock()
 			}(i)
 		}
 
-		// Wait for goroutines to complete
-		time.Sleep(1 * time.Second)
+		// Wait for all goroutines to complete
+		wg.Wait()
 
 		errorCount := 0
 		for _, err := range errors {
@@ -487,18 +495,26 @@ func TestHTTPInvoker_concurrentInvokes(t *testing.T) {
 
 		const numGoroutines = 20
 		errors := make([]error, numGoroutines)
+		var wg sync.WaitGroup
+		var mu sync.Mutex
 
 		for i := 0; i < numGoroutines; i++ {
+			wg.Add(1)
 			go func(idx int) {
+				defer wg.Done()
 				schema := map[string]interface{}{
 					"type": "object",
 				}
-				errors[idx] = invoker.SetSchema("test.func", schema)
+				err := invoker.SetSchema("test.func", schema)
+
+				mu.Lock()
+				errors[idx] = err
+				mu.Unlock()
 			}(i)
 		}
 
-		// Wait for goroutines to complete
-		time.Sleep(500 * time.Millisecond)
+		// Wait for all goroutines to complete
+		wg.Wait()
 
 		errorCount := 0
 		for _, err := range errors {
@@ -518,7 +534,7 @@ func TestHTTPInvoker_addressVariations(t *testing.T) {
 			"http://localhost:8080",
 			"http://127.0.0.1:8080",
 			"http://0.0.0.0:8080",
-			"http://192.168.1.1:8080",
+			// "http://192.168.1.1:8080", // Removed: causes long timeout
 			"http://example.com:8080",
 			"https://localhost:8443",
 			"http://localhost:8080/api",
@@ -530,7 +546,10 @@ func TestHTTPInvoker_addressVariations(t *testing.T) {
 				Address: addr,
 			})
 
-			ctx := context.Background()
+			// Add timeout to prevent long waits
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
 			_, err := invoker.Invoke(ctx, "test.func", "{}", InvokeOptions{})
 			t.Logf("Invoke with address='%s' error: %v", addr, err)
 		}
