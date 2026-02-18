@@ -394,9 +394,13 @@ func TestClient_concurrentOperations(t *testing.T) {
 
 		const numGoroutines = 10
 		errors := make([]error, numGoroutines)
+		var wg sync.WaitGroup
+		var mu sync.Mutex
 
 		for i := 0; i < numGoroutines; i++ {
+			wg.Add(1)
 			go func(idx int) {
+				defer wg.Done()
 				desc := FunctionDescriptor{
 					ID:      fmt.Sprintf("test.func%d", idx),
 					Version: "1.0.0",
@@ -405,12 +409,16 @@ func TestClient_concurrentOperations(t *testing.T) {
 					return []byte(`{"result":"ok"}`), nil
 				}
 
-				errors[idx] = client.RegisterFunction(desc, handler)
+				err := client.RegisterFunction(desc, handler)
+
+				mu.Lock()
+				errors[idx] = err
+				mu.Unlock()
 			}(i)
 		}
 
-		// Wait a bit for goroutines to complete
-		time.Sleep(500 * time.Millisecond)
+		// Wait for all goroutines to complete
+		wg.Wait()
 
 		errorCount := 0
 		for i, err := range errors {
@@ -433,15 +441,23 @@ func TestClient_concurrentOperations(t *testing.T) {
 
 		const numGoroutines = 100
 		addresses := make([]string, numGoroutines)
+		var wg sync.WaitGroup
+		var mu sync.Mutex
 
 		for i := 0; i < numGoroutines; i++ {
+			wg.Add(1)
 			go func(idx int) {
-				addresses[idx] = client.GetLocalAddress()
+				defer wg.Done()
+				addr := client.GetLocalAddress()
+
+				mu.Lock()
+				addresses[idx] = addr
+				mu.Unlock()
 			}(i)
 		}
 
-		// Wait a bit for goroutines to complete
-		time.Sleep(500 * time.Millisecond)
+		// Wait for all goroutines to complete
+		wg.Wait()
 
 		for i, addr := range addresses {
 			t.Logf("Goroutine %d: GetLocalAddress = %s", i, addr)
