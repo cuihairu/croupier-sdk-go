@@ -6,6 +6,7 @@ package croupier
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 )
