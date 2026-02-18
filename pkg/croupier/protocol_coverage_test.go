@@ -6,6 +6,7 @@ package croupier
 import (
 	"testing"
 
+	"go.nanomsg.org/mangos/v3"
 	"github.com/cuihairu/croupier/sdks/go/pkg/croupier/protocol"
 )
 
@@ -82,7 +83,7 @@ func TestProtocol_messageOperations(t *testing.T) {
 			respMsg, _ := protocol.NewResponseMessage(1, 2, nil)
 			protocol.PutMsgID(respMsg.Header, requestID)
 
-			responseID := protocol.GetResponseMsgID(respMsg)
+			responseID := protocol.GetResponseMsgID(protocol.GetMsgID(respMsg.Header))
 			if responseID != requestID {
 				t.Errorf("GetResponseMsgID = %d, want %d", responseID, requestID)
 			}
@@ -94,7 +95,7 @@ func TestProtocol_messageOperations(t *testing.T) {
 			msg, _ := protocol.NewRequestMessage(1, 2, nil)
 			protocol.PutMsgID(msg.Header, 42)
 
-			idStr := protocol.MsgIDString(msg)
+			idStr := protocol.MsgIDString(protocol.GetMsgID(msg.Header))
 			if idStr == "" {
 				t.Error("MsgIDString should not be empty")
 			}
@@ -109,7 +110,7 @@ func TestProtocol_messageOperations(t *testing.T) {
 				msg, _ := protocol.NewRequestMessage(1, 2, nil)
 				protocol.PutMsgID(msg.Header, testID)
 
-				idStr := protocol.MsgIDString(msg)
+				idStr := protocol.MsgIDString(protocol.GetMsgID(msg.Header))
 				t.Logf("MsgIDString(%d) = %s", testID, idStr)
 			}
 		})
@@ -119,60 +120,57 @@ func TestProtocol_messageOperations(t *testing.T) {
 // TestProtocol_messageParsing tests protocol message parsing
 func TestProtocol_messageParsing(t *testing.T) {
 	t.Run("ParseMessage with invalid inputs", func(t *testing.T) {
-		t.Run("ParseMessage with nil data", func(t *testing.T) {
-			msg, err := protocol.ParseMessage(nil)
+		t.Run("ParseMessage with nil message", func(t *testing.T) {
+			_, _, _, _, err := protocol.ParseMessage(nil)
 
 			if err == nil {
 				t.Error("ParseMessage with nil should return error")
-			}
-			if msg != nil {
-				t.Error("ParseMessage with nil should return nil message")
 			}
 
 			t.Logf("ParseMessage(nil) error: %v", err)
 		})
 
-		t.Run("ParseMessage with empty data", func(t *testing.T) {
-			msg, err := protocol.ParseMessage([]byte{})
+		t.Run("ParseMessage with message with empty header", func(t *testing.T) {
+			msg := mangos.NewMessage(0)
+			defer msg.Close()
+
+			_, _, _, _, err := protocol.ParseMessage(msg)
 
 			if err == nil {
-				t.Error("ParseMessage with empty should return error")
+				t.Error("ParseMessage with empty header should return error")
 			}
 
-			t.Logf("ParseMessage([]) error: %v", err)
+			t.Logf("ParseMessage(empty header) error: %v", err)
 		})
 
-		t.Run("ParseMessage with short data", func(t *testing.T) {
-			shortData := []byte{0x01, 0x02}
-			msg, err := protocol.ParseMessage(shortData)
+		t.Run("ParseMessage with message with short header", func(t *testing.T) {
+			msg := mangos.NewMessage(0)
+			defer msg.Close()
+			msg.Header = []byte{0x01, 0x02}
 
-			t.Logf("ParseMessage(short) error: %v, msg: %+v", err, msg)
-		})
+			version, msgID, reqID, body, err := protocol.ParseMessage(msg)
+			_ = version
+			_ = msgID
+			_ = reqID
+			_ = body
 
-		t.Run("ParseMessage with invalid data", func(t *testing.T) {
-			invalidData := []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
-			msg, err := protocol.ParseMessage(invalidData)
-
-			t.Logf("ParseMessage(invalid) error: %v, msg: %+v", err, msg)
+			t.Logf("ParseMessage(short header) error: %v", err)
 		})
 	})
 
 	t.Run("ParseMessageFromBody with invalid inputs", func(t *testing.T) {
 		t.Run("ParseMessageFromBody with nil data", func(t *testing.T) {
-			msg, err := protocol.ParseMessageFromBody(nil)
+			_, _, _, _, err := protocol.ParseMessageFromBody(nil)
 
 			if err == nil {
 				t.Error("ParseMessageFromBody with nil should return error")
-			}
-			if msg != nil {
-				t.Error("ParseMessageFromBody with nil should return nil message")
 			}
 
 			t.Logf("ParseMessageFromBody(nil) error: %v", err)
 		})
 
 		t.Run("ParseMessageFromBody with empty data", func(t *testing.T) {
-			msg, err := protocol.ParseMessageFromBody([]byte{})
+			_, _, _, _, err := protocol.ParseMessageFromBody([]byte{})
 
 			if err == nil {
 				t.Error("ParseMessageFromBody with empty should return error")
