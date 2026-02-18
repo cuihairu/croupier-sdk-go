@@ -467,7 +467,7 @@ func TestDispatcher_performanceTests(t *testing.T) {
 func TestParseJSONPayload_extremeCases(t *testing.T) {
 	t.Run("parseJSONPayload with very large numbers", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		largeNums := []string{
@@ -487,7 +487,7 @@ func TestParseJSONPayload_extremeCases(t *testing.T) {
 
 	t.Run("parseJSONPayload with escape sequences", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		escapedPayloads := []string{
@@ -507,7 +507,7 @@ func TestParseJSONPayload_extremeCases(t *testing.T) {
 
 	t.Run("parseJSONPayload with whitespace variations", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		whitespacePayloads := []string{

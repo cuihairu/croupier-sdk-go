@@ -23,7 +23,7 @@ func TestMemoryManagement_ResourceLeakTests(t *testing.T) {
 
 		for i := 0; i < cycles; i++ {
 			config := &InvokerConfig{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 			}
 
 			invoker := NewHTTPInvoker(config)
@@ -76,7 +76,7 @@ func TestMemoryManagement_ResourceLeakTests(t *testing.T) {
 func TestMemoryManagement_LargePayloads(t *testing.T) {
 	t.Run("Large payload handling", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -108,7 +108,7 @@ func TestMemoryManagement_LargePayloads(t *testing.T) {
 
 	t.Run("Concurrent large payloads", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -140,7 +140,7 @@ func TestMemoryManagement_LargePayloads(t *testing.T) {
 func TestMemoryManagement_GoroutineLeakTests(t *testing.T) {
 	t.Run("Start and cancel many jobs", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -177,7 +177,7 @@ func TestMemoryManagement_GoroutineLeakTests(t *testing.T) {
 
 	t.Run("Stream job and cleanup", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -213,7 +213,7 @@ func TestMemoryManagement_GoroutineLeakTests(t *testing.T) {
 func TestMemoryManagement_MemoryProfiler(t *testing.T) {
 	t.Run("Memory usage pattern during operations", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -244,7 +244,7 @@ func TestMemoryManagement_MemoryProfiler(t *testing.T) {
 
 	t.Run("GC pressure test", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -279,7 +279,7 @@ func TestMemoryManagement_MemoryProfiler(t *testing.T) {
 func TestMemoryManagement_ResourceLimits(t *testing.T) {
 	t.Run("Schema size limits", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -310,7 +310,7 @@ func TestMemoryManagement_ResourceLimits(t *testing.T) {
 
 	t.Run("Headers size limits", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -345,7 +345,7 @@ func TestMemoryManagement_ResourceLimits(t *testing.T) {
 func TestMemoryManagement_CleanupTests(t *testing.T) {
 	t.Run("Proper cleanup sequence", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -380,7 +380,7 @@ func TestMemoryManagement_CleanupTests(t *testing.T) {
 
 	t.Run("Multiple cleanup attempts", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -400,7 +400,7 @@ func TestMemoryManagement_CleanupTests(t *testing.T) {
 func TestMemoryManagement_AllocationPatterns(t *testing.T) {
 	t.Run("Minimal allocations in hot path", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -426,7 +426,7 @@ func TestMemoryManagement_AllocationPatterns(t *testing.T) {
 
 	t.Run("Bulk string concatenation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -453,7 +453,7 @@ func TestMemoryManagement_AllocationPatterns(t *testing.T) {
 func TestMemoryManagement_Timeouts(t *testing.T) {
 	t.Run("Context timeout cleanup", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

@@ -43,7 +43,7 @@ func TestConcurrencySafety_RaceConditions(t *testing.T) {
 
 	t.Run("Concurrent invoke calls", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -79,7 +79,7 @@ func TestConcurrencySafety_RaceConditions(t *testing.T) {
 
 	t.Run("Concurrent close calls", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -108,7 +108,7 @@ func TestConcurrencySafety_RaceConditions(t *testing.T) {
 func TestConcurrencySafety_SharedState(t *testing.T) {
 	t.Run("Shared invoker with state changes", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -157,7 +157,7 @@ func TestConcurrencySafety_SharedState(t *testing.T) {
 func TestConcurrencySafety_ResourceContention(t *testing.T) {
 	t.Run("High contention on single invoker", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 2,
@@ -195,7 +195,7 @@ func TestConcurrencySafety_ResourceContention(t *testing.T) {
 
 	t.Run("Multiple invokers with shared configuration", func(t *testing.T) {
 		baseConfig := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 3,
@@ -236,7 +236,7 @@ func TestConcurrencySafety_ResourceContention(t *testing.T) {
 func TestConcurrencySafety_DeadlockScenarios(t *testing.T) {
 	t.Run("Concurrent close and invoke", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -271,7 +271,7 @@ func TestConcurrencySafety_DeadlockScenarios(t *testing.T) {
 
 	t.Run("Bidirectional operations", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -313,7 +313,7 @@ func TestConcurrencySafety_DeadlockScenarios(t *testing.T) {
 func TestConcurrencySafety_MemorySafety(t *testing.T) {
 	t.Run("No data races on options", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -350,7 +350,7 @@ func TestConcurrencySafety_MemorySafety(t *testing.T) {
 
 	t.Run("Safe context usage", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -389,7 +389,7 @@ func TestConcurrencySafety_StressTests(t *testing.T) {
 
 		for i := 0; i < iterations; i++ {
 			config := &InvokerConfig{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 			}
 
 			invoker := NewHTTPInvoker(config)
@@ -406,7 +406,7 @@ func TestConcurrencySafety_StressTests(t *testing.T) {
 
 	t.Run("Wave pattern concurrency", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -445,7 +445,7 @@ func TestConcurrencySafety_StressTests(t *testing.T) {
 func TestConcurrencySafety_AtomicOperations(t *testing.T) {
 	t.Run("Atomic counter usage", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -480,7 +480,7 @@ func TestConcurrencySafety_AtomicOperations(t *testing.T) {
 
 	t.Run("Atomic pointer swaps", func(t *testing.T) {
 		var invokerPtr atomic.Value
-		initialInvoker := NewHTTPInvoker(&InvokerConfig{Address: "localhost:19090"})
+		initialInvoker := NewHTTPInvoker(&InvokerConfig{Address: "http://localhost:19090"})
 		invokerPtr.Store(initialInvoker)
 
 		const numSwaps = 50
@@ -500,7 +500,7 @@ func TestConcurrencySafety_AtomicOperations(t *testing.T) {
 				t.Logf("Atomic swap %d: error=%v, result_len=%d", idx, err, len(result))
 
 				// Swap with new invoker
-				newInvoker := NewHTTPInvoker(&InvokerConfig{Address: "localhost:19090"})
+				newInvoker := NewHTTPInvoker(&InvokerConfig{Address: "http://localhost:19090"})
 				invokerPtr.Store(newInvoker)
 			}(i)
 		}
@@ -519,7 +519,7 @@ func TestConcurrencySafety_AtomicOperations(t *testing.T) {
 func TestConcurrencySafety_ChannelUsage(t *testing.T) {
 	t.Run("Concurrent job streaming", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

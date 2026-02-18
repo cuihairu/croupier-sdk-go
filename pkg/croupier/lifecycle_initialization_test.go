@@ -15,7 +15,7 @@ import (
 func TestLifecycle_Initialization(t *testing.T) {
 	t.Run("Basic initialization", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -80,7 +80,7 @@ func TestLifecycle_Initialization(t *testing.T) {
 
 	t.Run("Initialization with retry config", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:           true,
 				MaxAttempts:       5,
@@ -105,7 +105,7 @@ func TestLifecycle_Initialization(t *testing.T) {
 
 	t.Run("Initialization with reconnect config", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Reconnect: &ReconnectConfig{
 				Enabled:       true,
 				MaxAttempts:   3,
@@ -159,7 +159,7 @@ func TestLifecycle_ConcurrentInitialization(t *testing.T) {
 
 		for i := 0; i < cycles; i++ {
 			config := &InvokerConfig{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 			}
 
 			invoker := NewHTTPInvoker(config)
@@ -176,7 +176,7 @@ func TestLifecycle_ConcurrentInitialization(t *testing.T) {
 func TestLifecycle_StateTransitions(t *testing.T) {
 	t.Run("From initialized to active", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -192,7 +192,7 @@ func TestLifecycle_StateTransitions(t *testing.T) {
 
 	t.Run("From active to closed", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -214,7 +214,7 @@ func TestLifecycle_StateTransitions(t *testing.T) {
 
 	t.Run("Multiple close calls", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -236,7 +236,7 @@ func TestLifecycle_StateTransitions(t *testing.T) {
 func TestLifecycle_ResourceAcquisition(t *testing.T) {
 	t.Run("Connection pooling", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -262,7 +262,7 @@ func TestLifecycle_ResourceAcquisition(t *testing.T) {
 
 	t.Run("Schema resource management", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -283,7 +283,7 @@ func TestLifecycle_ResourceAcquisition(t *testing.T) {
 
 	t.Run("Job resource management", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -317,7 +317,7 @@ func TestLifecycle_ResourceAcquisition(t *testing.T) {
 func TestLifecycle_CleanupOperations(t *testing.T) {
 	t.Run("Cleanup after errors", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -338,7 +338,7 @@ func TestLifecycle_CleanupOperations(t *testing.T) {
 
 	t.Run("Cleanup with pending jobs", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -362,7 +362,7 @@ func TestLifecycle_CleanupOperations(t *testing.T) {
 
 	t.Run("Cleanup with active streams", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -437,7 +437,7 @@ func TestLifecycle_ErrorDuringInit(t *testing.T) {
 func TestLifecycle_IdempotentOperations(t *testing.T) {
 	t.Run("Idempotent close", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -457,7 +457,7 @@ func TestLifecycle_IdempotentOperations(t *testing.T) {
 
 	t.Run("Idempotent schema setting", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -485,7 +485,7 @@ func TestLifecycle_IdempotentOperations(t *testing.T) {
 func TestLifecycle_ConcurrentAccess(t *testing.T) {
 	t.Run("Concurrent operations during initialization", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -515,7 +515,7 @@ func TestLifecycle_ConcurrentAccess(t *testing.T) {
 
 	t.Run("Concurrent operations during shutdown", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -550,7 +550,7 @@ func TestLifecycle_ConcurrentAccess(t *testing.T) {
 
 	t.Run("Concurrent schema operations", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -587,7 +587,7 @@ func TestLifecycle_MemoryLeaks(t *testing.T) {
 
 		for i := 0; i < cycles; i++ {
 			config := &InvokerConfig{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 			}
 
 			invoker := NewHTTPInvoker(config)
@@ -605,7 +605,7 @@ func TestLifecycle_MemoryLeaks(t *testing.T) {
 
 	t.Run("Schema accumulation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -653,7 +653,7 @@ func TestLifecycle_TimeoutHandling(t *testing.T) {
 
 	t.Run("Slow close operation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -681,9 +681,9 @@ func TestLifecycle_TimeoutHandling(t *testing.T) {
 func TestLifecycle_ConfigurationValidation(t *testing.T) {
 	t.Run("Valid configurations", func(t *testing.T) {
 		configs := []*InvokerConfig{
-			{Address: "localhost:19090"},
-			{Address: "localhost:19090", TimeoutSeconds: 30},
-			{Address: "localhost:19090", Insecure: true},
+			{Address: "http://localhost:19090"},
+			{Address: "http://localhost:19090", TimeoutSeconds: 30},
+			{Address: "http://localhost:19090", Insecure: true},
 			{
 				Address:  "localhost:19090",
 				CAFile:   "/path/to/ca.crt",
@@ -691,14 +691,14 @@ func TestLifecycle_ConfigurationValidation(t *testing.T) {
 				KeyFile:  "/path/to/key.pem",
 			},
 			{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 				Retry: &RetryConfig{
 					Enabled:     true,
 					MaxAttempts: 3,
 				},
 			},
 			{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 				Reconnect: &ReconnectConfig{
 					Enabled: true,
 				},
@@ -731,7 +731,7 @@ func TestLifecycle_ConfigurationValidation(t *testing.T) {
 
 		for _, tc := range testCases {
 			config := &InvokerConfig{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 				Retry:   tc.retryCfg,
 			}
 

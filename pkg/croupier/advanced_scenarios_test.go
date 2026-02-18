@@ -14,7 +14,7 @@ import (
 func TestComplex_invokeScenarios(t *testing.T) {
 	t.Run("sequential invokes", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx := context.Background()
@@ -27,7 +27,7 @@ func TestComplex_invokeScenarios(t *testing.T) {
 
 	t.Run("sequential job operations", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx := context.Background()
@@ -48,7 +48,7 @@ func TestComplex_multipleInvokers(t *testing.T) {
 
 		for i := 0; i < 5; i++ {
 			invokers[i] = NewInvoker(&InvokerConfig{
-				Address: "localhost:8080",
+				Address: "http://localhost:19090",
 			})
 
 			if invokers[i] == nil {
@@ -73,7 +73,7 @@ func TestComplex_multipleInvokers(t *testing.T) {
 				defer wg.Done()
 
 				invoker := NewInvoker(&InvokerConfig{
-					Address: "localhost:8080",
+					Address: "http://localhost:19090",
 				})
 
 				ctx := context.Background()
@@ -90,7 +90,7 @@ func TestComplex_multipleInvokers(t *testing.T) {
 func TestComplex_reconfiguration(t *testing.T) {
 	t.Run("create destroy create", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		}
 
 		// Create
@@ -115,14 +115,14 @@ func TestComplex_reconfiguration(t *testing.T) {
 
 	t.Run("update config between creates", func(t *testing.T) {
 		config1 := &InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		}
 
 		invoker1 := NewInvoker(config1)
 		_ = invoker1.Close()
 
 		config2 := &InvokerConfig{
-			Address: "localhost:9090", // Different address
+			Address: "http://localhost:19090", // Different address
 		}
 
 		invoker2 := NewInvoker(config2)
@@ -203,7 +203,7 @@ func TestComplex_clientLifecycle(t *testing.T) {
 func TestComplex_errorHandling(t *testing.T) {
 	t.Run("multiple errors in sequence", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx := context.Background()
@@ -244,7 +244,7 @@ func TestComplex_timing(t *testing.T) {
 	t.Run("rapid create destroy", func(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			invoker := NewInvoker(&InvokerConfig{
-				Address: "localhost:8080",
+				Address: "http://localhost:19090",
 			})
 
 			if invoker == nil {
@@ -257,7 +257,7 @@ func TestComplex_timing(t *testing.T) {
 
 	t.Run("rapid invoke attempts", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx := context.Background()
@@ -282,7 +282,7 @@ func TestComplex_contextPropagation(t *testing.T) {
 		defer cancel()
 
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		// Multiple invokes with same context
@@ -304,7 +304,7 @@ func TestComplex_contextPropagation(t *testing.T) {
 		ctx = context.WithValue(ctx, ctxKey("user-id"), "user-67890")
 
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		_, err := invoker.Invoke(ctx, "test.func", "{}", InvokeOptions{})
@@ -322,7 +322,7 @@ func TestComplex_contextPropagation(t *testing.T) {
 func TestComplex_schemaVariations(t *testing.T) {
 	t.Run("nested schema structures", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		schema := map[string]interface{}{
@@ -363,7 +363,7 @@ func TestComplex_schemaVariations(t *testing.T) {
 
 	t.Run("schema with array types", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		schema := map[string]interface{}{
@@ -386,7 +386,7 @@ func TestComplex_schemaVariations(t *testing.T) {
 
 	t.Run("schema with enum values", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		schema := map[string]interface{}{
@@ -411,7 +411,7 @@ func TestComplex_schemaVariations(t *testing.T) {
 // TestComplex_multipleSchemas tests setting schemas for multiple functions
 func TestComplex_multipleSchemas(t *testing.T) {
 	invoker := NewInvoker(&InvokerConfig{
-		Address: "localhost:8080",
+		Address: "http://localhost:19090",
 	})
 
 	schemas := []struct {
@@ -456,7 +456,7 @@ func TestComplex_multipleSchemas(t *testing.T) {
 // TestComplex_headerPropagation tests header propagation
 func TestComplex_headerPropagation(t *testing.T) {
 	invoker := NewInvoker(&InvokerConfig{
-		Address: "localhost:8080",
+		Address: "http://localhost:19090",
 	})
 
 	ctx := context.Background()

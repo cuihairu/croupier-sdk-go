@@ -20,7 +20,7 @@ func TestPerformanceBenchmark_InvocationBenchmarks(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -61,7 +61,7 @@ func TestPerformanceBenchmark_InvocationBenchmarks(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -115,7 +115,7 @@ func TestPerformanceBenchmark_ResourceUsageBenchmarks(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -184,7 +184,7 @@ func TestPerformanceBenchmark_OperationComparison(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -226,7 +226,7 @@ func TestPerformanceBenchmark_OperationComparison(t *testing.T) {
 
 		// With retry
 		config1 := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 3,
@@ -250,7 +250,7 @@ func TestPerformanceBenchmark_OperationComparison(t *testing.T) {
 
 		// Without retry
 		config2 := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled: false,
 			},
@@ -324,7 +324,7 @@ func TestPerformanceBenchmark_ScalabilityTests(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -376,7 +376,7 @@ func TestPerformanceBenchmark_ConcurrencyScaling(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -432,7 +432,7 @@ func TestPerformanceBenchmark_ColdStartPerformance(t *testing.T) {
 			start := time.Now()
 
 			config := &InvokerConfig{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 			}
 
 			invoker := NewHTTPInvoker(config)
@@ -456,7 +456,7 @@ func TestPerformanceBenchmark_ColdStartPerformance(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		ctx := context.Background()
@@ -496,7 +496,7 @@ func TestPerformanceBenchmark_BatchOperations(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -535,7 +535,7 @@ func TestPerformanceBenchmark_BatchOperations(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		ctx := context.Background()
@@ -591,7 +591,7 @@ func TestPerformanceBenchmark_MemoryEfficiency(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -634,7 +634,7 @@ func TestPerformanceBenchmark_MemoryEfficiency(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -680,7 +680,7 @@ func TestPerformanceBenchmark_LatencyDistribution(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

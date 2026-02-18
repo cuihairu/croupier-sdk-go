@@ -136,7 +136,7 @@ func TestInvokerConfig_variations(t *testing.T) {
 			{
 				"CA only",
 				InvokerConfig{
-					Address: "localhost:8080",
+					Address: "http://localhost:19090",
 					CAFile:  "/path/to/ca.crt",
 				},
 			},
@@ -194,7 +194,7 @@ func TestRetryConfig_allValues(t *testing.T) {
 			}
 
 			invoker := NewInvoker(&InvokerConfig{
-				Address: "localhost:8080",
+				Address: "http://localhost:19090",
 				Retry:   config,
 			})
 
@@ -220,7 +220,7 @@ func TestRetryConfig_allValues(t *testing.T) {
 			}
 
 			invoker := NewInvoker(&InvokerConfig{
-				Address: "localhost:8080",
+				Address: "http://localhost:19090",
 				Retry:   config,
 			})
 
@@ -246,7 +246,7 @@ func TestRetryConfig_allValues(t *testing.T) {
 			}
 
 			invoker := NewInvoker(&InvokerConfig{
-				Address: "localhost:8080",
+				Address: "http://localhost:19090",
 				Retry:   config,
 			})
 
@@ -271,7 +271,7 @@ func TestRetryConfig_allValues(t *testing.T) {
 			}
 
 			invoker := NewInvoker(&InvokerConfig{
-				Address: "localhost:8080",
+				Address: "http://localhost:19090",
 				Retry:   config,
 			})
 

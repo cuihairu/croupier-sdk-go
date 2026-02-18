@@ -15,7 +15,7 @@ import (
 func TestMonitoring_MetricsCollection(t *testing.T) {
 	t.Run("Invocation metrics", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -56,7 +56,7 @@ func TestMonitoring_MetricsCollection(t *testing.T) {
 
 	t.Run("Concurrent invocation metrics", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -112,7 +112,7 @@ func TestMonitoring_MetricsCollection(t *testing.T) {
 func TestMonitoring_PerformanceTracking(t *testing.T) {
 	t.Run("Response time distribution", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -152,7 +152,7 @@ func TestMonitoring_PerformanceTracking(t *testing.T) {
 
 	t.Run("Payload size vs duration", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -188,7 +188,7 @@ func TestMonitoring_PerformanceTracking(t *testing.T) {
 func TestMonitoring_ResourceUsage(t *testing.T) {
 	t.Run("Memory usage tracking", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -215,7 +215,7 @@ func TestMonitoring_ResourceUsage(t *testing.T) {
 
 	t.Run("Goroutine tracking", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -248,7 +248,7 @@ func TestMonitoring_ResourceUsage(t *testing.T) {
 func TestMonitoring_ErrorTracking(t *testing.T) {
 	t.Run("Error rate monitoring", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -280,7 +280,7 @@ func TestMonitoring_ErrorTracking(t *testing.T) {
 
 	t.Run("Retry tracking", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:1",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    3,
@@ -312,7 +312,7 @@ func TestMonitoring_ErrorTracking(t *testing.T) {
 func TestLogging_LogLevels(t *testing.T) {
 	t.Run("Info level logging", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -334,7 +334,7 @@ func TestLogging_LogLevels(t *testing.T) {
 
 	t.Run("Error level logging", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -355,7 +355,7 @@ func TestLogging_LogLevels(t *testing.T) {
 func TestMonitoring_OperationalMetrics(t *testing.T) {
 	t.Run("Connection pool metrics", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -385,7 +385,7 @@ func TestMonitoring_OperationalMetrics(t *testing.T) {
 
 	t.Run("Schema operation metrics", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -444,7 +444,7 @@ func TestMonitoring_TimeoutTracking(t *testing.T) {
 
 	t.Run("Context timeout tracking", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -477,7 +477,7 @@ func TestMonitoring_TimeoutTracking(t *testing.T) {
 func TestMonitoring_RetryMetrics(t *testing.T) {
 	t.Run("Retry attempt tracking", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:1",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    5,
@@ -510,7 +510,7 @@ func TestMonitoring_RetryMetrics(t *testing.T) {
 
 		for _, mult := range backoffMultipliers {
 			config := &InvokerConfig{
-				Address: "localhost:1",
+				Address: "http://localhost:19090",
 				Retry: &RetryConfig{
 					Enabled:           true,
 					MaxAttempts:       3,
@@ -542,7 +542,7 @@ func TestMonitoring_RetryMetrics(t *testing.T) {
 func TestMonitoring_CircuitBreakerMetrics(t *testing.T) {
 	t.Run("Failure threshold tracking", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:1",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     false,
 				MaxAttempts: 1,
@@ -580,7 +580,7 @@ func TestMonitoring_CircuitBreakerMetrics(t *testing.T) {
 func TestMonitoring_JobMetrics(t *testing.T) {
 	t.Run("Job lifecycle metrics", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -619,7 +619,7 @@ func TestMonitoring_JobMetrics(t *testing.T) {
 
 	t.Run("Job streaming metrics", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -661,7 +661,7 @@ func TestMonitoring_JobMetrics(t *testing.T) {
 func TestMonitoring_LongRunningOperations(t *testing.T) {
 	t.Run("Extended operation tracking", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

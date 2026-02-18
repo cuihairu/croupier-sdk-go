@@ -56,7 +56,7 @@ func TestRealWorldUsage_Microservice(t *testing.T) {
 
 	t.Run("API gateway pattern", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    3,
@@ -95,7 +95,7 @@ func TestRealWorldUsage_Microservice(t *testing.T) {
 func TestRealWorldUsage_BatchProcessing(t *testing.T) {
 	t.Run("Bulk data processing", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -127,7 +127,7 @@ func TestRealWorldUsage_BatchProcessing(t *testing.T) {
 
 	t.Run("Parallel batch processing", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -170,7 +170,7 @@ func TestRealWorldUsage_BatchProcessing(t *testing.T) {
 func TestRealWorldUsage_EventDriven(t *testing.T) {
 	t.Run("Event publishing", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -200,7 +200,7 @@ func TestRealWorldUsage_EventDriven(t *testing.T) {
 
 	t.Run("Event streaming", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -234,7 +234,7 @@ func TestRealWorldUsage_EventDriven(t *testing.T) {
 func TestRealWorldUsage_Caching(t *testing.T) {
 	t.Run("Cache-aside pattern", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -262,7 +262,7 @@ func TestRealWorldUsage_Caching(t *testing.T) {
 
 	t.Run("Cache invalidation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -286,7 +286,7 @@ func TestRealWorldUsage_Caching(t *testing.T) {
 func TestRealWorldUsage_RateLimiting(t *testing.T) {
 	t.Run("Token bucket rate limiting", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -314,7 +314,7 @@ func TestRealWorldUsage_RateLimiting(t *testing.T) {
 
 	t.Run("Sliding window rate limiting", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -339,7 +339,7 @@ func TestRealWorldUsage_RateLimiting(t *testing.T) {
 func TestRealWorldUsage_CircuitBreaker(t *testing.T) {
 	t.Run("Circuit breaker states", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     false, // Circuit breaker should handle retries
 				MaxAttempts: 1,
@@ -366,7 +366,7 @@ func TestRealWorldUsage_CircuitBreaker(t *testing.T) {
 
 	t.Run("Circuit breaker fallback", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -391,7 +391,7 @@ func TestRealWorldUsage_CircuitBreaker(t *testing.T) {
 func TestRealWorldUsage_SagaPattern(t *testing.T) {
 	t.Run("Saga orchestration", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -440,7 +440,7 @@ func TestRealWorldUsage_SagaPattern(t *testing.T) {
 func TestRealWorldUsage_Monitoring(t *testing.T) {
 	t.Run("Metrics collection", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -463,7 +463,7 @@ func TestRealWorldUsage_Monitoring(t *testing.T) {
 
 	t.Run("Health checks", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

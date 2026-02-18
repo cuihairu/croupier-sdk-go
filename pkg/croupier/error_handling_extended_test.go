@@ -17,7 +17,7 @@ import (
 func TestErrorHandling_NetworkErrors(t *testing.T) {
 	t.Run("Connection refused errors", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:9999", // Non-existent server
+			Address: "http://localhost:19090", // Non-existent server
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -112,7 +112,7 @@ func TestErrorHandling_PayloadErrors(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -139,7 +139,7 @@ func TestErrorHandling_PayloadErrors(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -166,7 +166,7 @@ func TestErrorHandling_PayloadErrors(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -194,7 +194,7 @@ func TestErrorHandling_PayloadErrors(t *testing.T) {
 func TestErrorHandling_ContextErrors(t *testing.T) {
 	t.Run("Already cancelled context", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -216,7 +216,7 @@ func TestErrorHandling_ContextErrors(t *testing.T) {
 
 	t.Run("Context with very short deadline", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -245,7 +245,7 @@ func TestErrorHandling_ContextErrors(t *testing.T) {
 
 	t.Run("Context cancellation during invocation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -272,7 +272,7 @@ func TestErrorHandling_ContextErrors(t *testing.T) {
 func TestErrorHandling_InvokerErrors(t *testing.T) {
 	t.Run("Operations on closed invoker", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -301,7 +301,7 @@ func TestErrorHandling_InvokerErrors(t *testing.T) {
 
 	t.Run("Invalid function IDs", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -335,7 +335,7 @@ func TestErrorHandling_InvokerErrors(t *testing.T) {
 func TestErrorHandling_RetryErrors(t *testing.T) {
 	t.Run("Retry with all attempts failing", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:9999", // Non-existent server
+			Address: "http://localhost:19090", // Non-existent server
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    5,
@@ -362,7 +362,7 @@ func TestErrorHandling_RetryErrors(t *testing.T) {
 
 	t.Run("Retry with zero attempts", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:9999",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 0, // Should fail immediately
@@ -387,7 +387,7 @@ func TestErrorHandling_RetryErrors(t *testing.T) {
 
 	t.Run("Retry with negative delays", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:9999",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    3,
@@ -414,7 +414,7 @@ func TestErrorHandling_RetryErrors(t *testing.T) {
 func TestErrorHandling_JobErrors(t *testing.T) {
 	t.Run("Invalid job IDs", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -447,7 +447,7 @@ func TestErrorHandling_JobErrors(t *testing.T) {
 
 	t.Run("Job operations on closed invoker", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -474,7 +474,7 @@ func TestErrorHandling_IOErrors(t *testing.T) {
 	t.Run("Response with unexpected EOF", func(t *testing.T) {
 		// This test checks handling of incomplete responses
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

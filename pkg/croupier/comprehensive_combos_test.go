@@ -47,7 +47,7 @@ func TestComprehensive_configCombos(t *testing.T) {
 		for _, retryOn := range retryEnabled {
 			for _, reconnectOn := range reconnectEnabled {
 				invoker := NewInvoker(&InvokerConfig{
-					Address: "localhost:8080",
+					Address: "http://localhost:19090",
 					Retry: &RetryConfig{
 						Enabled:     retryOn,
 						MaxAttempts: 3,
@@ -166,7 +166,7 @@ func TestComprehensive_timeoutScenarios(t *testing.T) {
 		}
 
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		for _, timeout := range timeouts {
@@ -198,7 +198,7 @@ func TestComprehensive_headerCombinations(t *testing.T) {
 		}
 
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx := context.Background()
@@ -221,7 +221,7 @@ func TestComprehensive_headerCombinations(t *testing.T) {
 		}
 
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx := context.Background()
@@ -263,7 +263,7 @@ func TestComprehensive_concurrentAccess(t *testing.T) {
 			go func(idx int) {
 				defer wg.Done()
 				invoker := NewInvoker(&InvokerConfig{
-					Address: "localhost:8080",
+					Address: "http://localhost:19090",
 				})
 				if invoker == nil {
 					t.Errorf("Goroutine %d: NewInvoker returned nil", idx)

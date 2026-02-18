@@ -18,7 +18,7 @@ const (
 func TestRetryMechanisms_BasicScenarios(t *testing.T) {
 	t.Run("Invoke with retry enabled", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    3,
@@ -41,7 +41,7 @@ func TestRetryMechanisms_BasicScenarios(t *testing.T) {
 
 	t.Run("Invoke with retry disabled", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled: false,
 			},
@@ -64,7 +64,7 @@ func TestRetryMechanisms_BasicScenarios(t *testing.T) {
 func TestRetryMechanisms_MaxAttempts(t *testing.T) {
 	t.Run("Retry with 1 attempt", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 1,
@@ -87,7 +87,7 @@ func TestRetryMechanisms_MaxAttempts(t *testing.T) {
 
 	t.Run("Retry with 3 attempts", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 3,
@@ -110,7 +110,7 @@ func TestRetryMechanisms_MaxAttempts(t *testing.T) {
 
 	t.Run("Retry with 5 attempts", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 5,
@@ -136,7 +136,7 @@ func TestRetryMechanisms_MaxAttempts(t *testing.T) {
 func TestRetryMechanisms_DelayStrategies(t *testing.T) {
 	t.Run("Retry with exponential backoff", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:           true,
 				MaxAttempts:       3,
@@ -162,7 +162,7 @@ func TestRetryMechanisms_DelayStrategies(t *testing.T) {
 
 	t.Run("Retry with linear backoff", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:           true,
 				MaxAttempts:       3,
@@ -191,7 +191,7 @@ func TestRetryMechanisms_DelayStrategies(t *testing.T) {
 func TestRetryMechanisms_WithJitter(t *testing.T) {
 	t.Run("Retry with jitter", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    3,
@@ -215,7 +215,7 @@ func TestRetryMechanisms_WithJitter(t *testing.T) {
 
 	t.Run("Retry without jitter", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    3,
@@ -242,7 +242,7 @@ func TestRetryMechanisms_WithJitter(t *testing.T) {
 func TestRetryMechanisms_WithOverride(t *testing.T) {
 	t.Run("Override retry configuration at invoke time", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 5,
@@ -271,7 +271,7 @@ func TestRetryMechanisms_WithOverride(t *testing.T) {
 
 	t.Run("Disable retry at invoke time", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 3,
@@ -302,7 +302,7 @@ func TestRetryMechanisms_WithOverride(t *testing.T) {
 func TestRetryMechanisms_ContextCancellation(t *testing.T) {
 	t.Run("Cancel context during retry", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    10,
@@ -336,7 +336,7 @@ func TestRetryMechanisms_ContextCancellation(t *testing.T) {
 func TestRetryMechanisms_ConcurrentOperations(t *testing.T) {
 	t.Run("Concurrent invokes with retry", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    3,
@@ -380,7 +380,7 @@ func TestRetryMechanisms_ConcurrentOperations(t *testing.T) {
 func TestRetryMechanisms_EdgeCases(t *testing.T) {
 	t.Run("Retry with zero initial delay", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    3,
@@ -402,7 +402,7 @@ func TestRetryMechanisms_EdgeCases(t *testing.T) {
 
 	t.Run("Retry with very large delay", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    2,
@@ -426,7 +426,7 @@ func TestRetryMechanisms_EdgeCases(t *testing.T) {
 
 	t.Run("Retry with zero max attempts", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 0,
@@ -450,7 +450,7 @@ func TestRetryMechanisms_EdgeCases(t *testing.T) {
 func TestRetryMechanisms_PerformancePatterns(t *testing.T) {
 	t.Run("Measure retry latency", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    3,
@@ -488,7 +488,7 @@ func TestRetryMechanisms_PerformancePatterns(t *testing.T) {
 func TestRetryMechanisms_Idempotency(t *testing.T) {
 	t.Run("Retry with idempotency key", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 3,

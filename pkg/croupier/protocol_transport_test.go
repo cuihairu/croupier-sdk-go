@@ -172,7 +172,7 @@ func TestProtocolTransport_TimeoutConfigurations(t *testing.T) {
 func TestProtocolTransport_HeaderHandling(t *testing.T) {
 	t.Run("Standard HTTP headers", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -198,7 +198,7 @@ func TestProtocolTransport_HeaderHandling(t *testing.T) {
 
 	t.Run("Custom headers with special values", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -224,7 +224,7 @@ func TestProtocolTransport_HeaderHandling(t *testing.T) {
 
 	t.Run("Headers with encoding", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -250,7 +250,7 @@ func TestProtocolTransport_HeaderHandling(t *testing.T) {
 func TestProtocolTransport_ConnectionPooling(t *testing.T) {
 	t.Run("Sequential requests (connection reuse)", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -275,7 +275,7 @@ func TestProtocolTransport_ConnectionPooling(t *testing.T) {
 
 	t.Run("Keep-alive headers", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -303,7 +303,7 @@ func TestProtocolTransport_ConnectionPooling(t *testing.T) {
 func TestProtocolTransport_Idempotency(t *testing.T) {
 	t.Run("Same idempotency key multiple times", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -337,7 +337,7 @@ func TestProtocolTransport_Idempotency(t *testing.T) {
 
 	t.Run("Different idempotency keys", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -360,7 +360,7 @@ func TestProtocolTransport_Idempotency(t *testing.T) {
 
 	t.Run("Empty and nil idempotency key", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -388,7 +388,7 @@ func TestProtocolTransport_Idempotency(t *testing.T) {
 func TestProtocolTransport_ErrorCodes(t *testing.T) {
 	t.Run("HTTP status code scenarios", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -442,7 +442,7 @@ func TestProtocolTransport_ErrorCodes(t *testing.T) {
 func TestProtocolTransport_PayloadEncoding(t *testing.T) {
 	t.Run("JSON payloads", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -470,7 +470,7 @@ func TestProtocolTransport_PayloadEncoding(t *testing.T) {
 
 	t.Run("URL encoding in payload", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -498,7 +498,7 @@ func TestProtocolTransport_PayloadEncoding(t *testing.T) {
 func TestProtocolTransport_Compression(t *testing.T) {
 	t.Run("Request compression", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

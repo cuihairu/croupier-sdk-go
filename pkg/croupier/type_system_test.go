@@ -15,7 +15,7 @@ import (
 func TestTypeSystem_PrimitiveTypes(t *testing.T) {
 	t.Run("String type", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -42,7 +42,7 @@ func TestTypeSystem_PrimitiveTypes(t *testing.T) {
 
 	t.Run("Number types", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -71,7 +71,7 @@ func TestTypeSystem_PrimitiveTypes(t *testing.T) {
 
 	t.Run("Boolean type", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -95,7 +95,7 @@ func TestTypeSystem_PrimitiveTypes(t *testing.T) {
 
 	t.Run("Null type", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -122,7 +122,7 @@ func TestTypeSystem_PrimitiveTypes(t *testing.T) {
 func TestTypeSystem_CompositeTypes(t *testing.T) {
 	t.Run("Array types", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -151,7 +151,7 @@ func TestTypeSystem_CompositeTypes(t *testing.T) {
 
 	t.Run("Object types", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -179,7 +179,7 @@ func TestTypeSystem_CompositeTypes(t *testing.T) {
 
 	t.Run("Nested structures", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -207,7 +207,7 @@ func TestTypeSystem_CompositeTypes(t *testing.T) {
 func TestTypeSystem_SerializationTests(t *testing.T) {
 	t.Run("JSON marshal/unmarshal", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -251,7 +251,7 @@ func TestTypeSystem_SerializationTests(t *testing.T) {
 
 	t.Run("Special JSON characters", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -281,7 +281,7 @@ func TestTypeSystem_SerializationTests(t *testing.T) {
 func TestTypeSystem_SchemaTypes(t *testing.T) {
 	t.Run("Basic schema types", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -307,7 +307,7 @@ func TestTypeSystem_SchemaTypes(t *testing.T) {
 
 	t.Run("Complex schema definitions", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -363,7 +363,7 @@ func TestTypeSystem_SchemaTypes(t *testing.T) {
 func TestTypeSystem_TypeCoercion(t *testing.T) {
 	t.Run("Numeric type coercion", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -391,7 +391,7 @@ func TestTypeSystem_TypeCoercion(t *testing.T) {
 func TestTypeSystem_DateTimeTypes(t *testing.T) {
 	t.Run("ISO 8601 timestamps", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -419,7 +419,7 @@ func TestTypeSystem_DateTimeTypes(t *testing.T) {
 
 	t.Run("Unix timestamps", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -451,7 +451,7 @@ func TestTypeSystem_DateTimeTypes(t *testing.T) {
 func TestTypeSystem_BinaryData(t *testing.T) {
 	t.Run("Base64 encoded data", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -476,7 +476,7 @@ func TestTypeSystem_BinaryData(t *testing.T) {
 
 	t.Run("Hex encoded data", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -504,7 +504,7 @@ func TestTypeSystem_BinaryData(t *testing.T) {
 func TestTypeSystem_LargeNumbers(t *testing.T) {
 	t.Run("Integer boundaries", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -530,7 +530,7 @@ func TestTypeSystem_LargeNumbers(t *testing.T) {
 
 	t.Run("Floating point boundaries", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -559,7 +559,7 @@ func TestTypeSystem_LargeNumbers(t *testing.T) {
 func TestTypeSystem_EmptyValues(t *testing.T) {
 	t.Run("Empty string", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -584,7 +584,7 @@ func TestTypeSystem_EmptyValues(t *testing.T) {
 
 	t.Run("Empty collections", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -612,7 +612,7 @@ func TestTypeSystem_EmptyValues(t *testing.T) {
 func TestTypeSystem_SpecialCharacters(t *testing.T) {
 	t.Run("Unicode characters", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -641,7 +641,7 @@ func TestTypeSystem_SpecialCharacters(t *testing.T) {
 
 	t.Run("Control characters", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -669,7 +669,7 @@ func TestTypeSystem_SpecialCharacters(t *testing.T) {
 func TestTypeSystem_TypeValidationRuntime(t *testing.T) {
 	t.Run("Schema validation runtime", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

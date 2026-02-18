@@ -26,7 +26,7 @@ func TestInvoker_NewInvoker_various(t *testing.T) {
 	
 	t.Run("with minimal config", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 		if invoker == nil {
 			t.Error("NewInvoker with minimal config should return invoker")
@@ -37,7 +37,7 @@ func TestInvoker_NewInvoker_various(t *testing.T) {
 func TestInvokerContext_usage(t *testing.T) {
 	t.Run("context with timeout", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 		
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
@@ -48,7 +48,7 @@ func TestInvokerContext_usage(t *testing.T) {
 	
 	t.Run("cancelled context", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 		
 		ctx, cancel := context.WithCancel(context.Background())
@@ -60,7 +60,7 @@ func TestInvokerContext_usage(t *testing.T) {
 
 func TestInvoker_InvokeOptions(t *testing.T) {
 	invoker := NewInvoker(&InvokerConfig{
-		Address: "localhost:8080",
+		Address: "http://localhost:19090",
 	})
 	
 	ctx := context.Background()
@@ -111,7 +111,7 @@ func TestInvoker_InvokeOptions(t *testing.T) {
 
 func TestInvoker_JobOperations(t *testing.T) {
 	invoker := NewInvoker(&InvokerConfig{
-		Address: "localhost:8080",
+		Address: "http://localhost:19090",
 	})
 	
 	ctx := context.Background()
@@ -146,7 +146,7 @@ func TestInvoker_JobOperations(t *testing.T) {
 
 func TestInvoker_SetSchema_various(t *testing.T) {
 	invoker := NewInvoker(&InvokerConfig{
-		Address: "localhost:8080",
+		Address: "http://localhost:19090",
 	})
 	
 	t.Run("set schema with valid JSON schema", func(t *testing.T) {

@@ -25,7 +25,7 @@ func TestInvoker_errorScenarios(t *testing.T) {
 
 	t.Run("Invoke with very short timeout", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
@@ -39,7 +39,7 @@ func TestInvoker_errorScenarios(t *testing.T) {
 
 	t.Run("Invoke with cancelled context", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -51,7 +51,7 @@ func TestInvoker_errorScenarios(t *testing.T) {
 
 	t.Run("Invoke with very large payload", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		largePayload := string(make([]byte, 10*1024*1024)) // 10MB
@@ -63,7 +63,7 @@ func TestInvoker_errorScenarios(t *testing.T) {
 
 	t.Run("Invoke with special JSON payload", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		specialPayloads := []string{
@@ -94,7 +94,7 @@ func TestInvoker_errorScenarios(t *testing.T) {
 func TestInvoker_invokeWithRetry(t *testing.T) {
 	t.Run("Invoke with retry enabled", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    3,
@@ -110,7 +110,7 @@ func TestInvoker_invokeWithRetry(t *testing.T) {
 
 	t.Run("Invoke with retry and short timeout", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    5,
@@ -128,7 +128,7 @@ func TestInvoker_invokeWithRetry(t *testing.T) {
 
 	t.Run("Invoke with zero delay retry", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    2,
@@ -144,7 +144,7 @@ func TestInvoker_invokeWithRetry(t *testing.T) {
 
 	t.Run("Invoke with very high retry attempts", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    100,
@@ -176,7 +176,7 @@ func TestInvoker_jobOperations(t *testing.T) {
 
 	t.Run("StartJob with timeout context", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
@@ -190,7 +190,7 @@ func TestInvoker_jobOperations(t *testing.T) {
 
 	t.Run("StartJob with retry", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 3,
@@ -204,7 +204,7 @@ func TestInvoker_jobOperations(t *testing.T) {
 
 	t.Run("StreamJob with invalid job ID", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx := context.Background()
@@ -219,7 +219,7 @@ func TestInvoker_jobOperations(t *testing.T) {
 
 	t.Run("StreamJob with timeout context", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
@@ -236,7 +236,7 @@ func TestInvoker_jobOperations(t *testing.T) {
 
 	t.Run("CancelJob with invalid job ID", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx := context.Background()
@@ -247,7 +247,7 @@ func TestInvoker_jobOperations(t *testing.T) {
 
 	t.Run("CancelJob with timeout context", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
@@ -260,7 +260,7 @@ func TestInvoker_jobOperations(t *testing.T) {
 
 	t.Run("CancelJob with retry", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 3,
@@ -278,7 +278,7 @@ func TestInvoker_jobOperations(t *testing.T) {
 func TestInvoker_connectWithReconnect(t *testing.T) {
 	t.Run("Invoke with reconnect enabled", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Reconnect: &ReconnectConfig{
 				Enabled:        true,
 				MaxAttempts:    5,
@@ -294,7 +294,7 @@ func TestInvoker_connectWithReconnect(t *testing.T) {
 
 	t.Run("Invoke with both retry and reconnect", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 3,
@@ -312,7 +312,7 @@ func TestInvoker_connectWithReconnect(t *testing.T) {
 
 	t.Run("Invoke with zero reconnect delay", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Reconnect: &ReconnectConfig{
 				Enabled:        true,
 				MaxAttempts:    2,
@@ -331,7 +331,7 @@ func TestInvoker_connectWithReconnect(t *testing.T) {
 func TestInvoker_schemaOperations(t *testing.T) {
 	t.Run("SetSchema with complex schema", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		schema := map[string]interface{}{
@@ -361,7 +361,7 @@ func TestInvoker_schemaOperations(t *testing.T) {
 
 	t.Run("SetSchema with empty schema", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		err := invoker.SetSchema("test.func", map[string]interface{}{})
@@ -370,7 +370,7 @@ func TestInvoker_schemaOperations(t *testing.T) {
 
 	t.Run("SetSchema with nil schema", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		var schema map[string]interface{} = nil
@@ -383,7 +383,7 @@ func TestInvoker_schemaOperations(t *testing.T) {
 func TestInvoker_variousOptions(t *testing.T) {
 	t.Run("Invoke with idempotency key", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		options := InvokeOptions{
@@ -397,7 +397,7 @@ func TestInvoker_variousOptions(t *testing.T) {
 
 	t.Run("Invoke with very long timeout", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		options := InvokeOptions{
@@ -411,7 +411,7 @@ func TestInvoker_variousOptions(t *testing.T) {
 
 	t.Run("Invoke with zero timeout", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		options := InvokeOptions{
@@ -425,7 +425,7 @@ func TestInvoker_variousOptions(t *testing.T) {
 
 	t.Run("Invoke with many headers", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		headers := make(map[string]string)
@@ -447,7 +447,7 @@ func TestInvoker_variousOptions(t *testing.T) {
 func TestInvoker_concurrentInvokes(t *testing.T) {
 	t.Run("concurrent Invoke operations", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		const numGoroutines = 20

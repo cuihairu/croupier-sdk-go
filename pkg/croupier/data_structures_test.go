@@ -451,7 +451,7 @@ func TestInterface_types(t *testing.T) {
 		var invoker Invoker
 
 		invoker = NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {

@@ -15,7 +15,7 @@ func TestContext_cancellationScenarios(t *testing.T) {
 		cancel()
 
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		_, err := invoker.Invoke(ctx, "test.func", "{}", InvokeOptions{})
@@ -29,7 +29,7 @@ func TestContext_cancellationScenarios(t *testing.T) {
 		time.Sleep(10 * time.Millisecond) // Ensure timeout has passed
 
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		_, err := invoker.Invoke(ctx, "test.func", "{}", InvokeOptions{})
@@ -43,7 +43,7 @@ func TestContext_cancellationScenarios(t *testing.T) {
 		ctx := context.WithValue(context.Background(), key, "req-123")
 
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		_, err := invoker.Invoke(ctx, "test.func", "{}", InvokeOptions{})
@@ -57,7 +57,7 @@ func TestContext_cancellationScenarios(t *testing.T) {
 
 func TestPayload_edgeCases(t *testing.T) {
 	invoker := NewInvoker(&InvokerConfig{
-		Address: "localhost:8080",
+		Address: "http://localhost:19090",
 	})
 
 	ctx := context.Background()
@@ -99,7 +99,7 @@ func TestPayload_edgeCases(t *testing.T) {
 
 func TestFunctionID_variations(t *testing.T) {
 	invoker := NewInvoker(&InvokerConfig{
-		Address: "localhost:8080",
+		Address: "http://localhost:19090",
 	})
 
 	ctx := context.Background()

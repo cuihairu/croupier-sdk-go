@@ -14,7 +14,7 @@ import (
 func TestJobOperations_BasicScenarios(t *testing.T) {
 	t.Run("StartJob with minimal configuration", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -31,7 +31,7 @@ func TestJobOperations_BasicScenarios(t *testing.T) {
 
 	t.Run("StartJob with custom options", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -59,7 +59,7 @@ func TestJobOperations_BasicScenarios(t *testing.T) {
 
 	t.Run("StartJob with various payloads", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -91,7 +91,7 @@ func TestJobOperations_BasicScenarios(t *testing.T) {
 func TestJobOperations_StreamJob(t *testing.T) {
 	t.Run("StreamJob with valid job ID", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -132,7 +132,7 @@ func TestJobOperations_StreamJob(t *testing.T) {
 
 	t.Run("StreamJob with timeout context", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -152,7 +152,7 @@ func TestJobOperations_StreamJob(t *testing.T) {
 
 	t.Run("StreamJob multiple jobs concurrently", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -177,7 +177,7 @@ func TestJobOperations_StreamJob(t *testing.T) {
 func TestJobOperations_CancelJob(t *testing.T) {
 	t.Run("CancelJob immediately after start", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -199,7 +199,7 @@ func TestJobOperations_CancelJob(t *testing.T) {
 
 	t.Run("CancelJob with various job IDs", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -226,7 +226,7 @@ func TestJobOperations_CancelJob(t *testing.T) {
 
 	t.Run("CancelJob with context values", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -250,7 +250,7 @@ func TestJobOperations_CancelJob(t *testing.T) {
 func TestJobOperations_ErrorScenarios(t *testing.T) {
 	t.Run("StartJob with invalid function IDs", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -276,7 +276,7 @@ func TestJobOperations_ErrorScenarios(t *testing.T) {
 
 	t.Run("StartJob with cancelled context", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -294,7 +294,7 @@ func TestJobOperations_ErrorScenarios(t *testing.T) {
 
 	t.Run("Job operations on closed invoker", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -327,7 +327,7 @@ func TestJobOperations_ErrorScenarios(t *testing.T) {
 func TestJobOperations_PerformancePatterns(t *testing.T) {
 	t.Run("Rapid job creation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -357,7 +357,7 @@ func TestJobOperations_PerformancePatterns(t *testing.T) {
 
 	t.Run("Concurrent job operations", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -400,7 +400,7 @@ func TestJobOperations_PerformancePatterns(t *testing.T) {
 func TestJobOperations_IntegrationPatterns(t *testing.T) {
 	t.Run("Invoke and job operations together", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -430,7 +430,7 @@ func TestJobOperations_IntegrationPatterns(t *testing.T) {
 
 	t.Run("Job with idempotency", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

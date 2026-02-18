@@ -13,7 +13,7 @@ import (
 func TestInvoker_tlsConfigTests(t *testing.T) {
 	t.Run("buildTLSConfig with nil config", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		// buildTLSConfig is called internally during Connect
@@ -24,7 +24,7 @@ func TestInvoker_tlsConfigTests(t *testing.T) {
 
 	t.Run("buildTLSConfig with CA file only", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			CAFile:  "/path/to/ca.crt",
 		})
 
@@ -94,7 +94,7 @@ func TestInvoker_tlsConfigTests(t *testing.T) {
 func TestInvoker_retryDelayCalculation(t *testing.T) {
 	t.Run("calculateRetryDelay with various attempts", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:           true,
 				MaxAttempts:       5,
@@ -113,7 +113,7 @@ func TestInvoker_retryDelayCalculation(t *testing.T) {
 
 	t.Run("calculateRetryDelay with zero multiplier", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:           true,
 				MaxAttempts:       3,
@@ -130,7 +130,7 @@ func TestInvoker_retryDelayCalculation(t *testing.T) {
 
 	t.Run("calculateRetryDelay with large multiplier", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:           true,
 				MaxAttempts:       3,
@@ -150,7 +150,7 @@ func TestInvoker_retryDelayCalculation(t *testing.T) {
 func TestInvoker_reconnectDelayCalculation(t *testing.T) {
 	t.Run("calculateReconnectDelay with various attempts", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Reconnect: &ReconnectConfig{
 				Enabled:           true,
 				MaxAttempts:       5,
@@ -169,7 +169,7 @@ func TestInvoker_reconnectDelayCalculation(t *testing.T) {
 
 	t.Run("calculateReconnectDelay with zero delay", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Reconnect: &ReconnectConfig{
 				Enabled:        true,
 				MaxAttempts:    3,
@@ -188,7 +188,7 @@ func TestInvoker_reconnectDelayCalculation(t *testing.T) {
 func TestInvoker_connectionErrorChecks(t *testing.T) {
 	t.Run("isConnectionError with various errors", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		// isConnectionError is called internally
@@ -202,7 +202,7 @@ func TestInvoker_connectionErrorChecks(t *testing.T) {
 func TestInvoker_scheduleReconnect(t *testing.T) {
 	t.Run("scheduleReconnectIfNeeded with reconnect disabled", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Reconnect: &ReconnectConfig{
 				Enabled: false,
 			},
@@ -215,7 +215,7 @@ func TestInvoker_scheduleReconnect(t *testing.T) {
 
 	t.Run("scheduleReconnectIfNeeded with reconnect enabled", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Reconnect: &ReconnectConfig{
 				Enabled:     true,
 				MaxAttempts: 3,
@@ -232,7 +232,7 @@ func TestInvoker_scheduleReconnect(t *testing.T) {
 func TestInvoker_invokeCombinations(t *testing.T) {
 	t.Run("Invoke with both retry and reconnect", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 3,
@@ -250,7 +250,7 @@ func TestInvoker_invokeCombinations(t *testing.T) {
 
 	t.Run("Invoke with all options", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 5,
@@ -288,7 +288,7 @@ func TestInvoker_multipleInvokers(t *testing.T) {
 
 		for i := 0; i < 5; i++ {
 			invokers[i] = NewInvoker(&InvokerConfig{
-				Address: "localhost:8080",
+				Address: "http://localhost:19090",
 				Retry: &RetryConfig{
 					Enabled:     true,
 					MaxAttempts: 2,
@@ -338,7 +338,7 @@ func TestInvoker_closeTests(t *testing.T) {
 
 	t.Run("close multiple times", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		// Close multiple times

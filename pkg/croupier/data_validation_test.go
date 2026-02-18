@@ -15,7 +15,7 @@ import (
 func TestDataValidation_InputValidation(t *testing.T) {
 	t.Run("Empty payloads", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -41,7 +41,7 @@ func TestDataValidation_InputValidation(t *testing.T) {
 
 	t.Run("Malformed JSON payloads", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -73,7 +73,7 @@ func TestDataValidation_InputValidation(t *testing.T) {
 
 	t.Run("Special character payloads", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -102,7 +102,7 @@ func TestDataValidation_InputValidation(t *testing.T) {
 
 	t.Run("Large payloads", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -137,7 +137,7 @@ func TestDataValidation_InputValidation(t *testing.T) {
 func TestDataValidation_OutputValidation(t *testing.T) {
 	t.Run("Empty result handling", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -159,7 +159,7 @@ func TestDataValidation_OutputValidation(t *testing.T) {
 
 	t.Run("Malformed result handling", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -189,7 +189,7 @@ func TestDataValidation_OutputValidation(t *testing.T) {
 func TestDataValidation_TypeValidation(t *testing.T) {
 	t.Run("JSON primitive types", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -216,7 +216,7 @@ func TestDataValidation_TypeValidation(t *testing.T) {
 
 	t.Run("JSON complex types", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -242,7 +242,7 @@ func TestDataValidation_TypeValidation(t *testing.T) {
 
 	t.Run("Array payloads", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -272,7 +272,7 @@ func TestDataValidation_TypeValidation(t *testing.T) {
 func TestDataValidation_SchemaValidation(t *testing.T) {
 	t.Run("Set schema with various types", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -306,7 +306,7 @@ func TestDataValidation_SchemaValidation(t *testing.T) {
 
 	t.Run("Schema with nested structures", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -347,7 +347,7 @@ func TestDataValidation_SchemaValidation(t *testing.T) {
 func TestDataValidation_FunctionIDValidation(t *testing.T) {
 	t.Run("Valid function IDs", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -377,7 +377,7 @@ func TestDataValidation_FunctionIDValidation(t *testing.T) {
 
 	t.Run("Special character function IDs", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -403,7 +403,7 @@ func TestDataValidation_FunctionIDValidation(t *testing.T) {
 
 	t.Run("Empty and invalid function IDs", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -433,7 +433,7 @@ func TestDataValidation_FunctionIDValidation(t *testing.T) {
 func TestDataValidation_HeaderValidation(t *testing.T) {
 	t.Run("Standard headers", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -460,7 +460,7 @@ func TestDataValidation_HeaderValidation(t *testing.T) {
 
 	t.Run("Custom headers", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -487,7 +487,7 @@ func TestDataValidation_HeaderValidation(t *testing.T) {
 
 	t.Run("Headers with special values", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -517,7 +517,7 @@ func TestDataValidation_HeaderValidation(t *testing.T) {
 func TestDataValidation_IdempotencyKeyValidation(t *testing.T) {
 	t.Run("Valid idempotency keys", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -544,7 +544,7 @@ func TestDataValidation_IdempotencyKeyValidation(t *testing.T) {
 
 	t.Run("Empty and special idempotency keys", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -574,7 +574,7 @@ func TestDataValidation_IdempotencyKeyValidation(t *testing.T) {
 func TestDataValidation_DataTransformation(t *testing.T) {
 	t.Run("JSON marshaling/unmarshaling", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -605,7 +605,7 @@ func TestDataValidation_DataTransformation(t *testing.T) {
 
 	t.Run("Data encoding scenarios", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -634,7 +634,7 @@ func TestDataValidation_DataTransformation(t *testing.T) {
 func TestDataValidation_BoundaryTests(t *testing.T) {
 	t.Run("Maximum payload sizes", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -668,7 +668,7 @@ func TestDataValidation_BoundaryTests(t *testing.T) {
 
 	t.Run("Minimum and zero-length payloads", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -696,7 +696,7 @@ func TestDataValidation_BoundaryTests(t *testing.T) {
 func TestDataValidation_ConcurrentDataTests(t *testing.T) {
 	t.Run("Concurrent schema updates", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -723,7 +723,7 @@ func TestDataValidation_ConcurrentDataTests(t *testing.T) {
 
 	t.Run("Concurrent invokes with different data", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

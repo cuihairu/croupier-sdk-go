@@ -42,8 +42,8 @@ func TestAdvancedIntegration_MultiInvoker(t *testing.T) {
 
 	t.Run("Failover between invokers", func(t *testing.T) {
 		// Create primary and backup invokers
-		primary := NewHTTPInvoker(&InvokerConfig{Address: "localhost:19090"})
-		backup := NewHTTPInvoker(&InvokerConfig{Address: "localhost:19091"})
+		primary := NewHTTPInvoker(&InvokerConfig{Address: "http://localhost:19090"})
+		backup := NewHTTPInvoker(&InvokerConfig{Address: "http://localhost:19090"})
 
 		if primary == nil || backup == nil {
 			t.Fatal("Failed to create invokers")
@@ -110,7 +110,7 @@ func TestAdvancedIntegration_MultiInvoker(t *testing.T) {
 func TestAdvancedIntegration_ComplexWorkflows(t *testing.T) {
 	t.Run("Fan-out fan-in pattern", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -160,7 +160,7 @@ func TestAdvancedIntegration_ComplexWorkflows(t *testing.T) {
 
 	t.Run("Pipeline pattern", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -185,7 +185,7 @@ func TestAdvancedIntegration_ComplexWorkflows(t *testing.T) {
 
 	t.Run("Distributed transaction simulation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -235,7 +235,7 @@ func TestAdvancedIntegration_ComplexWorkflows(t *testing.T) {
 func TestAdvancedIntegration_StateManagement(t *testing.T) {
 	t.Run("Schema state persistence", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -273,7 +273,7 @@ func TestAdvancedIntegration_StateManagement(t *testing.T) {
 
 	t.Run("Job state transitions", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -312,7 +312,7 @@ func TestAdvancedIntegration_StateManagement(t *testing.T) {
 
 	t.Run("Invoker lifecycle states", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -344,7 +344,7 @@ func TestAdvancedIntegration_StateManagement(t *testing.T) {
 func TestAdvancedIntegration_ErrorPropagation(t *testing.T) {
 	t.Run("Error wrapping and unwrapping", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -374,7 +374,7 @@ func TestAdvancedIntegration_ErrorPropagation(t *testing.T) {
 
 	t.Run("Retry error handling", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:           true,
 				MaxAttempts:       3,
@@ -398,7 +398,7 @@ func TestAdvancedIntegration_ErrorPropagation(t *testing.T) {
 
 	t.Run("Context cancellation propagation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -421,7 +421,7 @@ func TestAdvancedIntegration_ErrorPropagation(t *testing.T) {
 func TestAdvancedIntegration_ResourceContention(t *testing.T) {
 	t.Run("Memory contention", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -455,7 +455,7 @@ func TestAdvancedIntegration_ResourceContention(t *testing.T) {
 
 	t.Run("Network contention", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -489,7 +489,7 @@ func TestAdvancedIntegration_ResourceContention(t *testing.T) {
 
 	t.Run("Goroutine contention", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -540,7 +540,7 @@ func TestAdvancedIntegration_ResourceContention(t *testing.T) {
 func TestAdvancedIntegration_ObserverPattern(t *testing.T) {
 	t.Run("Event subscription simulation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -573,7 +573,7 @@ func TestAdvancedIntegration_ObserverPattern(t *testing.T) {
 
 	t.Run("Multiple observers", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -620,7 +620,7 @@ func TestAdvancedIntegration_ObserverPattern(t *testing.T) {
 func TestAdvancedIntegration_CachingTests(t *testing.T) {
 	t.Run("Idempotency key caching", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -647,7 +647,7 @@ func TestAdvancedIntegration_CachingTests(t *testing.T) {
 
 	t.Run("Schema caching", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -672,7 +672,7 @@ func TestAdvancedIntegration_CachingTests(t *testing.T) {
 func TestAdvancedIntegration_BackpressureTests(t *testing.T) {
 	t.Run("Slow consumer", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -704,7 +704,7 @@ func TestAdvancedIntegration_BackpressureTests(t *testing.T) {
 
 	t.Run("Fast producer", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -734,7 +734,7 @@ func TestAdvancedIntegration_BackpressureTests(t *testing.T) {
 func TestAdvancedIntegration_CascadingFailures(t *testing.T) {
 	t.Run("Dependency chain failure", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -756,7 +756,7 @@ func TestAdvancedIntegration_CascadingFailures(t *testing.T) {
 
 	t.Run("Partial failure recovery", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     true,
 				MaxAttempts: 3,
@@ -793,7 +793,7 @@ func TestAdvancedIntegration_CascadingFailures(t *testing.T) {
 func TestAdvancedIntegration_TimeoutVariations(t *testing.T) {
 	t.Run("Adaptive timeout", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -824,7 +824,7 @@ func TestAdvancedIntegration_TimeoutVariations(t *testing.T) {
 
 	t.Run("Timeout with retry", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    3,

@@ -81,10 +81,10 @@ func TestNumericConfigurations(t *testing.T) {
 func TestBooleanConfigurations(t *testing.T) {
 	t.Run("insecure true combinations", func(t *testing.T) {
 		configs := []InvokerConfig{
-			{Address: "localhost:8080", Insecure: true},
-			{Address: "localhost:8080", Insecure: true, CAFile: "/path/to/ca.crt"},
-			{Address: "localhost:8080", Insecure: true, CertFile: "/path/to/cert.pem"},
-			{Address: "localhost:8080", Insecure: true, KeyFile: "/path/to/key.pem"},
+			{Address: "http://localhost:19090", Insecure: true},
+			{Address: "http://localhost:19090", Insecure: true, CAFile: "/path/to/ca.crt"},
+			{Address: "http://localhost:19090", Insecure: true, CertFile: "/path/to/cert.pem"},
+			{Address: "http://localhost:19090", Insecure: true, KeyFile: "/path/to/key.pem"},
 		}
 		
 		for _, cfg := range configs {
@@ -97,9 +97,9 @@ func TestBooleanConfigurations(t *testing.T) {
 	
 	t.Run("insecure false with partial TLS", func(t *testing.T) {
 		configs := []InvokerConfig{
-			{Address: "localhost:8080", Insecure: false, CAFile: "/path/to/ca.crt"},
-			{Address: "localhost:8080", Insecure: false, CertFile: "/path/to/cert.pem"},
-			{Address: "localhost:8080", Insecure: false, KeyFile: "/path/to/key.pem"},
+			{Address: "http://localhost:19090", Insecure: false, CAFile: "/path/to/ca.crt"},
+			{Address: "http://localhost:19090", Insecure: false, CertFile: "/path/to/cert.pem"},
+			{Address: "http://localhost:19090", Insecure: false, KeyFile: "/path/to/key.pem"},
 		}
 		
 		for _, cfg := range configs {

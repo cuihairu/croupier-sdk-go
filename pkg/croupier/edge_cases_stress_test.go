@@ -15,7 +15,7 @@ import (
 func TestEdgeCases_zeroAndEmptyValues(t *testing.T) {
 	t.Run("Invoke with empty payload", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx := context.Background()
@@ -25,7 +25,7 @@ func TestEdgeCases_zeroAndEmptyValues(t *testing.T) {
 
 	t.Run("Invoke with whitespace payload", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		whitespacePayloads := []string{" ", "  ", "\t", "\n", "\r", " \t\n\r"}
@@ -39,7 +39,7 @@ func TestEdgeCases_zeroAndEmptyValues(t *testing.T) {
 
 	t.Run("Invoke with empty function ID", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx := context.Background()
@@ -49,7 +49,7 @@ func TestEdgeCases_zeroAndEmptyValues(t *testing.T) {
 
 	t.Run("InvokeOptions with zero timeout", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		options := InvokeOptions{
@@ -63,7 +63,7 @@ func TestEdgeCases_zeroAndEmptyValues(t *testing.T) {
 
 	t.Run("InvokeOptions with empty headers map", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		options := InvokeOptions{
@@ -83,7 +83,7 @@ func TestEdgeCases_extremeValues(t *testing.T) {
 
 		for _, attempts := range maxAttempts {
 			invoker := NewInvoker(&InvokerConfig{
-				Address: "localhost:8080",
+				Address: "http://localhost:19090",
 				Retry: &RetryConfig{
 					Enabled:     true,
 					MaxAttempts: attempts,
@@ -101,7 +101,7 @@ func TestEdgeCases_extremeValues(t *testing.T) {
 
 		for _, delay := range delays {
 			invoker := NewInvoker(&InvokerConfig{
-				Address: "localhost:8080",
+				Address: "http://localhost:19090",
 				Retry: &RetryConfig{
 					Enabled:        true,
 					MaxAttempts:    2,
@@ -121,7 +121,7 @@ func TestEdgeCases_extremeValues(t *testing.T) {
 
 		for _, mult := range multipliers {
 			invoker := NewInvoker(&InvokerConfig{
-				Address: "localhost:8080",
+				Address: "http://localhost:19090",
 				Retry: &RetryConfig{
 					Enabled:           true,
 					MaxAttempts:       2,
@@ -140,7 +140,7 @@ func TestEdgeCases_extremeValues(t *testing.T) {
 
 		for _, attempts := range maxAttempts {
 			invoker := NewInvoker(&InvokerConfig{
-				Address: "localhost:8080",
+				Address: "http://localhost:19090",
 				Reconnect: &ReconnectConfig{
 					Enabled:     true,
 					MaxAttempts: attempts,
@@ -158,7 +158,7 @@ func TestEdgeCases_extremeValues(t *testing.T) {
 func TestEdgeCases_specialCharacters(t *testing.T) {
 	t.Run("Invoke with special characters in payload", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		specialPayloads := []string{
@@ -183,7 +183,7 @@ func TestEdgeCases_specialCharacters(t *testing.T) {
 
 	t.Run("Invoke with Unicode edge cases", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		unicodePayloads := []string{
@@ -205,7 +205,7 @@ func TestEdgeCases_specialCharacters(t *testing.T) {
 
 	t.Run("Headers with special characters", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		specialHeaders := map[string]string{
@@ -232,7 +232,7 @@ func TestEdgeCases_specialCharacters(t *testing.T) {
 func TestEdgeCases_invalidInputs(t *testing.T) {
 	t.Run("Invoke with invalid JSON structures", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		invalidPayloads := []string{
@@ -259,7 +259,7 @@ func TestEdgeCases_invalidInputs(t *testing.T) {
 
 	t.Run("StartJob with invalid contexts", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		// Context with very short timeout
@@ -278,7 +278,7 @@ func TestEdgeCases_invalidInputs(t *testing.T) {
 
 	t.Run("SetSchema with invalid schemas", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		invalidSchemas := []map[string]interface{}{
@@ -301,7 +301,7 @@ func TestEdgeCases_invalidInputs(t *testing.T) {
 func TestEdgeCases_resourceLimits(t *testing.T) {
 	t.Run("Invoke with many header entries", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		// Create many headers
@@ -321,7 +321,7 @@ func TestEdgeCases_resourceLimits(t *testing.T) {
 
 	t.Run("Invoke with very long header values", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		longValue := string(make([]byte, 10000))
@@ -344,7 +344,7 @@ func TestEdgeCases_resourceLimits(t *testing.T) {
 
 	t.Run("Invoke with very long function ID", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		// Create a very long function ID
@@ -363,7 +363,7 @@ func TestEdgeCases_resourceLimits(t *testing.T) {
 func TestEdgeCases_timeRelatedTests(t *testing.T) {
 	t.Run("Invoke with very short timeout", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		timeouts := []time.Duration{
@@ -386,7 +386,7 @@ func TestEdgeCases_timeRelatedTests(t *testing.T) {
 
 	t.Run("Invoke with very long timeout", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		longTimeouts := []time.Duration{
@@ -408,7 +408,7 @@ func TestEdgeCases_timeRelatedTests(t *testing.T) {
 
 	t.Run("Invoke with context deadline in the past", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		past := time.Now().Add(-1 * time.Hour)
@@ -421,7 +421,7 @@ func TestEdgeCases_timeRelatedTests(t *testing.T) {
 
 	t.Run("Invoke with context deadline far in future", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		future := time.Now().Add(365 * 24 * time.Hour)
@@ -437,7 +437,7 @@ func TestEdgeCases_timeRelatedTests(t *testing.T) {
 func TestEdgeCases_nillAndZeroPointers(t *testing.T) {
 	t.Run("InvokeOptions with nil Retry", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		options := InvokeOptions{
@@ -477,7 +477,7 @@ func TestEdgeCases_nillAndZeroPointers(t *testing.T) {
 func TestEdgeCases_rapidOperations(t *testing.T) {
 	t.Run("rapid Invoke attempts", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx := context.Background()
@@ -497,7 +497,7 @@ func TestEdgeCases_rapidOperations(t *testing.T) {
 
 	t.Run("rapid StartJob attempts", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		ctx := context.Background()
@@ -522,7 +522,7 @@ func TestEdgeCases_rapidOperations(t *testing.T) {
 
 		for i := 0; i < 50; i++ {
 			invoker := NewInvoker(&InvokerConfig{
-				Address: "localhost:8080",
+				Address: "http://localhost:19090",
 			})
 			if invoker != nil {
 				_ = invoker.Close()
@@ -539,7 +539,7 @@ func TestEdgeCases_rapidOperations(t *testing.T) {
 func TestEdgeCases_concurrentStressTests(t *testing.T) {
 	t.Run("concurrent everything", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		const numGoroutines = 100
@@ -573,7 +573,7 @@ func TestEdgeCases_concurrentStressTests(t *testing.T) {
 
 	t.Run("concurrent with same invoker and different contexts", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		const numGoroutines = 50

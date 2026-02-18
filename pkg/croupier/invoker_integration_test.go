@@ -14,7 +14,7 @@ import (
 func TestInvoker_integration_lifecycle(t *testing.T) {
 	t.Run("Create and Close invoker", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -27,7 +27,7 @@ func TestInvoker_integration_lifecycle(t *testing.T) {
 
 	t.Run("Multiple Close calls", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -49,7 +49,7 @@ func TestInvoker_integration_lifecycle(t *testing.T) {
 
 	t.Run("Close after failed Invoke", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -68,7 +68,7 @@ func TestInvoker_integration_lifecycle(t *testing.T) {
 func TestInvoker_concurrent_invocations(t *testing.T) {
 	t.Run("Concurrent Invoke operations", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -100,7 +100,7 @@ func TestInvoker_concurrent_invocations(t *testing.T) {
 
 	t.Run("Concurrent StartJob operations", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -128,7 +128,7 @@ func TestInvoker_concurrent_invocations(t *testing.T) {
 
 	t.Run("Concurrent mixed operations", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -167,7 +167,7 @@ func TestInvoker_concurrent_invocations(t *testing.T) {
 func TestInvoker_context_variations(t *testing.T) {
 	t.Run("Invoke with cancelled context", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -184,7 +184,7 @@ func TestInvoker_context_variations(t *testing.T) {
 
 	t.Run("Invoke with timeout context", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -203,7 +203,7 @@ func TestInvoker_context_variations(t *testing.T) {
 
 	t.Run("Invoke with context values", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -218,7 +218,7 @@ func TestInvoker_context_variations(t *testing.T) {
 
 	t.Run("Invoke with deadline in the past", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -239,7 +239,7 @@ func TestInvoker_context_variations(t *testing.T) {
 func TestInvoker_payload_variations(t *testing.T) {
 	t.Run("Invoke with empty payload", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -254,7 +254,7 @@ func TestInvoker_payload_variations(t *testing.T) {
 
 	t.Run("Invoke with nil payload", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -269,7 +269,7 @@ func TestInvoker_payload_variations(t *testing.T) {
 
 	t.Run("Invoke with large payload", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -286,7 +286,7 @@ func TestInvoker_payload_variations(t *testing.T) {
 
 	t.Run("Invoke with various JSON payloads", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -315,7 +315,7 @@ func TestInvoker_payload_variations(t *testing.T) {
 func TestInvoker_function_id_variations(t *testing.T) {
 	t.Run("Invoke with various function IDs", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -346,7 +346,7 @@ func TestInvoker_function_id_variations(t *testing.T) {
 func TestInvoker_options_combinations(t *testing.T) {
 	t.Run("Invoke with IdempotencyKey variations", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -373,7 +373,7 @@ func TestInvoker_options_combinations(t *testing.T) {
 
 	t.Run("Invoke with Timeout variations", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -402,7 +402,7 @@ func TestInvoker_options_combinations(t *testing.T) {
 
 	t.Run("Invoke with Headers variations", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -437,7 +437,7 @@ func TestInvoker_options_combinations(t *testing.T) {
 
 	t.Run("Invoke with Retry options", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -468,7 +468,7 @@ func TestInvoker_options_combinations(t *testing.T) {
 func TestInvoker_rapid_operations(t *testing.T) {
 	t.Run("Rapid Invoke operations", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -497,7 +497,7 @@ func TestInvoker_rapid_operations(t *testing.T) {
 
 		for i := 0; i < iterations; i++ {
 			invoker := NewInvoker(&InvokerConfig{
-				Address: "localhost:8080",
+				Address: "http://localhost:19090",
 			})
 
 			if invoker != nil {
@@ -519,7 +519,7 @@ func TestInvoker_rapid_operations(t *testing.T) {
 func TestInvoker_error_scenarios(t *testing.T) {
 	t.Run("Invoke after Close", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -535,7 +535,7 @@ func TestInvoker_error_scenarios(t *testing.T) {
 
 	t.Run("StartJob after Close", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -551,7 +551,7 @@ func TestInvoker_error_scenarios(t *testing.T) {
 
 	t.Run("SetSchema after Close", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -566,7 +566,7 @@ func TestInvoker_error_scenarios(t *testing.T) {
 
 	t.Run("StreamJob with invalid job ID", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -581,7 +581,7 @@ func TestInvoker_error_scenarios(t *testing.T) {
 
 	t.Run("CancelJob with invalid job ID", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -707,7 +707,7 @@ func TestInvoker_configuration_tests(t *testing.T) {
 func TestInvoker_schema_operations(t *testing.T) {
 	t.Run("SetSchema with various schemas", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -746,7 +746,7 @@ func TestInvoker_schema_operations(t *testing.T) {
 
 	t.Run("SetSchema for multiple functions", func(t *testing.T) {
 		invoker := NewInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 
 		if invoker == nil {
@@ -773,7 +773,7 @@ func TestInvoker_schema_operations(t *testing.T) {
 func TestInvoker_multiple_invokers(t *testing.T) {
 	t.Run("Multiple invokers with same config", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		}
 
 		const numInvokers = 10
@@ -803,7 +803,7 @@ func TestInvoker_multiple_invokers(t *testing.T) {
 				defer wg.Done()
 
 				invoker := NewInvoker(&InvokerConfig{
-					Address: "localhost:8080",
+					Address: "http://localhost:19090",
 				})
 
 				if invoker != nil {

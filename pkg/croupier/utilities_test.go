@@ -97,7 +97,7 @@ func TestGenerateBasicOutputSchema(t *testing.T) {
 // TestHTTPInvoker_parseJSONPayload_comprehensive tests parseJSONPayload method
 func TestHTTPInvoker_parseJSONPayload_comprehensive(t *testing.T) {
 	invoker := NewHTTPInvoker(&InvokerConfig{
-		Address: "localhost:8080",
+		Address: "http://localhost:19090",
 	})
 	httpInvoker := invoker.(*httpInvoker)
 
@@ -196,7 +196,7 @@ func TestHTTPInvoker_parseJSONPayload_comprehensive(t *testing.T) {
 // TestHTTPInvoker_validatePayload_comprehensive tests validatePayload method
 func TestHTTPInvoker_validatePayload_comprehensive(t *testing.T) {
 	invoker := NewHTTPInvoker(&InvokerConfig{
-		Address: "localhost:8080",
+		Address: "http://localhost:19090",
 	})
 	httpInvoker := invoker.(*httpInvoker)
 
@@ -282,7 +282,7 @@ func TestHTTPInvoker_validatePayload_comprehensive(t *testing.T) {
 // TestHTTPInvoker_SetDefaultGameEnv_comprehensive tests SetDefaultGameEnv method
 func TestHTTPInvoker_SetDefaultGameEnv_comprehensive(t *testing.T) {
 	invoker := NewHTTPInvoker(&InvokerConfig{
-		Address: "localhost:8080",
+		Address: "http://localhost:19090",
 	})
 	httpInvoker := invoker.(*httpInvoker)
 
@@ -321,7 +321,7 @@ func TestHTTPInvoker_SetDefaultGameEnv_comprehensive(t *testing.T) {
 func TestHTTPInvoker_IsConnected_default(t *testing.T) {
 	t.Run("new invoker is not connected", func(t *testing.T) {
 		invoker := NewHTTPInvoker(&InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		})
 		httpInvoker := invoker.(*httpInvoker)
 

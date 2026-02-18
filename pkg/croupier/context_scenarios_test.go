@@ -14,7 +14,7 @@ import (
 func TestContextScenarios_Timeouts(t *testing.T) {
 	t.Run("Invoke with very short timeout", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -45,7 +45,7 @@ func TestContextScenarios_Timeouts(t *testing.T) {
 
 	t.Run("Invoke with deadline", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -77,7 +77,7 @@ func TestContextScenarios_Timeouts(t *testing.T) {
 func TestContextScenarios_Cancellation(t *testing.T) {
 	t.Run("Cancel context immediately", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -95,7 +95,7 @@ func TestContextScenarios_Cancellation(t *testing.T) {
 
 	t.Run("Cancel context after delay", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -133,7 +133,7 @@ func TestContextScenarios_Cancellation(t *testing.T) {
 func TestContextScenarios_Values(t *testing.T) {
 	t.Run("Invoke with context values", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -157,7 +157,7 @@ func TestContextScenarios_Values(t *testing.T) {
 
 	t.Run("Invoke with nested context values", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -182,7 +182,7 @@ func TestContextScenarios_Values(t *testing.T) {
 func TestContextScenarios_Background(t *testing.T) {
 	t.Run("Invoke with background context", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -198,7 +198,7 @@ func TestContextScenarios_Background(t *testing.T) {
 
 	t.Run("Invoke with TODO context", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -217,7 +217,7 @@ func TestContextScenarios_Background(t *testing.T) {
 func TestContextScenarios_ChainedContexts(t *testing.T) {
 	t.Run("WithCancel then WithTimeout", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -237,7 +237,7 @@ func TestContextScenarios_ChainedContexts(t *testing.T) {
 
 	t.Run("WithTimeout then WithValue", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -257,7 +257,7 @@ func TestContextScenarios_ChainedContexts(t *testing.T) {
 
 	t.Run("WithValue then WithDeadline", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -280,7 +280,7 @@ func TestContextScenarios_ChainedContexts(t *testing.T) {
 func TestContextScenarios_ConcurrentOperations(t *testing.T) {
 	t.Run("Multiple concurrent invokes with different contexts", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -328,7 +328,7 @@ func TestContextScenarios_ConcurrentOperations(t *testing.T) {
 func TestContextScenarios_ErrorPropagation(t *testing.T) {
 	t.Run("Context cancellation error", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -357,7 +357,7 @@ func TestContextScenarios_ErrorPropagation(t *testing.T) {
 
 	t.Run("Context deadline exceeded error", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -391,7 +391,7 @@ func TestContextScenarios_ErrorPropagation(t *testing.T) {
 func TestContextScenarios_TimeoutValues(t *testing.T) {
 	t.Run("Invoke with InvokeOptions timeout", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -428,7 +428,7 @@ func TestContextScenarios_TimeoutValues(t *testing.T) {
 func TestContextScenarios_ContextChecks(t *testing.T) {
 	t.Run("Check context Done channel", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -463,7 +463,7 @@ func TestContextScenarios_ContextChecks(t *testing.T) {
 
 	t.Run("Check context Err method", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -492,7 +492,7 @@ func TestContextScenarios_ContextChecks(t *testing.T) {
 func TestContextScenarios_RealWorldPatterns(t *testing.T) {
 	t.Run("HTTP request context pattern", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -515,7 +515,7 @@ func TestContextScenarios_RealWorldPatterns(t *testing.T) {
 
 	t.Run("RPC call context pattern", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -537,7 +537,7 @@ func TestContextScenarios_RealWorldPatterns(t *testing.T) {
 
 	t.Run("Batch processing context pattern", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

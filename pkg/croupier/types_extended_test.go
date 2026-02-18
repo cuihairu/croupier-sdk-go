@@ -195,7 +195,7 @@ func TestTypes_ReconnectConfig(t *testing.T) {
 func TestTypes_InvokerConfig(t *testing.T) {
 	t.Run("InvokerConfig minimal", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:8080",
+			Address: "http://localhost:19090",
 		}
 
 		t.Logf("Minimal config: Address=%s", config.Address)

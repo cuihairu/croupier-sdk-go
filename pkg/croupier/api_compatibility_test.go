@@ -14,7 +14,7 @@ import (
 func TestAPICompatibility_InterfaceContracts(t *testing.T) {
 	t.Run("Invoker interface compliance", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -83,7 +83,7 @@ func TestAPICompatibility_InterfaceContracts(t *testing.T) {
 func TestAPICompatibility_BackwardsCompatibility(t *testing.T) {
 	t.Run("Default configuration values", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -106,11 +106,11 @@ func TestAPICompatibility_BackwardsCompatibility(t *testing.T) {
 		// Test various configuration patterns
 		configs := []*InvokerConfig{
 			// Minimal config
-			{Address: "localhost:19090"},
+			{Address: "http://localhost:19090"},
 			// With timeout
-			{Address: "localhost:19090", TimeoutSeconds: 30},
+			{Address: "http://localhost:19090", TimeoutSeconds: 30},
 			// With TLS
-			{Address: "localhost:19090", Insecure: true},
+			{Address: "http://localhost:19090", Insecure: true},
 			// With all fields
 			{
 				Address:        "localhost:19090",
@@ -148,7 +148,7 @@ func TestAPICompatibility_TypeConsistency(t *testing.T) {
 		}
 
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry:   retryConfig,
 		}
 
@@ -163,7 +163,7 @@ func TestAPICompatibility_TypeConsistency(t *testing.T) {
 
 	t.Run("InvokeOptions type consistency", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -206,7 +206,7 @@ func TestAPICompatibility_TypeConsistency(t *testing.T) {
 func TestAPICompatibility_ErrorHandlingConsistency(t *testing.T) {
 	t.Run("Consistent error types", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -255,7 +255,7 @@ func TestAPICompatibility_ErrorHandlingConsistency(t *testing.T) {
 func TestAPICompatibility_ConcurrencySafety(t *testing.T) {
 	t.Run("Concurrent invokes", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -288,7 +288,7 @@ func TestAPICompatibility_ConcurrencySafety(t *testing.T) {
 
 	t.Run("Concurrent schema operations", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -323,7 +323,7 @@ func TestAPICompatibility_ConcurrencySafety(t *testing.T) {
 func TestAPICompatibility_ParameterValidation(t *testing.T) {
 	t.Run("Invoke parameter validation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -355,7 +355,7 @@ func TestAPICompatibility_ParameterValidation(t *testing.T) {
 
 	t.Run("Schema parameter validation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -392,7 +392,7 @@ func TestAPICompatibility_ParameterValidation(t *testing.T) {
 func TestAPICompatibility_StateBehavior(t *testing.T) {
 	t.Run("State transitions", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -421,7 +421,7 @@ func TestAPICompatibility_StateBehavior(t *testing.T) {
 
 	t.Run("Idempotent operations", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -501,7 +501,7 @@ func TestAPICompatibility_TimeoutBehavior(t *testing.T) {
 func TestAPICompatibility_HeaderHandling(t *testing.T) {
 	t.Run("Empty headers", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -523,7 +523,7 @@ func TestAPICompatibility_HeaderHandling(t *testing.T) {
 
 	t.Run("Nil headers", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -543,7 +543,7 @@ func TestAPICompatibility_HeaderHandling(t *testing.T) {
 
 	t.Run("Multiple headers", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -572,7 +572,7 @@ func TestAPICompatibility_HeaderHandling(t *testing.T) {
 func TestAPICompatibility_RetryBehavior(t *testing.T) {
 	t.Run("Retry disabled", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:1",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled: false,
 			},
@@ -595,7 +595,7 @@ func TestAPICompatibility_RetryBehavior(t *testing.T) {
 
 	t.Run("Retry enabled", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:1",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    3,
@@ -624,7 +624,7 @@ func TestAPICompatibility_RetryBehavior(t *testing.T) {
 func TestAPICompatibility_JobBehavior(t *testing.T) {
 	t.Run("Job lifecycle", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -662,7 +662,7 @@ func TestAPICompatibility_JobBehavior(t *testing.T) {
 
 	t.Run("Invalid job operations", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

@@ -12,7 +12,7 @@ import (
 func TestSchemaOperations_BasicScenarios(t *testing.T) {
 	t.Run("SetSchema with simple string schema", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -33,7 +33,7 @@ func TestSchemaOperations_BasicScenarios(t *testing.T) {
 
 	t.Run("SetSchema with number schema", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -54,7 +54,7 @@ func TestSchemaOperations_BasicScenarios(t *testing.T) {
 
 	t.Run("SetSchema with boolean schema", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -78,7 +78,7 @@ func TestSchemaOperations_BasicScenarios(t *testing.T) {
 func TestSchemaOperations_ComplexSchemas(t *testing.T) {
 	t.Run("SetSchema with object schema", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -112,7 +112,7 @@ func TestSchemaOperations_ComplexSchemas(t *testing.T) {
 
 	t.Run("SetSchema with array schema", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -140,7 +140,7 @@ func TestSchemaOperations_ComplexSchemas(t *testing.T) {
 
 	t.Run("SetSchema with nested schema", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -182,7 +182,7 @@ func TestSchemaOperations_ComplexSchemas(t *testing.T) {
 func TestSchemaOperations_ValidationFeatures(t *testing.T) {
 	t.Run("SetSchema with enum validation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -204,7 +204,7 @@ func TestSchemaOperations_ValidationFeatures(t *testing.T) {
 
 	t.Run("SetSchema with range validation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -227,7 +227,7 @@ func TestSchemaOperations_ValidationFeatures(t *testing.T) {
 
 	t.Run("SetSchema with pattern validation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -249,7 +249,7 @@ func TestSchemaOperations_ValidationFeatures(t *testing.T) {
 
 	t.Run("SetSchema with length validation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -275,7 +275,7 @@ func TestSchemaOperations_ValidationFeatures(t *testing.T) {
 func TestSchemaOperations_MultipleSchemas(t *testing.T) {
 	t.Run("SetSchema for multiple functions", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -334,7 +334,7 @@ func TestSchemaOperations_MultipleSchemas(t *testing.T) {
 
 	t.Run("SetSchema with updates to same function", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -377,7 +377,7 @@ func TestSchemaOperations_MultipleSchemas(t *testing.T) {
 func TestSchemaOperations_EdgeCases(t *testing.T) {
 	t.Run("SetSchema with empty schema", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -395,7 +395,7 @@ func TestSchemaOperations_EdgeCases(t *testing.T) {
 
 	t.Run("SetSchema with nil schema", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -413,7 +413,7 @@ func TestSchemaOperations_EdgeCases(t *testing.T) {
 
 	t.Run("SetSchema with invalid function IDs", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -444,7 +444,7 @@ func TestSchemaOperations_EdgeCases(t *testing.T) {
 func TestSchemaOperations_ContextVariations(t *testing.T) {
 	t.Run("SetSchema with timeout context", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -468,7 +468,7 @@ func TestSchemaOperations_ContextVariations(t *testing.T) {
 
 	t.Run("SetSchema and Invoke together", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -500,7 +500,7 @@ func TestSchemaOperations_ContextVariations(t *testing.T) {
 func TestSchemaOperations_ComplexStructures(t *testing.T) {
 	t.Run("SetSchema with allOf", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -524,7 +524,7 @@ func TestSchemaOperations_ComplexStructures(t *testing.T) {
 
 	t.Run("SetSchema with anyOf", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -548,7 +548,7 @@ func TestSchemaOperations_ComplexStructures(t *testing.T) {
 
 	t.Run("SetSchema with oneOf", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

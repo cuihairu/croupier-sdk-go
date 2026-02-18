@@ -37,7 +37,7 @@ func TestConfigManagement_DefaultValues(t *testing.T) {
 
 	t.Run("Minimal invoker config", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -237,7 +237,7 @@ func TestRetryConfiguration_BoundaryValues(t *testing.T) {
 
 		for _, tc := range testCases {
 			config := &InvokerConfig{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 				Retry: &RetryConfig{
 					Enabled:     true,
 					MaxAttempts: tc.maxAttempts,
@@ -268,7 +268,7 @@ func TestRetryConfiguration_BoundaryValues(t *testing.T) {
 
 		for _, tc := range testCases {
 			config := &InvokerConfig{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 				Retry: &RetryConfig{
 					Enabled:        true,
 					MaxAttempts:    3,
@@ -296,7 +296,7 @@ func TestRetryConfiguration_BoundaryValues(t *testing.T) {
 
 		for _, mult := range multipliers {
 			config := &InvokerConfig{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 				Retry: &RetryConfig{
 					Enabled:           true,
 					MaxAttempts:       3,
@@ -325,7 +325,7 @@ func TestRetryConfiguration_BoundaryValues(t *testing.T) {
 
 		for _, jitter := range jitterFactors {
 			config := &InvokerConfig{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 				Retry: &RetryConfig{
 					Enabled:       true,
 					MaxAttempts:   3,
@@ -351,7 +351,7 @@ func TestReconnectConfiguration_BoundaryValues(t *testing.T) {
 
 		for _, maxAttempts := range attempts {
 			config := &InvokerConfig{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 				Reconnect: &ReconnectConfig{
 					Enabled:     true,
 					MaxAttempts: maxAttempts,
@@ -379,7 +379,7 @@ func TestReconnectConfiguration_BoundaryValues(t *testing.T) {
 
 		for _, tc := range testCases {
 			config := &InvokerConfig{
-				Address: "localhost:19090",
+				Address: "http://localhost:19090",
 				Reconnect: &ReconnectConfig{
 					Enabled:        true,
 					MaxAttempts:    3,
@@ -434,7 +434,7 @@ func TestConfigCombinations_ComplexScenarios(t *testing.T) {
 
 	t.Run("Minimal configuration", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -482,7 +482,7 @@ func TestConfigImmutability(t *testing.T) {
 func TestConfigConcurrency(t *testing.T) {
 	t.Run("Concurrent invoker creation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		const numInvokers = 20
@@ -566,7 +566,7 @@ func TestConfigValidation_InvalidInputs(t *testing.T) {
 func TestConfigOptions_InvokeOptions(t *testing.T) {
 	t.Run("Options combinations", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -614,7 +614,7 @@ func TestConfigOptions_InvokeOptions(t *testing.T) {
 
 	t.Run("Empty vs nil headers", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -645,7 +645,7 @@ func TestConfigOptions_InvokeOptions(t *testing.T) {
 func TestConfigState_ImmutableState(t *testing.T) {
 	t.Run("Config after creation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -709,7 +709,7 @@ func TestConfigDefaults_OverrideBehavior(t *testing.T) {
 func TestConfigLifecycle(t *testing.T) {
 	t.Run("Config reuse after close", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		// First invoker

@@ -15,7 +15,7 @@ import (
 func TestSecurityValidation_InputValidation(t *testing.T) {
 	t.Run("SQL injection payloads", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -43,7 +43,7 @@ func TestSecurityValidation_InputValidation(t *testing.T) {
 
 	t.Run("XSS payloads", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -70,7 +70,7 @@ func TestSecurityValidation_InputValidation(t *testing.T) {
 
 	t.Run("Path traversal payloads", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -97,7 +97,7 @@ func TestSecurityValidation_InputValidation(t *testing.T) {
 
 	t.Run("Command injection payloads", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -127,7 +127,7 @@ func TestSecurityValidation_InputValidation(t *testing.T) {
 func TestSecurityValidation_HeaderSecurity(t *testing.T) {
 	t.Run("Header injection", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -154,7 +154,7 @@ func TestSecurityValidation_HeaderSecurity(t *testing.T) {
 
 	t.Run("Overly long headers", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -178,7 +178,7 @@ func TestSecurityValidation_HeaderSecurity(t *testing.T) {
 
 	t.Run("Special characters in headers", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -206,7 +206,7 @@ func TestSecurityValidation_HeaderSecurity(t *testing.T) {
 func TestErrorRecovery_ResiliencePatterns(t *testing.T) {
 	t.Run("Retry after transient failures", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:        true,
 				MaxAttempts:    5,
@@ -233,7 +233,7 @@ func TestErrorRecovery_ResiliencePatterns(t *testing.T) {
 
 	t.Run("Fallback mechanism", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -254,7 +254,7 @@ func TestErrorRecovery_ResiliencePatterns(t *testing.T) {
 
 	t.Run("Circuit breaker recovery", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry: &RetryConfig{
 				Enabled:     false, // Let circuit breaker handle retries
 				MaxAttempts: 1,
@@ -283,7 +283,7 @@ func TestErrorRecovery_ResiliencePatterns(t *testing.T) {
 
 	t.Run("Graceful degradation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -312,7 +312,7 @@ func TestErrorRecovery_ResiliencePatterns(t *testing.T) {
 func TestErrorRecovery_TimeoutRecovery(t *testing.T) {
 	t.Run("Recovery after timeout", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -338,7 +338,7 @@ func TestErrorRecovery_TimeoutRecovery(t *testing.T) {
 
 	t.Run("Adaptive timeout", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -369,7 +369,7 @@ func TestErrorRecovery_TimeoutRecovery(t *testing.T) {
 func TestErrorRecovery_StateRecovery(t *testing.T) {
 	t.Run("Recovery after invalid function ID", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -391,7 +391,7 @@ func TestErrorRecovery_StateRecovery(t *testing.T) {
 
 	t.Run("Recovery after malformed payload", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -413,7 +413,7 @@ func TestErrorRecovery_StateRecovery(t *testing.T) {
 
 	t.Run("Recovery after schema set error", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -442,7 +442,7 @@ func TestErrorRecovery_StateRecovery(t *testing.T) {
 func TestErrorRecovery_ConnectionRecovery(t *testing.T) {
 	t.Run("Reconnection attempts", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Reconnect: &ReconnectConfig{
 				Enabled:           true,
 				MaxAttempts:       3,
@@ -470,7 +470,7 @@ func TestErrorRecovery_ConnectionRecovery(t *testing.T) {
 
 	t.Run("Connection pool recovery", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		// Create and close multiple times
@@ -492,7 +492,7 @@ func TestErrorRecovery_ConnectionRecovery(t *testing.T) {
 func TestSecurityValidation_ResourceLimiting(t *testing.T) {
 	t.Run("Rate limiting simulation", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -517,7 +517,7 @@ func TestSecurityValidation_ResourceLimiting(t *testing.T) {
 
 	t.Run("Payload size limits", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -548,7 +548,7 @@ func TestSecurityValidation_ResourceLimiting(t *testing.T) {
 func TestSecurityValidation_AuthorizationTests(t *testing.T) {
 	t.Run("Authentication headers", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -601,7 +601,7 @@ func TestSecurityValidation_AuthorizationTests(t *testing.T) {
 func TestErrorRecovery_CascadeFailure(t *testing.T) {
 	t.Run("Dependency chain failure", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -623,7 +623,7 @@ func TestErrorRecovery_CascadeFailure(t *testing.T) {
 
 	t.Run("Partial failure recovery", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)

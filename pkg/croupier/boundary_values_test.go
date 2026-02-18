@@ -15,7 +15,7 @@ import (
 func TestBoundaryValues_Numeric(t *testing.T) {
 	t.Run("InvokeOptions timeout boundary values", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -47,7 +47,7 @@ func TestBoundaryValues_Numeric(t *testing.T) {
 
 	t.Run("RetryConfig numeric boundaries", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -84,7 +84,7 @@ func TestBoundaryValues_Numeric(t *testing.T) {
 
 	t.Run("RetryConfig delay boundaries", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -126,7 +126,7 @@ func TestBoundaryValues_Numeric(t *testing.T) {
 func TestBoundaryValues_StringLengths(t *testing.T) {
 	t.Run("Function ID length boundaries", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -155,7 +155,7 @@ func TestBoundaryValues_StringLengths(t *testing.T) {
 
 	t.Run("Payload length boundaries", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -184,7 +184,7 @@ func TestBoundaryValues_StringLengths(t *testing.T) {
 
 	t.Run("IdempotencyKey length boundaries", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -220,7 +220,7 @@ func TestBoundaryValues_StringLengths(t *testing.T) {
 func TestBoundaryValues_SliceAndMap(t *testing.T) {
 	t.Run("Headers map boundaries", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -267,7 +267,7 @@ func TestBoundaryValues_SliceAndMap(t *testing.T) {
 
 	t.Run("Schema complexity boundaries", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -331,7 +331,7 @@ func TestBoundaryValues_SliceAndMap(t *testing.T) {
 func TestBoundaryValues_FloatValues(t *testing.T) {
 	t.Run("BackoffMultiplier boundaries", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -370,7 +370,7 @@ func TestBoundaryValues_FloatValues(t *testing.T) {
 
 	t.Run("JitterFactor boundaries", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -410,7 +410,7 @@ func TestBoundaryValues_FloatValues(t *testing.T) {
 func TestBoundaryValues_SpecialCharacters(t *testing.T) {
 	t.Run("Function ID with special characters", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -443,7 +443,7 @@ func TestBoundaryValues_SpecialCharacters(t *testing.T) {
 
 	t.Run("Payload with special characters", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -472,7 +472,7 @@ func TestBoundaryValues_SpecialCharacters(t *testing.T) {
 
 	t.Run("Headers with special characters", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -505,7 +505,7 @@ func TestBoundaryValues_SpecialCharacters(t *testing.T) {
 func TestBoundaryValues_Combinatorial(t *testing.T) {
 	t.Run("Min timeout + Max retries", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -530,7 +530,7 @@ func TestBoundaryValues_Combinatorial(t *testing.T) {
 
 	t.Run("Max timeout + Min retries", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -555,7 +555,7 @@ func TestBoundaryValues_Combinatorial(t *testing.T) {
 
 	t.Run("Large payload + Many headers", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -586,7 +586,7 @@ func TestBoundaryValues_Combinatorial(t *testing.T) {
 func TestBoundaryValues_BooleanAndNil(t *testing.T) {
 	t.Run("Boolean flag combinations", func(t *testing.T) {
 		config := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Insecure: true,
 		}
 
@@ -606,7 +606,7 @@ func TestBoundaryValues_BooleanAndNil(t *testing.T) {
 	t.Run("Nil vs empty configurations", func(t *testing.T) {
 		// Nil retry config
 		config1 := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry:   nil,
 		}
 
@@ -623,7 +623,7 @@ func TestBoundaryValues_BooleanAndNil(t *testing.T) {
 
 		// Empty retry config
 		config2 := &InvokerConfig{
-			Address: "localhost:19090",
+			Address: "http://localhost:19090",
 			Retry:   &RetryConfig{},
 		}
 
