@@ -737,10 +737,12 @@ func TestLifecycle_ConfigurationValidation(t *testing.T) {
 
 			invoker := NewHTTPInvoker(config)
 			if invoker != nil {
-				ctx := context.Background()
-				result, err := invoker.Invoke(ctx, "test.function", "{}", InvokeOptions{})
-				t.Logf("%s: error=%v, result_len=%d", tc.name, err, len(result))
+				// Only verify that the invoker can be created with these configurations
+				// Don't actually invoke since extreme values (1000 retries, 16min delays) will timeout
+				t.Logf("%s: invoker created successfully with config", tc.name)
 				invoker.Close()
+			} else {
+				t.Errorf("%s: failed to create invoker", tc.name)
 			}
 		}
 	})
