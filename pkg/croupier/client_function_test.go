@@ -3,6 +3,7 @@
 
 //go:build integration
 // +build integration
+
 package croupier
 
 import (
