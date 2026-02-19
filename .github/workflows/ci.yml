@@ -46,10 +46,10 @@ jobs:
     - name: Run tests with coverage
       working-directory: ./sdk
       run: |
-        # Run tests for main package
-        go test -v -race -coverprofile=coverage.out -covermode=atomic ./pkg/croupier
-        # Run tests for all packages
-        go test -v -race ./pkg/...
+        # Run tests for main package (skip integration tests that require running agent)
+        go test -v -race -coverprofile=coverage.out -covermode=atomic -tags=!integration ./pkg/croupier
+        # Run tests for all packages (skip integration tests)
+        go test -v -race -tags=!integration ./pkg/...
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
