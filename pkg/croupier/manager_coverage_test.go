@@ -1,6 +1,8 @@
 // Copyright 2025 Croupier Authors
 // Licensed under the Apache License, Version 2.0
 
+//go:build integration
+// +build integration
 package croupier
 
 import (
