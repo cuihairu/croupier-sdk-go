@@ -2,6 +2,9 @@
 // Licensed under the Apache License, Version 2.0
 
 package croupier
+n//go:build integration
+// +build integration
+
 
 import (
 	"strings"
