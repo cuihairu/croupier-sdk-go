@@ -644,8 +644,9 @@ func TestConfigOptions_InvokeOptions(t *testing.T) {
 // TestConfigState_ImmutableState tests immutable state behavior
 func TestConfigState_ImmutableState(t *testing.T) {
 	t.Run("Config after creation", func(t *testing.T) {
+		originalAddress := "http://localhost:19090"
 		config := &InvokerConfig{
-			Address: "http://localhost:19090",
+			Address: originalAddress,
 		}
 
 		invoker := NewHTTPInvoker(config)
@@ -655,8 +656,8 @@ func TestConfigState_ImmutableState(t *testing.T) {
 		defer invoker.Close()
 
 		// Config should not be modified by invoker creation
-		if config.Address != "localhost:19090" {
-			t.Errorf("Address was modified: %s", config.Address)
+		if config.Address != originalAddress {
+			t.Errorf("Address was modified: expected %s, got %s", originalAddress, config.Address)
 		}
 
 		ctx := context.Background()
@@ -665,8 +666,8 @@ func TestConfigState_ImmutableState(t *testing.T) {
 		_ = err
 
 		// Config should not be modified by invoke
-		if config.Address != "localhost:19090" {
-			t.Errorf("Address was modified after invoke: %s", config.Address)
+		if config.Address != originalAddress {
+			t.Errorf("Address was modified after invoke: expected %s, got %s", originalAddress, config.Address)
 		}
 	})
 }
