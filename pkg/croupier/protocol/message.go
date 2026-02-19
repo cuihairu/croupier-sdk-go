@@ -121,6 +121,10 @@ func NewStreamMessage(msgID uint32, reqID uint32, body proto.Message) (*mangos.M
 // ParseMessage parses a received message.
 // It returns the version, message ID, request ID, and body.
 func ParseMessage(msg *mangos.Message) (version uint8, msgID uint32, reqID uint32, body []byte, err error) {
+	if msg == nil {
+		err = fmt.Errorf("message is nil")
+		return
+	}
 	if len(msg.Header) < HeaderSize {
 		err = fmt.Errorf("header too short: %d < %d", len(msg.Header), HeaderSize)
 		return
