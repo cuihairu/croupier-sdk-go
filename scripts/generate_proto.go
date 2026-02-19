@@ -19,7 +19,7 @@ type ProtoFile struct {
 
 // getProtoFiles returns the list of proto files to download
 func getProtoFiles(branch string) []ProtoFile {
-	baseURL := fmt.Sprintf("https://raw.githubusercontent.com/cuihairu/croupier-proto/%s", branch)
+	baseURL := fmt.Sprintf("https://raw.githubusercontent.com/cuihairu/croupier/%s/proto", branch)
 
 	return []ProtoFile{
 		{

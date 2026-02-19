@@ -56,8 +56,8 @@ Croupier Go SDK 是 [Croupier](https://github.com/cuihairu/croupier) 游戏后�
 
 | 项目 | 描述 | 链接 |
 |------|------|------|
-| **Croupier** | 游戏后端平台主项目 | [cuihairu/croupier](https://github.com/cuihairu/croupier) |
-| **Croupier Proto** | 协议定义（Protobuf/gRPC） | [cuihairu/croupier-proto](https://github.com/cuihairu/croupier-proto) |
+| **Croupier** | 游戏后端平台主项目（包含 Proto 定义） | [cuihairu/croupier](https://github.com/cuihairu/croupier) |
+| **Proto 文件** | 协议定义（Protobuf/gRPC） | [proto/](https://github.com/cuihairu/croupier/tree/main/proto) |
 
 ## 其他语言 SDK
 
