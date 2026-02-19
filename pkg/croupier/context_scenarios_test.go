@@ -406,7 +406,7 @@ func TestContextScenarios_TimeoutValues(t *testing.T) {
 			time.Nanosecond,
 			time.Millisecond,
 			100 * time.Millisecond,
-			Second,
+			time.Second,
 		}
 
 		for _, timeout := range timeouts {
