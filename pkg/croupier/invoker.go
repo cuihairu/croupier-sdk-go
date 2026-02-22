@@ -285,6 +285,8 @@ func (i *nngInvoker) StartJob(ctx context.Context, functionID, payload string, o
 }
 
 // StreamJob implements Invoker.StreamJob using NNG
+// Note: Since NNG REP protocol doesn't support true streaming, this implementation
+// polls for job status updates and sends events to the channel.
 func (i *nngInvoker) StreamJob(ctx context.Context, jobID string) (<-chan JobEvent, error) {
 	eventCh := make(chan JobEvent, 10)
 
@@ -306,10 +308,97 @@ func (i *nngInvoker) StreamJob(ctx context.Context, jobID string) (<-chan JobEve
 		return eventCh, fmt.Errorf("not connected to server: %w", err)
 	}
 
-	// TODO: Implement streaming using NNG Pair protocol or Pub/Sub
-	// For now, close the channel and return an error
-	close(eventCh)
-	return eventCh, fmt.Errorf("streaming not yet implemented for NNG transport")
+	// Start polling goroutine for job status
+	go func() {
+		defer close(eventCh)
+
+		ticker := time.NewTicker(500 * time.Millisecond)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				// Poll for job status
+				req := &sdkv1.JobStreamRequest{
+					JobId: jobID,
+				}
+
+				reqBytes, err := proto.Marshal(req)
+				if err != nil {
+					eventCh <- JobEvent{
+						EventType: "error",
+						JobID:     jobID,
+						Error:     fmt.Sprintf("marshal request: %v", err),
+						Done:      true,
+					}
+					return
+				}
+
+				i.mu.RLock()
+				client := i.client
+				i.mu.RUnlock()
+
+				if client == nil {
+					eventCh <- JobEvent{
+						EventType: "error",
+						JobID:     jobID,
+						Error:     "connection lost",
+						Done:      true,
+					}
+					return
+				}
+
+				_, respBody, err := client.Call(ctx, protocol.MsgStreamJobRequest, reqBytes)
+				if err != nil {
+					eventCh <- JobEvent{
+						EventType: "error",
+						JobID:     jobID,
+						Error:     fmt.Sprintf("poll job status failed: %v", err),
+						Done:      true,
+					}
+					return
+				}
+
+				// Parse job event
+				event := &sdkv1.JobEvent{}
+				if err := proto.Unmarshal(respBody, event); err != nil {
+					eventCh <- JobEvent{
+						EventType: "error",
+						JobID:     jobID,
+						Error:     fmt.Sprintf("unmarshal response: %v", err),
+						Done:      true,
+					}
+					return
+				}
+
+				// Send event to channel
+				jobEvent := JobEvent{
+					EventType: event.GetType(),
+					JobID:     jobID,
+					Payload:   string(event.GetPayload()),
+				}
+				if event.GetProgress() > 0 {
+					jobEvent.Payload = fmt.Sprintf("Progress: %d%%", event.GetProgress())
+				}
+				if event.GetMessage() != "" {
+					jobEvent.Payload = event.GetMessage()
+				}
+
+				// Check if job is complete
+				if event.GetType() == "done" || event.GetType() == "error" {
+					jobEvent.Done = true
+					eventCh <- jobEvent
+					return
+				}
+
+				eventCh <- jobEvent
+			}
+		}
+	}()
+
+	return eventCh, nil
 }
 
 // CancelJob implements Invoker.CancelJob

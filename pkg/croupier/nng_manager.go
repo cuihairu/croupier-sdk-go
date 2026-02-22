@@ -2,15 +2,19 @@
 package croupier
 
 import (
+	"compress/gzip"
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
 	"sync"
 	"time"
 
+	agentv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/agent/v1"
 	sdkv1 "github.com/cuihairu/croupier/sdks/go/pkg/pb/croupier/sdk/v1"
 	"google.golang.org/protobuf/proto"
 
@@ -55,6 +59,25 @@ type NNGManager struct {
 
 	// Server for handling incoming RPC calls
 	rpcHandler *rpcHandler
+
+	// Job management
+	jobs      map[string]*Job
+	jobsMutex sync.RWMutex
+	jobsSeq   uint64
+}
+
+// Job represents an async job execution
+type Job struct {
+	ID         string
+	FunctionID string
+	Payload    []byte
+	Status     agentv1.JobStatus
+	CreatedAt  int64
+	UpdatedAt  int64
+	Result     []byte
+	Error      string
+	Progress   int32
+	Cancel     context.CancelFunc
 }
 
 // rpcHandler implements the transport.Handler interface for NNG
@@ -79,6 +102,7 @@ func NewNNGManager(config ClientConfig, handlers map[string]FunctionHandler) (Ma
 			InsecureSkipVerify: config.InsecureSkipVerify,
 		},
 		handlers: handlers,
+		jobs:     make(map[string]*Job),
 	}
 	n.rpcHandler = newRPCHandler(n)
 	return n, nil
@@ -223,6 +247,13 @@ func (n *NNGManager) RegisterWithAgent(ctx context.Context, serviceID, serviceVe
 	// Start heartbeat after successful registration
 	n.startHeartbeat()
 
+	// Register capabilities (optional, non-blocking)
+	go func() {
+		if err := n.registerCapabilities(context.Background()); err != nil {
+			logDebugf("Failed to register capabilities: %v", err)
+		}
+	}()
+
 	return sessionID, nil
 }
 
@@ -257,12 +288,11 @@ func (n *NNGManager) startLocalServer(ctx context.Context) error {
 		_ = server.Serve(ctx)
 	}()
 
-	// Get the actual address from the server
-	// For now, we'll use the config address or wait for it to be set
-	n.localAddr = listenAddr
-	if listenAddr == "127.0.0.1:0" {
-		// TODO: Get actual address from server
-		n.localAddr = "127.0.0.1:0" // Placeholder
+	// Get the actual address from the server (resolves port 0 to assigned port)
+	n.localAddr = server.GetActualAddress()
+	if n.localAddr == "" {
+		// Fallback to config address if server doesn't provide actual address
+		n.localAddr = listenAddr
 	}
 
 	n.server = server
@@ -282,10 +312,87 @@ func (n *NNGManager) stopLocalServer() {
 
 // registerCapabilities registers capabilities with the control service
 func (n *NNGManager) registerCapabilities(ctx context.Context) error {
-	// For now, skip capability registration via NNG
-	// This would require creating a separate client to the control service
-	// TODO: Implement NNG-based control service client
+	// Check if we have a client connection
+	if n.client == nil {
+		return fmt.Errorf("not connected to agent")
+	}
+
+	// Build provider metadata
+	provider := &agentv1.ProviderMeta{
+		Id:      n.serviceID,
+		Version: n.serviceVersion,
+		Lang:    "go",
+		Sdk:     "croupier-go",
+	}
+
+	// Build capabilities manifest from registered functions
+	manifest, err := n.buildCapabilitiesManifest()
+	if err != nil {
+		return fmt.Errorf("build capabilities manifest: %w", err)
+	}
+
+	// Compress manifest with gzip
+	var manifestBuf bytes.Buffer
+	gzipWriter := gzip.NewWriter(&manifestBuf)
+	if err := json.NewEncoder(gzipWriter).Encode(manifest); err != nil {
+		return fmt.Errorf("encode manifest: %w", err)
+	}
+	if err := gzipWriter.Close(); err != nil {
+		return fmt.Errorf("compress manifest: %w", err)
+	}
+
+	// Build request
+	req := &agentv1.RegisterCapabilitiesRequest{
+		Provider:       provider,
+		ManifestJsonGz: manifestBuf.Bytes(),
+	}
+
+	// Marshal request
+	reqBytes, err := proto.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("marshal request: %w", err)
+	}
+
+	// Send to agent using transport layer
+	_, respBody, err := n.client.Call(ctx, protocol.MsgRegisterCapabilitiesReq, reqBytes)
+	if err != nil {
+		return fmt.Errorf("send capabilities registration: %w", err)
+	}
+
+	// Parse response
+	resp := &agentv1.RegisterCapabilitiesResponse{}
+	if err := proto.Unmarshal(respBody, resp); err != nil {
+		return fmt.Errorf("unmarshal response: %w", err)
+	}
+
+	logInfof("Successfully registered capabilities for service: %s", n.serviceID)
 	return nil
+}
+
+// buildCapabilitiesManifest builds a capabilities manifest from registered functions
+func (n *NNGManager) buildCapabilitiesManifest() (map[string]interface{}, error) {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
+	manifest := map[string]interface{}{
+		"type":       "function-provider",
+		"version":    "1.0",
+		"serviceID":  n.serviceID,
+		"functions":  []map[string]interface{}{},
+	}
+
+	// Add function descriptors
+	var functions []map[string]interface{}
+	for funcID := range n.handlers {
+		funcDesc := map[string]interface{}{
+			"id":      funcID,
+			"version": "1.0.0",
+		}
+		functions = append(functions, funcDesc)
+	}
+
+	manifest["functions"] = functions
+	return manifest, nil
 }
 
 func (n *NNGManager) startHeartbeat() {
@@ -391,18 +498,171 @@ func (h *rpcHandler) invoke(ctx context.Context, reqID uint32, body []byte) ([]b
 }
 
 func (h *rpcHandler) startJob(ctx context.Context, reqID uint32, body []byte) ([]byte, error) {
-	// TODO: Implement async job support
-	return nil, fmt.Errorf("StartJob not yet implemented")
+	req := &sdkv1.InvokeRequest{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		return nil, err
+	}
+
+	// Look up handler from manager
+	h.manager.mu.RLock()
+	handler, ok := h.manager.handlers[req.GetFunctionId()]
+	h.manager.mu.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("function not found: %s", req.GetFunctionId())
+	}
+
+	// Generate job ID
+	h.manager.jobsMutex.Lock()
+	h.manager.jobsSeq++
+	jobID := fmt.Sprintf("job-%d", h.manager.jobsSeq)
+	h.manager.jobsMutex.Unlock()
+
+	// Create job context with cancellation
+	jobCtx, jobCancel := context.WithCancel(context.Background())
+
+	// Create job record
+	now := time.Now().Unix()
+	job := &Job{
+		ID:         jobID,
+		FunctionID: req.GetFunctionId(),
+		Payload:    req.GetPayload(),
+		Status:     agentv1.JobStatus_JOB_STATUS_PENDING,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+		Cancel:     jobCancel,
+	}
+
+	// Store job
+	h.manager.jobsMutex.Lock()
+	h.manager.jobs[jobID] = job
+	h.manager.jobsMutex.Unlock()
+
+	// Start job execution in background
+	go h.executeJob(jobCtx, job, handler)
+
+	// Return job ID immediately
+	respMsg := &sdkv1.StartJobResponse{
+		JobId: jobID,
+	}
+
+	return proto.Marshal(respMsg)
+}
+
+// executeJob executes a job asynchronously
+func (h *rpcHandler) executeJob(ctx context.Context, job *Job, handler FunctionHandler) {
+	// Update status to running
+	h.manager.jobsMutex.Lock()
+	job.Status = agentv1.JobStatus_JOB_STATUS_RUNNING
+	job.UpdatedAt = time.Now().Unix()
+	h.manager.jobsMutex.Unlock()
+
+	// Execute the handler
+	result, err := handler(ctx, job.Payload)
+
+	// Update job with result
+	h.manager.jobsMutex.Lock()
+	defer h.manager.jobsMutex.Unlock()
+
+	if err != nil {
+		job.Status = agentv1.JobStatus_JOB_STATUS_FAILED
+		job.Error = err.Error()
+	} else {
+		job.Status = agentv1.JobStatus_JOB_STATUS_COMPLETED
+		job.Result = result
+	}
+	job.UpdatedAt = time.Now().Unix()
 }
 
 func (h *rpcHandler) cancelJob(ctx context.Context, reqID uint32, body []byte) ([]byte, error) {
-	// TODO: Implement job cancellation
-	return nil, fmt.Errorf("CancelJob not yet implemented")
+	req := &sdkv1.CancelJobRequest{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		return nil, err
+	}
+
+	jobID := req.GetJobId()
+
+	// Find job
+	h.manager.jobsMutex.Lock()
+	job, ok := h.manager.jobs[jobID]
+	if !ok {
+		h.manager.jobsMutex.Unlock()
+		return nil, fmt.Errorf("job not found: %s", jobID)
+	}
+
+	// Check if job can be cancelled
+	if job.Status != agentv1.JobStatus_JOB_STATUS_PENDING &&
+	   job.Status != agentv1.JobStatus_JOB_STATUS_RUNNING {
+		h.manager.jobsMutex.Unlock()
+		return nil, fmt.Errorf("job cannot be cancelled, current status: %v", job.Status)
+	}
+
+	// Cancel the job context
+	if job.Cancel != nil {
+		job.Cancel()
+	}
+
+	// Update job status
+	job.Status = agentv1.JobStatus_JOB_STATUS_CANCELLED
+	job.UpdatedAt = time.Now().Unix()
+	h.manager.jobsMutex.Unlock()
+
+	// Return empty success response
+	return proto.Marshal(&sdkv1.InvokeResponse{})
 }
 
 func (h *rpcHandler) streamJob(ctx context.Context, reqID uint32, body []byte) ([]byte, error) {
-	// TODO: Implement job streaming
-	return nil, fmt.Errorf("StreamJob not yet implemented")
+	req := &sdkv1.JobStreamRequest{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		return nil, err
+	}
+
+	jobID := req.GetJobId()
+
+	// Find job
+	h.manager.jobsMutex.Lock()
+	job, ok := h.manager.jobs[jobID]
+	if !ok {
+		h.manager.jobsMutex.Unlock()
+		return nil, fmt.Errorf("job not found: %s", jobID)
+	}
+
+	// Create job event based on current status
+	event := &sdkv1.JobEvent{}
+
+	switch job.Status {
+	case agentv1.JobStatus_JOB_STATUS_PENDING:
+		event.Type = "progress"
+		event.Message = "Job is pending"
+		event.Progress = 0
+
+	case agentv1.JobStatus_JOB_STATUS_RUNNING:
+		event.Type = "progress"
+		event.Message = "Job is running"
+		event.Progress = job.Progress
+
+	case agentv1.JobStatus_JOB_STATUS_COMPLETED:
+		event.Type = "done"
+		event.Message = "Job completed successfully"
+		event.Payload = job.Result
+
+	case agentv1.JobStatus_JOB_STATUS_FAILED:
+		event.Type = "error"
+		event.Message = job.Error
+
+	case agentv1.JobStatus_JOB_STATUS_CANCELLED:
+		event.Type = "error"
+		event.Message = "Job was cancelled"
+
+	default:
+		event.Type = "error"
+		event.Message = fmt.Sprintf("Unknown job status: %v", job.Status)
+	}
+
+	h.manager.jobsMutex.Unlock()
+
+	// Return event
+	return proto.Marshal(event)
 }
 
 // convertToProtoFunctions converts LocalFunctionDescriptor to protobuf

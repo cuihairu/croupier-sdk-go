@@ -27,6 +27,11 @@ type Config struct {
 	// If set, this will be tried before the TCP address
 	IPCAddress string
 
+	// ExternalAddress is the address to report to external services
+	// Use this when the listening address differs from the external address
+	// (e.g., behind NAT, proxy, or when using port 0 for auto-assign)
+	ExternalAddress string
+
 	// TLS configuration
 	Insecure   bool
 	CAFile     string

@@ -36,13 +36,14 @@ func (f HandlerFunc) Handle(ctx context.Context, msgID uint32, reqID uint32, bod
 // Server represents a NNG transport server.
 // It uses the Rep protocol for handling request/response communication.
 type Server struct {
-	sock    mangos.Socket
-	config  *Config
-	handler Handler
-	mu      sync.RWMutex
-	closing chan struct{}
-	ready   chan struct{} // Closed when server is ready to accept connections
-	once    sync.Once
+	sock        mangos.Socket
+	config      *Config
+	handler     Handler
+	mu          sync.RWMutex
+	closing     chan struct{}
+	ready       chan struct{} // Closed when server is ready to accept connections
+	once        sync.Once
+	actualAddr  string        // Actual listening address (resolves :0 to assigned port)
 }
 
 // NewServer creates a new NNG server with the given configuration.
@@ -80,12 +81,24 @@ func NewServer(config *Config, handler Handler) (*Server, error) {
 		return nil, fmt.Errorf("listen %s: %w", listenAddr, err)
 	}
 
+	// Get actual listening address (resolves :0 to assigned port)
+	// Note: NNG doesn't provide a direct way to get the actual listening address
+	// when using port 0. Users should either:
+	// 1. Specify an explicit port in the config
+	// 2. Use SetActualAddress after server starts if they discover it via other means
+	// 3. Use a config.ExternalAddress if behind NAT/proxy
+	actualAddr := listenAddr
+	if config.ExternalAddress != "" {
+		actualAddr = config.ExternalAddress
+	}
+
 	return &Server{
-		sock:    sock,
-		config:  config,
-		handler: handler,
-		closing: make(chan struct{}),
-		ready:   make(chan struct{}), // Don't close yet - close in Serve()
+		sock:       sock,
+		config:     config,
+		handler:    handler,
+		closing:    make(chan struct{}),
+		ready:      make(chan struct{}), // Don't close yet - close in Serve()
+		actualAddr: actualAddr,
 	}, nil
 }
 
@@ -193,6 +206,22 @@ func (s *Server) IsClosed() bool {
 // Ready returns a channel that is closed when the server is ready to accept connections.
 func (s *Server) Ready() <-chan struct{} {
 	return s.ready
+}
+
+// GetActualAddress returns the actual listening address of the server.
+// For addresses with port :0, this returns the actual assigned port.
+func (s *Server) GetActualAddress() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.actualAddr
+}
+
+// SetActualAddress sets the actual listening address of the server.
+// This can be used when the address is discovered externally (e.g., via NAT traversal).
+func (s *Server) SetActualAddress(addr string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.actualAddr = addr
 }
 
 // listenAddrServer returns the appropriate listen address string for the server.

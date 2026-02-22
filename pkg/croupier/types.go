@@ -49,6 +49,30 @@ type LocalFunctionDescriptor struct {
 // Use []byte payloads to be language-agnostic and align with wire formats.
 type FunctionHandler func(ctx context.Context, payload []byte) ([]byte, error)
 
+// FunctionDescriptorProvider is an optional interface that function handlers can implement
+// to provide additional metadata about themselves.
+// Note: Since FunctionHandler is a function type, handlers cannot directly implement interfaces.
+// Users should use RegisterFunctionWithDescriptor to register functions with descriptors.
+type FunctionDescriptorProvider interface {
+	GetDescriptor() *LocalFunctionDescriptor
+}
+
+// HandlerWithDescriptor wraps a function handler with its descriptor
+type HandlerWithDescriptor struct {
+	Handler    FunctionHandler
+	Descriptor *LocalFunctionDescriptor
+}
+
+// Handle implements the FunctionHandler signature
+func (hwd *HandlerWithDescriptor) Handle(ctx context.Context, payload []byte) ([]byte, error) {
+	return hwd.Handler(ctx, payload)
+}
+
+// GetDescriptor returns the associated descriptor
+func (hwd *HandlerWithDescriptor) GetDescriptor() *LocalFunctionDescriptor {
+	return hwd.Descriptor
+}
+
 // ClientConfig holds configuration for the Croupier client
 type ClientConfig struct {
 	// Agent connection settings
