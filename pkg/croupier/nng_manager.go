@@ -2,8 +2,8 @@
 package croupier
 
 import (
-	"compress/gzip"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -227,7 +227,7 @@ func (n *NNGManager) RegisterWithAgent(ctx context.Context, serviceID, serviceVe
 	}
 
 	// Send to agent using transport layer
-	_, respBody, err := n.client.Call(ctx, protocol.MsgRegisterClientRequest, reqBytes)
+	_, respBody, err := n.client.Call(ctx, protocol.MsgRegisterLocalRequest, reqBytes)
 	if err != nil {
 		return "", err
 	}
@@ -239,10 +239,7 @@ func (n *NNGManager) RegisterWithAgent(ctx context.Context, serviceID, serviceVe
 	}
 
 	sessionID := resp.GetSessionId()
-
-	n.mu.Lock()
 	n.sessionID = sessionID
-	n.mu.Unlock()
 
 	// Start heartbeat after successful registration
 	n.startHeartbeat()
@@ -288,7 +285,14 @@ func (n *NNGManager) startLocalServer(ctx context.Context) error {
 		_ = server.Serve(ctx)
 	}()
 
-	// Get the actual address from the server (resolves port 0 to assigned port)
+	// Wait until server is ready before reading the resolved listen address.
+	select {
+	case <-server.Ready():
+	case <-time.After(2 * time.Second):
+		logDebugf("local server ready timeout, fallback to configured listen address")
+	}
+
+	// Get the actual address from the server (resolves port 0 to assigned port).
 	n.localAddr = server.GetActualAddress()
 	if n.localAddr == "" {
 		// Fallback to config address if server doesn't provide actual address
@@ -375,10 +379,10 @@ func (n *NNGManager) buildCapabilitiesManifest() (map[string]interface{}, error)
 	defer n.mu.RUnlock()
 
 	manifest := map[string]interface{}{
-		"type":       "function-provider",
-		"version":    "1.0",
-		"serviceID":  n.serviceID,
-		"functions":  []map[string]interface{}{},
+		"type":      "function-provider",
+		"version":   "1.0",
+		"serviceID": n.serviceID,
+		"functions": []map[string]interface{}{},
 	}
 
 	// Add function descriptors
@@ -417,7 +421,7 @@ func (n *NNGManager) startHeartbeat() {
 					SessionId: sessionID,
 				}
 				reqBytes, _ := proto.Marshal(req)
-				_, _, err := n.client.Call(context.Background(), protocol.MsgClientHeartbeatRequest, reqBytes)
+				_, _, err := n.client.Call(context.Background(), protocol.MsgHeartbeatLocalRequest, reqBytes)
 				if err != nil {
 					logDebugf("Agent heartbeat failed: %v", err)
 				}
@@ -592,7 +596,7 @@ func (h *rpcHandler) cancelJob(ctx context.Context, reqID uint32, body []byte) (
 
 	// Check if job can be cancelled
 	if job.Status != agentv1.JobStatus_JOB_STATUS_PENDING &&
-	   job.Status != agentv1.JobStatus_JOB_STATUS_RUNNING {
+		job.Status != agentv1.JobStatus_JOB_STATUS_RUNNING {
 		h.manager.jobsMutex.Unlock()
 		return nil, fmt.Errorf("job cannot be cancelled, current status: %v", job.Status)
 	}

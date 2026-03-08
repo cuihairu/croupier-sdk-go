@@ -233,9 +233,11 @@ func demonstrateClientLifecycle(client croupier.Client) error {
 func demonstrateInvokerInterface(ctx context.Context) error {
 	fmt.Println("\n=== 📞 调用器接口演示 (HTTP REST API) ===")
 
+	serverAddr := getenv("CROUPIER_SERVER_HTTP_ADDR", "localhost:18780")
+
 	// 创建HTTP调用器配置
 	invokerConfig := &croupier.InvokerConfig{
-		Address:        "localhost:18780", // HTTP REST API端口
+		Address:        serverAddr, // HTTP REST API端口
 		TimeoutSeconds: 30,
 		Insecure:       true,
 	}
@@ -484,14 +486,19 @@ func main() {
 	fmt.Println("🎮 Croupier Go SDK 综合功能演示")
 	fmt.Println("===============================================")
 
+	agentAddr := getenv("CROUPIER_AGENT_ADDR", "127.0.0.1:19091")
+	gameID := getenv("CROUPIER_GAME_ID", "comprehensive-example")
+	serviceID := getenv("CROUPIER_SERVICE_ID", "demo-service-go")
+	localListen := getenv("CROUPIER_LOCAL_LISTEN", "127.0.0.1:19102")
+
 	// 创建客户端配置
 	config := &croupier.ClientConfig{
-		AgentAddr:      "localhost:19090",
-		GameID:         "comprehensive-example",
+		AgentAddr:      agentAddr,
+		GameID:         gameID,
 		Env:            "development",
-		ServiceID:      "demo-service-go",
+		ServiceID:      serviceID,
 		ServiceVersion: "1.0.0",
-		LocalListen:    ":0", // 自动分配端口
+		LocalListen:    localListen,
 		TimeoutSeconds: 30,
 		Insecure:       true,
 	}
@@ -566,4 +573,11 @@ func main() {
 	fmt.Println("   🛡️ 优雅关闭处理")
 	fmt.Println("   🏷️ 强类型JSON处理")
 	fmt.Println("   📦 包管理和模块化")
+}
+
+func getenv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

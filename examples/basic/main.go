@@ -14,14 +14,19 @@ import (
 )
 
 func main() {
+	agentAddr := getenv("CROUPIER_AGENT_ADDR", "127.0.0.1:19091")
+	gameID := getenv("CROUPIER_GAME_ID", "example-game")
+	serviceID := getenv("CROUPIER_SERVICE_ID", "example-service")
+	localListen := getenv("CROUPIER_LOCAL_LISTEN", "127.0.0.1:19101")
+
 	// Create client configuration
 	config := &croupier.ClientConfig{
-		AgentAddr:      "localhost:19090",
-		GameID:         "example-game",
+		AgentAddr:      agentAddr,
+		GameID:         gameID,
 		Env:            "development",
-		ServiceID:      "example-service",
+		ServiceID:      serviceID,
 		ServiceVersion: "1.0.0",
-		LocalListen:    ":0", // Auto-assign port
+		LocalListen:    localListen,
 		TimeoutSeconds: 30,
 		Insecure:       true, // Use insecure gRPC for development
 	}
@@ -124,4 +129,11 @@ func registerFunctions(client croupier.Client) error {
 
 	fmt.Println("✅ All functions registered successfully")
 	return nil
+}
+
+func getenv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

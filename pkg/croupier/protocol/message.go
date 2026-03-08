@@ -59,6 +59,14 @@ const (
 	MsgJobEvent          = 0x030106 // Stream event (not request/response)
 	MsgCancelJobRequest  = 0x030107
 	MsgCancelJobResponse = 0x030108
+
+	// LocalControlService (0x05xx) - SDK local function registration to Agent
+	MsgRegisterLocalRequest   = 0x050101
+	MsgRegisterLocalResponse  = 0x050102
+	MsgHeartbeatLocalRequest  = 0x050103
+	MsgHeartbeatLocalResponse = 0x050104
+	MsgListLocalRequest       = 0x050105
+	MsgListLocalResponse      = 0x050106
 )
 
 // PutMsgID encodes a 24-bit MsgID into buf in big-endian order.
@@ -226,6 +234,18 @@ func MsgIDString(msgID uint32) string {
 		return "CancelJobRequest"
 	case MsgCancelJobResponse:
 		return "CancelJobResponse"
+	case MsgRegisterLocalRequest:
+		return "RegisterLocalRequest"
+	case MsgRegisterLocalResponse:
+		return "RegisterLocalResponse"
+	case MsgHeartbeatLocalRequest:
+		return "HeartbeatLocalRequest"
+	case MsgHeartbeatLocalResponse:
+		return "HeartbeatLocalResponse"
+	case MsgListLocalRequest:
+		return "ListLocalRequest"
+	case MsgListLocalResponse:
+		return "ListLocalResponse"
 	default:
 		return fmt.Sprintf("Unknown(0x%06X)", msgID)
 	}
