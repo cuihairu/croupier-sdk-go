@@ -179,6 +179,32 @@ func main() {
 }
 ```
 
+### 常驻游戏后台 Demo
+
+如果你要快速拉起一个可长期在线的示例 Provider，而不是只验证最小注册链路，优先使用：
+
+```bash
+go run ./examples/game_demo
+```
+
+`game_demo` 会常驻注册一组典型游戏后台函数，覆盖：
+
+- 玩家：`player.create` `player.get` `player.update` `player.delete` `player.list`
+- 订单：`order.create` `order.get` `order.update` `order.delete` `order.list`
+- 排行榜：`leaderboard.list` `leaderboard.upsert` `leaderboard.reset`
+- 背包：`inventory.list` `inventory.grant` `inventory.consume`
+- 邮件：`mail.send` `mail.list` `mail.claim`
+
+默认环境变量：
+
+```bash
+CROUPIER_AGENT_ADDR=127.0.0.1:19091
+CROUPIER_GAME_ID=demo-game
+CROUPIER_SERVICE_ID=game-demo-service
+CROUPIER_LOCAL_LISTEN=127.0.0.1:19103
+CROUPIER_ENV=development
+```
+
 ## 使用示例
 
 ### 函数描述符
@@ -226,6 +252,7 @@ SDK 实现两层注册系统：
 ```bash
 go build ./...
 go run examples/basic/main.go
+go run examples/game_demo/main.go
 ```
 
 **CI/生产（真实 gRPC）：**

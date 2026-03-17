@@ -10,6 +10,9 @@ on:
       - '.github/workflows/docker-examples.yml'
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: read
   packages: write
@@ -23,6 +26,8 @@ jobs:
         include:
           - example_dir: basic
             image_suffix: basic
+          - example_dir: game_demo
+            image_suffix: game-demo
           - example_dir: comprehensive
             image_suffix: comprehensive
           - example_dir: e2e
@@ -30,7 +35,7 @@ jobs:
           - example_dir: http_invoker_example
             image_suffix: http-invoker
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to GHCR

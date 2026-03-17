@@ -9,18 +9,21 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout SDK repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: sdk
 
     - name: Checkout Croupier main repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         repository: cuihairu/croupier
         path: croupier
