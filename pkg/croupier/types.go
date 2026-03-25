@@ -90,10 +90,12 @@ type ClientConfig struct {
 
 	// Local server settings
 	LocalListen string `json:"local_listen"` // local listener address
+	ControlAddr string `json:"control_addr"` // optional control-plane address for manifest upload
 
 	// Connection settings
-	TimeoutSeconds int  `json:"timeout_seconds"` // connection timeout in seconds
-	Insecure       bool `json:"insecure"`        // use insecure connection (for development)
+	TimeoutSeconds    int `json:"timeout_seconds"`     // connection timeout in seconds
+	HeartbeatInterval int `json:"heartbeat_interval"`  // heartbeat interval in seconds
+	Insecure          bool `json:"insecure"`           // use insecure connection (for development)
 
 	// TLS settings (when not insecure)
 	CAFile     string `json:"ca_file"`     // CA certificate file path
@@ -104,9 +106,22 @@ type ClientConfig struct {
 	// TLS verification settings (when not insecure)
 	InsecureSkipVerify bool `json:"insecure_skip_verify"` // skip TLS verification (not recommended)
 
+	// Authentication settings
+	AuthToken string            `json:"auth_token"` // Bearer token for authentication
+	Headers   map[string]string `json:"headers"`    // additional headers
+
 	// Logging settings
 	DisableLogging bool `json:"disable_logging"` // Disable all logging output
 	DebugLogging   bool `json:"debug_logging"`   // Enable debug logging
+	LogLevel       string `json:"log_level"`     // Log level: "DEBUG", "INFO", "WARN", "ERROR", "OFF"
+
+	// Resiliency settings
+	Reconnect *ReconnectConfig `json:"reconnect"` // reconnection configuration
+	Retry     *RetryConfig     `json:"retry"`     // retry configuration
+
+	// File transfer settings
+	EnableFileTransfer bool `json:"enable_file_transfer"` // enable file transfer
+	MaxFileSize        int  `json:"max_file_size"`        // max file size in bytes
 }
 
 // generateUUID generates a random UUID-like string using crypto/rand
@@ -119,14 +134,21 @@ func generateUUID() string {
 // DefaultClientConfig returns a default client configuration
 func DefaultClientConfig() *ClientConfig {
 	return &ClientConfig{
-		ServiceID:      fmt.Sprintf("go-sdk-%s", generateUUID()),
-		AgentAddr:      "localhost:19090",
-		Env:            "development",
-		ServiceVersion: "1.0.0",
-		TimeoutSeconds: 30,
-		Insecure:       true, // Default to insecure for development
-		ProviderLang:   "go",
-		ProviderSDK:    "croupier-go-sdk",
+		ServiceID:         fmt.Sprintf("go-sdk-%s", generateUUID()),
+		AgentAddr:         "localhost:19090",
+		Env:               "development",
+		ServiceVersion:    "1.0.0",
+		TimeoutSeconds:    30,
+		HeartbeatInterval: 60,
+		Insecure:          true, // Default to insecure for development
+		Headers:           map[string]string{},
+		ProviderLang:      "go",
+		ProviderSDK:       "croupier-go-sdk",
+		LogLevel:          "INFO",
+		Reconnect:         DefaultReconnectConfig(),
+		Retry:             DefaultRetryConfig(),
+		EnableFileTransfer: false,
+		MaxFileSize:        10 * 1024 * 1024,
 	}
 }
 

@@ -140,6 +140,7 @@ func (c *client) Connect(ctx context.Context) error {
 	// Create NNG manager
 	managerConfig := ManagerConfig{
 		AgentAddr:          c.config.AgentAddr,
+		ControlAddr:        c.config.ControlAddr,
 		LocalListen:        c.config.LocalListen,
 		TimeoutSeconds:     c.config.TimeoutSeconds,
 		Insecure:           c.config.Insecure,
@@ -147,6 +148,8 @@ func (c *client) Connect(ctx context.Context) error {
 		CertFile:           c.config.CertFile,
 		KeyFile:            c.config.KeyFile,
 		ServerName:         c.config.ServerName,
+		ProviderLang:       c.config.ProviderLang,
+		ProviderSDK:        c.config.ProviderSDK,
 		InsecureSkipVerify: c.config.InsecureSkipVerify,
 	}
 

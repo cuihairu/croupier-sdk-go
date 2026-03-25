@@ -10,8 +10,11 @@ func TestNewManager(t *testing.T) {
 	t.Parallel()
 
 	config := ManagerConfig{
-		AgentAddr:   "localhost:19090",
-		LocalListen: "127.0.0.1:0",
+		AgentAddr:    "localhost:19090",
+		ControlAddr:  "localhost:19100",
+		LocalListen:  "127.0.0.1:0",
+		ProviderLang: "golang",
+		ProviderSDK:  "custom-go-sdk",
 	}
 
 	handlers := map[string]FunctionHandler{
@@ -42,10 +45,14 @@ func TestNewNNGManager(t *testing.T) {
 	t.Parallel()
 
 	config := ClientConfig{
-		ServiceID:      "test-service",
-		ServiceVersion: "1.0.0",
-		AgentAddr:      "localhost:19090",
-		Insecure:       true,
+		ServiceID:         "test-service",
+		ServiceVersion:    "1.0.0",
+		AgentAddr:         "localhost:19090",
+		ControlAddr:       "localhost:19100",
+		HeartbeatInterval: 15,
+		ProviderLang:      "golang",
+		ProviderSDK:       "custom-go-sdk",
+		Insecure:          true,
 	}
 
 	handlers := map[string]FunctionHandler{
@@ -60,6 +67,23 @@ func TestNewNNGManager(t *testing.T) {
 	}
 	if mgr == nil {
 		t.Fatal("NewNNGManager returned nil")
+	}
+
+	nngMgr, ok := mgr.(*NNGManager)
+	if !ok {
+		t.Fatal("NewNNGManager did not return *NNGManager")
+	}
+	if nngMgr.config.HeartbeatInterval != 15 {
+		t.Fatalf("expected HeartbeatInterval 15, got %d", nngMgr.config.HeartbeatInterval)
+	}
+	if nngMgr.config.ControlAddr != "localhost:19100" {
+		t.Fatalf("expected ControlAddr localhost:19100, got %q", nngMgr.config.ControlAddr)
+	}
+	if nngMgr.config.ProviderLang != "golang" {
+		t.Fatalf("expected ProviderLang golang, got %q", nngMgr.config.ProviderLang)
+	}
+	if nngMgr.config.ProviderSDK != "custom-go-sdk" {
+		t.Fatalf("expected ProviderSDK custom-go-sdk, got %q", nngMgr.config.ProviderSDK)
 	}
 }
 
@@ -136,6 +160,9 @@ func TestManagerConfig_Defaults(t *testing.T) {
 	if config.TimeoutSeconds != 0 {
 		t.Errorf("expected default TimeoutSeconds 0, got %d", config.TimeoutSeconds)
 	}
+	if config.HeartbeatInterval != 0 {
+		t.Errorf("expected default HeartbeatInterval 0, got %d", config.HeartbeatInterval)
+	}
 }
 
 func TestClientConfig_DefaultValues(t *testing.T) {
@@ -153,5 +180,70 @@ func TestClientConfig_DefaultValues(t *testing.T) {
 
 	if config.AgentAddr == "" {
 		t.Error("expected AgentAddr to be set")
+	}
+}
+
+func TestNNGManager_CapabilitiesAddress(t *testing.T) {
+	t.Parallel()
+
+	manager := &NNGManager{
+		config: nngManagerConfig{
+			AgentAddr:   "localhost:19090",
+			ControlAddr: "localhost:19100",
+		},
+	}
+
+	if got := manager.capabilitiesAddress(); got != "localhost:19100" {
+		t.Fatalf("expected control address, got %q", got)
+	}
+
+	manager.config.ControlAddr = ""
+	if got := manager.capabilitiesAddress(); got != "localhost:19090" {
+		t.Fatalf("expected agent address fallback, got %q", got)
+	}
+}
+
+func TestNNGManager_BuildProviderMeta(t *testing.T) {
+	t.Parallel()
+
+	manager := &NNGManager{
+		config: nngManagerConfig{
+			ProviderLang: "golang",
+			ProviderSDK:  "custom-go-sdk",
+		},
+		serviceID:      "svc-1",
+		serviceVersion: "2.0.0",
+	}
+
+	provider := manager.buildProviderMeta()
+	if provider.GetId() != "svc-1" {
+		t.Fatalf("expected provider id svc-1, got %q", provider.GetId())
+	}
+	if provider.GetVersion() != "2.0.0" {
+		t.Fatalf("expected provider version 2.0.0, got %q", provider.GetVersion())
+	}
+	if provider.GetLang() != "golang" {
+		t.Fatalf("expected provider lang golang, got %q", provider.GetLang())
+	}
+	if provider.GetSdk() != "custom-go-sdk" {
+		t.Fatalf("expected provider sdk custom-go-sdk, got %q", provider.GetSdk())
+	}
+}
+
+func TestNNGManager_BuildProviderMeta_Defaults(t *testing.T) {
+	t.Parallel()
+
+	manager := &NNGManager{
+		config:         nngManagerConfig{},
+		serviceID:      "svc-1",
+		serviceVersion: "1.0.0",
+	}
+
+	provider := manager.buildProviderMeta()
+	if provider.GetLang() != "go" {
+		t.Fatalf("expected default provider lang go, got %q", provider.GetLang())
+	}
+	if provider.GetSdk() != "croupier-go-sdk" {
+		t.Fatalf("expected default provider sdk croupier-go-sdk, got %q", provider.GetSdk())
 	}
 }

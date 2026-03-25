@@ -31,11 +31,17 @@ type ManagerConfig struct {
 	// AgentAddr is the address of the Croupier agent
 	AgentAddr string
 
+	// ControlAddr is the optional control-plane address for manifest upload
+	ControlAddr string
+
 	// LocalListen is the address to listen on for local RPC calls
 	LocalListen string
 
 	// TimeoutSeconds is the timeout for RPC calls
 	TimeoutSeconds int
+
+	// HeartbeatInterval is the heartbeat interval in seconds
+	HeartbeatInterval int
 
 	// Insecure disables TLS
 	Insecure bool
@@ -52,6 +58,12 @@ type ManagerConfig struct {
 	// ServerName is the server name for TLS verification
 	ServerName string
 
+	// ProviderLang is the language reported via ProviderMeta
+	ProviderLang string
+
+	// ProviderSDK is the SDK identifier reported via ProviderMeta
+	ProviderSDK string
+
 	// InsecureSkipVerify skips TLS verification (not recommended)
 	InsecureSkipVerify bool
 }
@@ -60,13 +72,17 @@ type ManagerConfig struct {
 func NewManager(config ManagerConfig, handlers map[string]FunctionHandler) (Manager, error) {
 	clientConfig := ClientConfig{
 		AgentAddr:          config.AgentAddr,
+		ControlAddr:        config.ControlAddr,
 		LocalListen:        config.LocalListen,
 		TimeoutSeconds:     config.TimeoutSeconds,
+		HeartbeatInterval:  config.HeartbeatInterval,
 		Insecure:           config.Insecure,
 		CAFile:             config.CAFile,
 		CertFile:           config.CertFile,
 		KeyFile:            config.KeyFile,
 		ServerName:         config.ServerName,
+		ProviderLang:       config.ProviderLang,
+		ProviderSDK:        config.ProviderSDK,
 		InsecureSkipVerify: config.InsecureSkipVerify,
 	}
 	return NewNNGManager(clientConfig, handlers)

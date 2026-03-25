@@ -26,13 +26,17 @@ import (
 type nngManagerConfig struct {
 	AgentAddr          string
 	AgentIPCAddr       string
+	ControlAddr        string
 	LocalListen        string
 	TimeoutSeconds     int
+	HeartbeatInterval  int
 	Insecure           bool
 	CAFile             string
 	CertFile           string
 	KeyFile            string
 	ServerName         string
+	ProviderLang       string
+	ProviderSDK        string
 	InsecureSkipVerify bool
 }
 
@@ -92,13 +96,17 @@ func NewNNGManager(config ClientConfig, handlers map[string]FunctionHandler) (Ma
 		config: nngManagerConfig{
 			AgentAddr:          config.AgentAddr,
 			AgentIPCAddr:       config.AgentIPCAddr,
+			ControlAddr:        config.ControlAddr,
 			LocalListen:        config.LocalListen,
 			TimeoutSeconds:     config.TimeoutSeconds,
+			HeartbeatInterval:  config.HeartbeatInterval,
 			Insecure:           config.Insecure,
 			CAFile:             config.CAFile,
 			CertFile:           config.CertFile,
 			KeyFile:            config.KeyFile,
 			ServerName:         config.ServerName,
+			ProviderLang:       config.ProviderLang,
+			ProviderSDK:        config.ProviderSDK,
 			InsecureSkipVerify: config.InsecureSkipVerify,
 		},
 		handlers: handlers,
@@ -316,17 +324,14 @@ func (n *NNGManager) stopLocalServer() {
 
 // registerCapabilities registers capabilities with the control service
 func (n *NNGManager) registerCapabilities(ctx context.Context) error {
-	// Check if we have a client connection
-	if n.client == nil {
-		return fmt.Errorf("not connected to agent")
+	capabilityClient, cleanup, err := n.capabilitiesClient()
+	if err != nil {
+		return err
 	}
+	defer cleanup()
 
-	// Build provider metadata
-	provider := &agentv1.ProviderMeta{
-		Id:      n.serviceID,
-		Version: n.serviceVersion,
-		Lang:    "go",
-		Sdk:     "croupier-go",
+	if capabilityClient == nil {
+		return fmt.Errorf("not connected to agent")
 	}
 
 	// Build capabilities manifest from registered functions
@@ -347,7 +352,7 @@ func (n *NNGManager) registerCapabilities(ctx context.Context) error {
 
 	// Build request
 	req := &agentv1.RegisterCapabilitiesRequest{
-		Provider:       provider,
+		Provider:       n.buildProviderMeta(),
 		ManifestJsonGz: manifestBuf.Bytes(),
 	}
 
@@ -358,7 +363,7 @@ func (n *NNGManager) registerCapabilities(ctx context.Context) error {
 	}
 
 	// Send to agent using transport layer
-	_, respBody, err := n.client.Call(ctx, protocol.MsgRegisterCapabilitiesReq, reqBytes)
+	_, respBody, err := capabilityClient.Call(ctx, protocol.MsgRegisterCapabilitiesReq, reqBytes)
 	if err != nil {
 		return fmt.Errorf("send capabilities registration: %w", err)
 	}
@@ -371,6 +376,57 @@ func (n *NNGManager) registerCapabilities(ctx context.Context) error {
 
 	logInfof("Successfully registered capabilities for service: %s", n.serviceID)
 	return nil
+}
+
+func (n *NNGManager) buildProviderMeta() *agentv1.ProviderMeta {
+	lang := n.config.ProviderLang
+	if lang == "" {
+		lang = "go"
+	}
+
+	sdk := n.config.ProviderSDK
+	if sdk == "" {
+		sdk = "croupier-go-sdk"
+	}
+
+	return &agentv1.ProviderMeta{
+		Id:      n.serviceID,
+		Version: n.serviceVersion,
+		Lang:    lang,
+		Sdk:     sdk,
+	}
+}
+
+func (n *NNGManager) capabilitiesAddress() string {
+	if n.config.ControlAddr != "" {
+		return n.config.ControlAddr
+	}
+	return n.config.AgentAddr
+}
+
+func (n *NNGManager) capabilitiesClient() (*transport.Client, func(), error) {
+	if n.client == nil {
+		return nil, func() {}, fmt.Errorf("not connected to agent")
+	}
+
+	if n.config.ControlAddr == "" || n.config.ControlAddr == n.config.AgentAddr {
+		return n.client, func() {}, nil
+	}
+
+	client, err := transport.NewClient(&transport.Config{
+		Address:     n.config.ControlAddr,
+		Insecure:    n.config.Insecure,
+		CAFile:      n.config.CAFile,
+		CertFile:    n.config.CertFile,
+		KeyFile:     n.config.KeyFile,
+		ServerName:  n.config.ServerName,
+		SendTimeout: time.Duration(n.config.TimeoutSeconds) * time.Second,
+	})
+	if err != nil {
+		return nil, func() {}, fmt.Errorf("connect control address %s: %w", n.config.ControlAddr, err)
+	}
+
+	return client, func() { client.Close() }, nil
 }
 
 // buildCapabilitiesManifest builds a capabilities manifest from registered functions
@@ -409,7 +465,11 @@ func (n *NNGManager) startHeartbeat() {
 	serviceID := n.serviceID
 
 	go func() {
-		ticker := time.NewTicker(30 * time.Second)
+		interval := time.Duration(n.config.HeartbeatInterval) * time.Second
+		if interval <= 0 {
+			interval = 30 * time.Second
+		}
+		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for {
 			select {

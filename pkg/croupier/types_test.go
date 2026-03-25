@@ -392,8 +392,16 @@ func TestDefaultClientConfig_comprehensive(t *testing.T) {
 			t.Errorf("TimeoutSeconds = %d, want 30", config.TimeoutSeconds)
 		}
 
+		if config.HeartbeatInterval != 60 {
+			t.Errorf("HeartbeatInterval = %d, want 60", config.HeartbeatInterval)
+		}
+
 		if !config.Insecure {
 			t.Error("Insecure should be true by default")
+		}
+
+		if config.Headers == nil {
+			t.Error("Headers should be initialized")
 		}
 
 		if config.ProviderLang != "go" {
@@ -402,6 +410,22 @@ func TestDefaultClientConfig_comprehensive(t *testing.T) {
 
 		if config.ProviderSDK != "croupier-go-sdk" {
 			t.Errorf("ProviderSDK = %s, want croupier-go-sdk", config.ProviderSDK)
+		}
+
+		if config.LogLevel != "INFO" {
+			t.Errorf("LogLevel = %s, want INFO", config.LogLevel)
+		}
+
+		if config.Reconnect == nil {
+			t.Error("Reconnect should be initialized")
+		}
+
+		if config.Retry == nil {
+			t.Error("Retry should be initialized")
+		}
+
+		if config.MaxFileSize != 10*1024*1024 {
+			t.Errorf("MaxFileSize = %d, want 10485760", config.MaxFileSize)
 		}
 	})
 
