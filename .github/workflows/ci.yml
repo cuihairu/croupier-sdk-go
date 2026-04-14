@@ -15,27 +15,32 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
     - name: Checkout SDK repository
+      timeout-minutes: 3
       uses: actions/checkout@v5
       with:
         path: sdk
 
     - name: Checkout Croupier main repository
+      timeout-minutes: 3
       uses: actions/checkout@v5
       with:
         repository: cuihairu/croupier
         path: croupier
 
     - name: Setup Go
-      uses: actions/setup-go@v5
+      timeout-minutes: 5
+      uses: actions/setup-go@v6
       with:
         go-version: '1.25'
         cache: true
         cache-dependency-path: sdk/go.sum
 
     - name: Download dependencies
+      timeout-minutes: 5
       working-directory: ./sdk
       run: |
         go mod tidy
@@ -43,10 +48,12 @@ jobs:
 
     # Proto 代码由 croupier-proto 的 sync-sdks workflow 同步，无需本地生成
     - name: Build SDK
+      timeout-minutes: 15
       working-directory: ./sdk
       run: go build -v ./...
 
     - name: Run tests with coverage
+      timeout-minutes: 10
       working-directory: ./sdk
       run: |
         # Run tests for main package (skip integration tests that require running agent)
@@ -55,7 +62,8 @@ jobs:
         go test -v -race -tags=!integration ./pkg/...
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v5
+      timeout-minutes: 3
+      uses: codecov/codecov-action@v6
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: sdk/coverage.out
@@ -63,5 +71,6 @@ jobs:
         fail_ci_if_error: ${{ github.event_name != 'pull_request' }}
 
     - name: Build examples
+      timeout-minutes: 15
       working-directory: ./sdk
       run: go build -v ./examples/...

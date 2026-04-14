@@ -10,20 +10,24 @@ permissions:
 
 env:
   SDK_VERSION_BASE: "0.1"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   version:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     outputs:
       version: ${{ steps.version.outputs.version }}
       version_tag: ${{ steps.version.outputs.version_tag }}
     steps:
-    - uses: actions/checkout@v4
+    - timeout-minutes: 3
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
     - name: Generate Version
       id: version
+      timeout-minutes: 2
       run: |
         DATE=$(date +%Y%m%d)
         COMMIT_SHORT=$(git rev-parse --short HEAD)
@@ -39,24 +43,31 @@ jobs:
   build:
     needs: version
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - timeout-minutes: 3
+        uses: actions/checkout@v5
         with:
           submodules: false
-      - uses: actions/setup-go@v5
+      - timeout-minutes: 5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.25'
           cache: true
       # Proto 代码由 croupier-proto 的 sync-sdks workflow 同步，无需本地生成
       - name: Go mod download
+        timeout-minutes: 5
         run: go mod download
       - name: Run tests
+        timeout-minutes: 10
         run: go test ./... -v -cover
       - name: Build
+        timeout-minutes: 15
         run: go build ./...
 
       # Package the SDK
       - name: Create package
+        timeout-minutes: 10
         run: |
           mkdir -p dist
 
@@ -71,11 +82,12 @@ jobs:
           # Create examples archive
           tar -czf dist/croupier-sdk-go-examples-${{ needs.version.outputs.version }}.tar.gz bin/
 
-          echo "📦 Packages created:"
+          echo "Packages created:"
           ls -la dist/
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        timeout-minutes: 3
+        uses: actions/upload-artifact@v7
         with:
           name: croupier-sdk-go-packages
           path: dist/*
@@ -84,11 +96,14 @@ jobs:
   release:
     needs: [version, build]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        timeout-minutes: 3
+        uses: actions/checkout@v5
 
       - name: Delete existing nightly release and tag
+        timeout-minutes: 2
         run: |
           # Delete existing release if it exists
           gh release delete nightly --yes || true
@@ -98,44 +113,47 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        timeout-minutes: 3
+        uses: actions/download-artifact@v8
         with:
           name: croupier-sdk-go-packages
           path: release_assets/
 
       - name: Generate Release Notes
+        timeout-minutes: 2
         run: |
           cat << EOF > RELEASE_NOTES.md
           # Croupier Go SDK Nightly Build ${{ needs.version.outputs.version }}
 
-          ## 📦 Available Packages
+          ## Available Packages
 
-          - 📦 Source: \`croupier-sdk-go-*.tar.gz\`
-          - 📦 Examples: \`croupier-sdk-go-examples-*.tar.gz\`
+          - Source: `croupier-sdk-go-*.tar.gz`
+          - Examples: `croupier-sdk-go-examples-*.tar.gz`
 
-          ## 🛠️ Build Information
+          ## Build Information
           - Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           - Commit: ${{ github.sha }}
           - Workflow: ${{ github.run_id }}
           - Version Tag: ${{ needs.version.outputs.version_tag }}
 
           ---
-          ⚠️ **This is a nightly build and may be unstable.** For stable releases, please use the official tagged releases.
+          **This is a nightly build and may be unstable.** For stable releases, please use the official tagged releases.
 
           ## Installation
 
-          \`\`\`bash
+          ```bash
           # Download and extract
           tar -xzf croupier-sdk-go-${{ needs.version.outputs.version }}.tar.gz
           cd croupier-sdk-go
 
           # Install
           go install ./...
-          \`\`\`
+          ```
           EOF
 
       - name: Create Nightly Release
-        uses: softprops/action-gh-release@v2
+        timeout-minutes: 10
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.version.outputs.version_tag }}
           name: "Croupier Go SDK Nightly ${{ needs.version.outputs.version }}"

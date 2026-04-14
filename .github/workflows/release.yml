@@ -9,43 +9,56 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - timeout-minutes: 3
+        uses: actions/checkout@v5
         with:
           submodules: false
 
-      - uses: actions/setup-go@v5
+      - timeout-minutes: 5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.25'
 
       - name: Add Go bin to PATH
+        timeout-minutes: 1
         run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Install protoc
+        timeout-minutes: 5
         run: |
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler
 
       - name: Generate proto (CI mode)
+        timeout-minutes: 10
         env:
           CROUPIER_CI_BUILD: "1"
         run: go run ./scripts/generate_proto.go
 
       - name: Go mod download
+        timeout-minutes: 5
         run: go mod download
 
       - name: Run tests
+        timeout-minutes: 10
         run: go test ./...
 
       - name: Build
+        timeout-minutes: 15
         run: |
           mkdir -p dist
           go build -o dist/croupier-sdk-go ./...
 
       - name: Package
+        timeout-minutes: 5
         run: |
           mkdir -p artifacts
           tar -czf "artifacts/croupier-go-sdk-${GITHUB_REF_NAME}.tar.gz" \
@@ -57,7 +70,8 @@ jobs:
             .
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        timeout-minutes: 10
+        uses: softprops/action-gh-release@v3
         with:
           files: artifacts/*
           fail_on_unmatched_files: true
