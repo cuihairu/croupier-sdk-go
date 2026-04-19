@@ -72,9 +72,9 @@ fmt.Printf("Result: %s\n", result)
 | 功能 | HTTP Invoker | gRPC Invoker |
 |------|--------------|--------------|
 | ✅ 同步调用 (Invoke) | 支持 | 支持 |
-| ⚠️  异步作业 (StartJob) | 部分支持 | 完全支持 |
-| ❌ 作业流式传输 (StreamJob) | 不支持 | 支持 |
-| ❌ 取消作业 (CancelJob) | 不支持 | 支持 |
+| ⚠️  异步任务 (StartTask) | 部分支持 | 完全支持 |
+| ❌ 任务流式传输 (StreamTask) | 不支持 | 支持 |
+| ❌ 取消任务 (CancelTask) | 不支持 | 支持 |
 | ✅ Schema 验证 (SetSchema) | 支持 | 支持 |
 
 **注意：** 如需完整功能（异步作业、流式传输等），请继续使用 gRPC invoker 并连接到支持 gRPC 的 server。
@@ -109,7 +109,7 @@ fmt.Printf("Result: %s\n", result)
    ```
 
 3. **处理异步功能：**
-   - 如果使用了 `StreamJob` 或 `CancelJob`，需要添加错误处理
+   - 如果使用了 `StreamTask` 或 `CancelTask`，需要添加错误处理
    - 或者继续使用 gRPC invoker（需要 server 支持）
 
 ## 常见问题

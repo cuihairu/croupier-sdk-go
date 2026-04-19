@@ -237,17 +237,17 @@ invoker.Connect()
 // 调用函数
 result := invoker.Invoke("player.get", `{"player_id":"123"}`)
 
-// 启动异步作业
-jobID := invoker.StartJob("item.create", `{"type":"sword"}`)
+// 启动异步任务
+taskID := invoker.StartTask("item.create", `{"type":"sword"}`)
 
-// 流式获取作业事件
-eventCh := invoker.StreamJob(jobID)
+// 流式获取任务事件
+eventCh := invoker.StreamTask(taskID)
 for event := range eventCh {
     fmt.Printf("事件: %s, 数据: %s\n", event.EventType, event.Payload)
 }
 
-// 取消作业
-invoker.CancelJob(jobID)
+// 取消任务
+invoker.CancelTask(taskID)
 
 // 关闭
 invoker.Close()
@@ -264,7 +264,6 @@ config := &croupier.ClientConfig{
     // === 连接配置 ===
     AgentAddr:  "127.0.0.1:19090",  // Agent 地址
     ControlAddr: "127.0.0.1:18080", // Control 平台地址（可选）
-    LocalAddr:   "127.0.0.1:0",     // 本地监听地址
 
     // === 身份配置 ===
     ServiceID:      "my-service",  // 服务标识（必填）

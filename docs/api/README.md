@@ -38,7 +38,6 @@ type Handler func(ctx context.Context, payload string) (string, error)
 type ClientConfig struct {
     // 连接配置
     AgentAddr      string // Agent gRPC 地址，默认 "localhost:19090"
-    LocalListen    string // 本地服务器地址
     TimeoutSeconds int    // 连接超时（秒），默认 30
     Insecure       bool   // 使用不安全的 gRPC 连接
 
@@ -236,16 +235,16 @@ type Invoker interface {
     Invoke(ctx context.Context, functionID string, payload string, opts ...InvokeOption) (string, error)
 
     // 启动异步任务
-    StartJob(ctx context.Context, functionID string, payload string, opts ...InvokeOption) (string, error)
+    StartTask(ctx context.Context, functionID string, payload string, opts ...InvokeOption) (string, error)
 
     // 流式获取任务事件
-    StreamJob(ctx context.Context, jobID string) (<-chan JobEvent, error)
+    StreamTask(ctx context.Context, taskID string) (<-chan TaskEvent, error)
 
     // 取消任务
-    CancelJob(ctx context.Context, jobID string) error
+    CancelTask(ctx context.Context, taskID string) error
 
     // 获取任务结果
-    GetJobResult(ctx context.Context, jobID string) (*JobResult, error)
+    GetTaskResult(ctx context.Context, taskID string) (*TaskResult, error)
 }
 ```
 
@@ -282,12 +281,12 @@ result, err := invoker.Invoke(ctx, "player.ban",
 
 ---
 
-### JobEvent
+### TaskEvent
 
 任务事件。
 
 ```go
-type JobEvent struct {
+type TaskEvent struct {
     Type     string // 事件类型: "progress"|"log"|"done"|"error"
     Message  string // 事件消息
     Progress int    // 进度 0-100（仅 progress 类型）
@@ -295,26 +294,26 @@ type JobEvent struct {
 }
 ```
 
-### JobResult
+### TaskResult
 
 任务结果。
 
 ```go
-type JobResult struct {
-    JobID   string    // 任务 ID
-    Status  JobStatus // 任务状态
-    Payload []byte    // 结果数据
-    Error   string    // 错误信息
+type TaskResult struct {
+    TaskID  string     // 任务 ID
+    Status  TaskStatus // 任务状态
+    Payload []byte     // 结果数据
+    Error   string     // 错误信息
 }
 
-type JobStatus int
+type TaskStatus int
 
 const (
-    JobStatusPending   JobStatus = 1
-    JobStatusRunning   JobStatus = 2
-    JobStatusCompleted JobStatus = 3
-    JobStatusFailed    JobStatus = 4
-    JobStatusCancelled JobStatus = 5
+    TaskStatusPending   TaskStatus = 1
+    TaskStatusRunning   TaskStatus = 2
+    TaskStatusCompleted TaskStatus = 3
+    TaskStatusFailed    TaskStatus = 4
+    TaskStatusCancelled TaskStatus = 5
 )
 ```
 
@@ -581,7 +580,7 @@ func main() {
     log.Printf("调用结果: %s", result)
 
     // 异步任务
-    jobID, err := invoker.StartJob(ctx, "player.export",
+    taskID, err := invoker.StartTask(ctx, "player.export",
         `{"format": "csv"}`,
     )
     if err != nil {
@@ -589,7 +588,7 @@ func main() {
     }
 
     // 监听任务事件
-    events, err := invoker.StreamJob(ctx, jobID)
+    events, err := invoker.StreamTask(ctx, taskID)
     if err != nil {
         log.Fatal(err)
     }
